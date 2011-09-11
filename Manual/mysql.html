@@ -1,0 +1,162 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+
+<head>
+  <title>YAF-Datalayers:MySQL</title>
+  <meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+
+  <!-- **** layout stylesheet **** -->
+  <link rel="stylesheet" type="text/css" href="style.css" />
+
+  <!-- **** colour scheme stylesheet **** -->
+  <link rel="stylesheet" type="text/css" href="colour.css" />
+
+  <style type="text/css">
+  .style1 {
+	  background-color: #FFFFFF;
+  }
+  </style>
+
+</head>
+
+<body>
+  <div id="main">
+    <div id="links">
+      <!-- **** INSERT LINKS HERE **** -->    
+    </div>
+    <div id="logo"><h1>YET ANOTHER FORUM EXTRA DATA LAYERS</h1></div>
+    <div id="content">
+      <div id="menu">
+        <ul>        
+          <li><a href="index.html">Main</a></li>
+          <li><a id="selected"  href="mysql.html">MySQL</a></li>
+          <li><a href="postgresql.html">PostgreSQL</a></li>
+          <li><a href="firebird.html">Firebird</a></li>          
+          <li><a href="configuration.html">CONFIGURATION</a></li>
+          <li><a href="contact.html">CONTACTS</a></li>       
+        </ul>
+      </div>
+         <div id="column1">
+  
+        <div class="sidebaritem">
+          <div class="sbihead">
+            <h1>Links</h1>
+          </div>
+          <div class="sbilinks">
+            <!-- **** INSERT ADDITIONAL LINKS HERE **** -->
+            <ul>
+              <li><a href="http://www.yetanotherforum.net">YAF web site</a></li>
+              <li><a href="http://www.forum.yetanotherforum.net">YAF Support Forum</a></li>
+              <li><a href="http://www.sourceforge.net/yaf-datalayers">Extra data layers</a></li>
+             </ul>
+          </div>
+        </div>
+        <div class="sidebaritem">
+          <div class="sbihead">
+            <h1>other information</h1>
+          </div>
+          <div class="sbicontent">
+            <!-- **** INSERT OTHER INFORMATION HERE **** -->
+            <p>
+              The data layers are not an official part of Yet Another Forum. 
+              No liabilities as to support, you use the software at your own risk.               
+            </p>
+          </div>
+        </div>
+      </div>
+      <div id="column2">     
+      <h1>MySQL System Requirements</h1>
+          <blockquote>
+             <p>Database: The minimal version is 5.30.</p>
+              <p>OS: Windows XP,Windows Vista,Windows Server 2003,Windows Server 2008.</p>
+          </blockquote>  
+
+        <h1>
+		My SQL INSTALLATION
+			  </h1>
+        <!-- **** INSERT PAGE CONTENT HERE **** -->
+        <h2>STEP 1.Download and unpack archive.</h2>
+        <ol>
+          <li>
+       Download the archive from <a href="http://yaf-datalayers.sourceforge.net">here</a> . The files named like <strong>yaf_mysql_</strong>193.
+	Releases like <strong>yaf_mysql_193-r1...</strong> - are simply bugfixes to 
+		 main release&nbsp; and contain 
+	all the files from above version and a separate upgrade file and/or folder. </li>	
+ <li>
+   Unzip the entire archive to to a folder you want to run YAF in on your web 
+	server.
+</li>    
+ </ol>        
+        <h2>STEP 2. INSTALL/CHECK MySQL DB SETTINGS.</h2>
+        	It supports MySQL  5.0.30 incl. 5.1.x. 
+		 
+
+	 <blockquote>
+ Warning! Keep in mind that in versions 5.1.x&nbsp; 
+	you should grant you user access to mysql db.
+	If you receive error like:	
+	SELECT command denied to user &#39;yafuser&#39;@&#39;localhost&#39; for table &#39;proc&#39; 
+		 use 5.0&nbsp; MySQL version or give your user access to mysql database. 
+		 In latest data layer options for 5.1.x i<span class="style1">n</span> 
+		 connection string in db.config you can use option<font COLOR="#008000" SIZE="2">
+		 <br />
+		 Use Procedure Bodies=false 		 <p>&nbsp;</p>
+		 </font>
+     	</blockquote>
+     	<p>Required connection string settings: 
+       Allow User Variables=True;(for all versions but it treated in data layer code.)
+       Use Procedure Bodies=false;(for 5.1)
+       Treat Tiny As Boolean=true;(provider default settings)</p>
+       
+		  <br />
+		  &nbsp;
+		  Create new database yafnet(by default). All rights for your database should 
+	be granted to yafuser (by default) to simplify the install process.
+	UTF-8 is surely supported and is default. <br />
+&nbsp;
+	The created user should have access to information_schema select and 
+		  references priviliges and you should grant him all yafnet db 
+	priv. too. After installing you can drop a part of privileges.<br />
+&nbsp;
+	Change db.config and app.config to your preferred settings. <br />
+
+	<br />
+		  Defaults:&nbsp;
+		<ul>
+	<li>user: yafuser  </li>
+	<li>password : yaf123 </li>
+	<li>database  : yafnet </li>
+	  </ul>
+	
+	
+         <h2>STEP 4a. COMPILE YAF from source files (Optional)</h2> 
+       If you have chosen this option than omit Step 4b. 
+ <p>
+          Use <em>/Source</em> folder files. Replace all other files in included folders.        
+		  Distribution folder contains ready code to simply replace it in a 
+		  ready 
+		  site.
+		  		  Source folder contains source code. 
+			  </p>			
+			<hr></hr> 
+        
+          <h2>STEP 4b. INSTALL YAF MYSQL data layer.</h2>
+          If you have chosen this option than omit Step 4b.
+
+        <ol>
+          <li>To use the data layer on existing site, simply add or replace files in 
+		  <em>/Distribution</em> folder in respective folders. This contains 
+		  ready files.</li>
+          <li>Ajust your <em>db.config</em> file settings.</li>
+        </ol>        
+       <hr></hr>
+        <h2>Follow General YAF compilation and install directions</h2>        
+      
+    </div>
+    </div> 
+    <div id="footer">
+      copyright &copy; 2009 vzrus | <a href="#">email@emailaddress</a> | <a href="http://validator.w3.org/check?uri=referer">XHTML 1.1</a> | <a href="http://jigsaw.w3.org/css-validator/check/referer">CSS</a> | <a href="http://www.dcarter.co.uk">design by dcarter</a>
+    </div>
+   </div>  
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+
+<head>
+  <title>YAF-Datalayers:PostgreSQL</title>
+  <meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+
+  <!-- **** layout stylesheet **** -->
+  <link rel="stylesheet" type="text/css" href="style.css" />
+
+  <!-- **** colour scheme stylesheet **** -->
+  <link rel="stylesheet" type="text/css" href="colour.css" />
+
+</head>
+
+<body>
+  <div id="main">
+    <div id="links">
+      <!-- **** INSERT LINKS HERE **** -->    
+    </div>
+    <div id="logo"><h1>YET ANOTHER FORUM EXTRA DATA LAYERS</h1></div>
+    <div id="content">
+      <div id="menu">
+        <ul>        
+          <li><a href="index.html">Main</a></li>
+          <li><a href="mysql.html">MySQL</a></li>
+          <li><a id="selected" href="postgresql.html">PostgreSQL</a></li>
+          <li><a href="firebird.html">Firebird</a></li>          
+          <li><a href="configuration.html">CONFIGURATION</a></li>
+          <li><a href="contact.html">CONTACTS</a></li>       
+        </ul>
+      </div>
+         <div id="column1">
+  
+        <div class="sidebaritem">
+          <div class="sbihead">
+            <h1>Links</h1>
+          </div>
+          <div class="sbilinks">
+            <!-- **** INSERT ADDITIONAL LINKS HERE **** -->
+            <ul>
+              <li><a href="http://www.yetanotherforum.net">YAF web site</a></li>
+              <li><a href="http://www.forum.yetanotherforum.net">YAF Support Forum</a></li>
+              <li><a href="http://www.sourceforge.net/yaf-datalayers">Extra data layers</a></li>
+             </ul>
+          </div>
+        </div>
+        <div class="sidebaritem">
+          <div class="sbihead">
+            <h1>other information</h1>
+          </div>
+          <div class="sbicontent">
+            <!-- **** INSERT OTHER INFORMATION HERE **** -->
+            <p>
+              The data layers are not an official part of Yet Another Forum. 
+              No liabilities as to support, you use the software at your own risk.               
+            </p>
+          </div>
+        </div>
+      </div>
+      <div id="column2">
+       <h1>PostgreSQL System Requirements</h1>       
+          <blockquote>
+          <p>Database: The minimal version is 8.3.2 supported. No info for earlier versions compatibility available.</p>
+          <p>OS: PostgreSQL is available on Windows beginning with 8.x versions and on Windows32 only.</p>
+          </blockquote>  
+
+        <h1>PostgreSQL Intallation</h1>
+        <!-- **** INSERT PAGE CONTENT HERE **** -->
+       
+        <h2>1.Install & configure PostgreSQL server</h2>    
+        <p>          
+         You can use graphical installer for new versions i.e. <a href="http://www.enterprisedb.com/getfile.jsp?fileid=586">
+			  8.4.0 for Windows32</a></p>
+			  
+     
+         <h2>1.1.Install PostgreSQL server on Windows for dummies&nbsp;</h2>
+	<a href="http://www.enterprisedb.com/learning/getting_started.do">
+			  Graphical installer instructions</a> 
+
+	<br />
+	
+	<p>1. 1.1.Download an archive or better new postgre yaf-datalayer version from svn. </p>	
+   <br />
+<hr />
+   <p>1.1.2. Unzip the entire archive to to a folder you want to run YAF in on your web 
+	server.<br />
+	Apply all svn patches to corresponding svn version if this is a package like 
+	yaf_pgsql_193. All the patches are applicable to svn and are not data layer 
+	dependant.</p>
+</span>
+<hr />
+<br />
+<br />
+<!--img src="style/07_inst_lang.png" alt="example graphic" /-->
+			  <p>PL/pgsql support should be enabled.
+
+  </p>
+			  <span> <blockquote>
+Verify that your PostgreSQL installed with the contrib module contrib/uuid-ossp and you have sufficent rights.If it's not installed you must install it. It included in install archive and it can be chosen at install time.  
+ </blockquote>
+You can use command like this to add the function to the public schema.<br />
+&nbsp;You can't make it from scripts as you don't have privilege for c functions 
+			  be default.<br />
+			  <div class="formlabel"><code>CREATE OR REPLACE FUNCTION 
+			  public.uuid_generate_v1()<br />
+			  RETURNS uuid<br />
+			  AS '$libdir/uuid-ossp', 'uuid_generate_v1'<br />
+			  VOLATILE STRICT LANGUAGE C; <br />
+			  ALTER FUNCTION public.uuid_generate_v1() OWNER TO yafuser;
+			  (or GRANT ALL ON FUNCTION  public.uuid_generate_v1() TO yafuser)</code></div>
+
+				  <br />
+
+Create new database. You can use public schema or you own. All rights for your db should be granted to public and your config user to simplify the install process.
+
+			  <br />
+			  Database:
+
+Use template1.
+
+(If you don't have plpgsql language support, then you should add it from superuser name like this:<br />
+				  <code>CREATE LANGUAGE 'plpgsql' HANDLER plpgsql_call_handler  LANCOMPILER 'PL/pgSQL';</code>
+But grafical installer usually includes the support.
+<p>Tablespace: pg_default</p>
+<p>Owner: from your config (default: yafuser)</p> 
+Encoding:UTF-8
+(UTF-8 is supported, no promises for other encodings!)
+Grant all privileges to public to be sure.
+ 
+
+
+	</span>&nbsp; <br />
+<br />
+<br />
+	Create new database yafnet(by default). All rights for your database should 
+	be granted to yafuser (by default) to simplify the install process.<br />
+	UTF-8 is supported, no promises for other encodings!<br />
+	The created user should have access to information schema select and 
+	references and may be more priviliges and you should grant him all yafnet db 
+	priv. too.<br />
+<br />
+	Change db.config and app.config to your preferred settings.<br />
+&nbsp;<br />
+Change db.config and app.config to your preferred settings. <br />
+Defaults:<br />
+user - yafuser<br />
+database -yafnet<br />
+schema -public<br />
+			  <br />
+			  <blockquote>Remember that default performance will be low.
+			   You should configure PostgreSql manually to get an acceptable performance. </blockquote><br />
+<hr />
+	
+<br />
+<br />
+<div  class="newStyle2" align="center">REPLACE FILES and folders in the archive.</div>
+<br />
+
+<p>Replace all the files in the archive. If a folder misses, create it.</p>
+<hr />
+<br />
+<div  class="newStyle2" align="center">REPLACE OR ADD FILES IN FOLDERS.	</div>
+Simply replace YAF distribution files with /Distribution folder content or add new ones.
+	<br />
+<hr />
+
+	
+<br />
+<div  class="newStyle2" align="center">COMPILE YAF(optional).	</div>
+
+<p>Use /Source folder content.Put Npgsql.dll and Mono.Security.dll in /Bin folder .Do so with all other files in other folders too.</p>
+<hr />
+<div  class="newStyle2" align="center">FOLLOW YAF COMPILLATION and INSTALLATION COMMON DIRECTIONS	</div>
+	
+      </div>
+     </div>      
+    <div id="footer">
+      copyright &copy; 2009 vzrus | <a href="#">email@emailaddress</a> | <a href="http://validator.w3.org/check?uri=referer">XHTML 1.1</a> | <a href="http://jigsaw.w3.org/css-validator/check/referer">CSS</a> | <a href="http://www.dcarter.co.uk">design by dcarter</a>
+    </div>
+  </div>
+</body>
+</html>

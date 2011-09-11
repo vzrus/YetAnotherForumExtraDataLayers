@@ -1,0 +1,494 @@
+/* Yet Another Forum.NET
+ * Copyright (C) 2006-2011 Jaben Cargman
+ * http://www.yetanotherforum.net/
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */
+using System.Collections.Specialized;
+using System.Configuration.Provider;
+using System.Web.Security;
+
+namespace YAFProviders.Passthru
+{
+  /// <summary>
+  /// The yaf membership pass thru.
+  /// </summary>
+  internal class YAFMembershipPassThru : MembershipProvider
+  {
+    /// <summary>
+    /// The _real provider.
+    /// </summary>
+    private MembershipProvider _realProvider;
+
+    /// <summary>
+    /// Gets or sets ApplicationName.
+    /// </summary>
+    public override string ApplicationName
+    {
+      get
+      {
+        return this._realProvider.ApplicationName;
+      }
+
+      set
+      {
+        this._realProvider.ApplicationName = value;
+      }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether EnablePasswordReset.
+    /// </summary>
+    public override bool EnablePasswordReset
+    {
+      get
+      {
+        return this._realProvider.EnablePasswordReset;
+      }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether EnablePasswordRetrieval.
+    /// </summary>
+    public override bool EnablePasswordRetrieval
+    {
+      get
+      {
+        return this._realProvider.EnablePasswordRetrieval;
+      }
+    }
+
+    /// <summary>
+    /// Gets MaxInvalidPasswordAttempts.
+    /// </summary>
+    public override int MaxInvalidPasswordAttempts
+    {
+      get
+      {
+        return this._realProvider.MaxInvalidPasswordAttempts;
+      }
+    }
+
+    /// <summary>
+    /// Gets MinRequiredNonAlphanumericCharacters.
+    /// </summary>
+    public override int MinRequiredNonAlphanumericCharacters
+    {
+      get
+      {
+        return this._realProvider.MinRequiredNonAlphanumericCharacters;
+      }
+    }
+
+    /// <summary>
+    /// Gets MinRequiredPasswordLength.
+    /// </summary>
+    public override int MinRequiredPasswordLength
+    {
+      get
+      {
+        return this._realProvider.MinRequiredPasswordLength;
+      }
+    }
+
+    /// <summary>
+    /// Gets PasswordAttemptWindow.
+    /// </summary>
+    public override int PasswordAttemptWindow
+    {
+      get
+      {
+        return this._realProvider.PasswordAttemptWindow;
+      }
+    }
+
+    /// <summary>
+    /// Gets PasswordFormat.
+    /// </summary>
+    public override MembershipPasswordFormat PasswordFormat
+    {
+      get
+      {
+        return this._realProvider.PasswordFormat;
+      }
+    }
+
+    /// <summary>
+    /// Gets PasswordStrengthRegularExpression.
+    /// </summary>
+    public override string PasswordStrengthRegularExpression
+    {
+      get
+      {
+        return this._realProvider.PasswordStrengthRegularExpression;
+      }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether RequiresQuestionAndAnswer.
+    /// </summary>
+    public override bool RequiresQuestionAndAnswer
+    {
+      get
+      {
+        return this._realProvider.RequiresQuestionAndAnswer;
+      }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether RequiresUniqueEmail.
+    /// </summary>
+    public override bool RequiresUniqueEmail
+    {
+      get
+      {
+        return this._realProvider.RequiresUniqueEmail;
+      }
+    }
+
+    /// <summary>
+    /// The initialize.
+    /// </summary>
+    /// <param name="name">
+    /// The name.
+    /// </param>
+    /// <param name="config">
+    /// The config.
+    /// </param>
+    /// <exception cref="ProviderException">
+    /// </exception>
+    public override void Initialize(string name, NameValueCollection config)
+    {
+      string realProviderName = config["passThru"];
+
+
+      if (realProviderName == null || realProviderName.Length < 1)
+      {
+        throw new ProviderException("Pass Thru provider name has not been specified in the web.config");
+      }
+
+      // Remove passThru configuration attribute
+      config.Remove("passThru");
+
+      // Check for further attributes
+      if (config.Count > 0)
+      {
+        // Throw Provider error as no more attributes were expected
+        throw new ProviderException("Unrecognised Attribute on the Membership PassThru Provider");
+      }
+
+      // Initialise the "Real" membership provider
+      this._realProvider = Membership.Providers[realProviderName];
+    }
+
+    /// <summary>
+    /// The change password.
+    /// </summary>
+    /// <param name="username">
+    /// The username.
+    /// </param>
+    /// <param name="oldPassword">
+    /// The old password.
+    /// </param>
+    /// <param name="newPassword">
+    /// The new password.
+    /// </param>
+    /// <returns>
+    /// The change password.
+    /// </returns>
+    public override bool ChangePassword(string username, string oldPassword, string newPassword)
+    {
+      return this._realProvider.ChangePassword(username, oldPassword, newPassword);
+    }
+
+    /// <summary>
+    /// The change password question and answer.
+    /// </summary>
+    /// <param name="username">
+    /// The username.
+    /// </param>
+    /// <param name="password">
+    /// The password.
+    /// </param>
+    /// <param name="newPasswordQuestion">
+    /// The new password question.
+    /// </param>
+    /// <param name="newPasswordAnswer">
+    /// The new password answer.
+    /// </param>
+    /// <returns>
+    /// The change password question and answer.
+    /// </returns>
+    public override bool ChangePasswordQuestionAndAnswer(string username, string password, string newPasswordQuestion, string newPasswordAnswer)
+    {
+      return this._realProvider.ChangePasswordQuestionAndAnswer(username, password, newPasswordQuestion, newPasswordAnswer);
+    }
+
+    /// <summary>
+    /// The create user.
+    /// </summary>
+    /// <param name="username">
+    /// The username.
+    /// </param>
+    /// <param name="password">
+    /// The password.
+    /// </param>
+    /// <param name="email">
+    /// The email.
+    /// </param>
+    /// <param name="passwordQuestion">
+    /// The password question.
+    /// </param>
+    /// <param name="passwordAnswer">
+    /// The password answer.
+    /// </param>
+    /// <param name="isApproved">
+    /// The is approved.
+    /// </param>
+    /// <param name="providerUserKey">
+    /// The provider user key.
+    /// </param>
+    /// <param name="status">
+    /// The status.
+    /// </param>
+    /// <returns>
+    /// </returns>
+    public override MembershipUser CreateUser(
+      string username, 
+      string password, 
+      string email, 
+      string passwordQuestion, 
+      string passwordAnswer, 
+      bool isApproved, 
+      object providerUserKey, 
+      out MembershipCreateStatus status)
+    {
+      return this._realProvider.CreateUser(username, password, email, passwordQuestion, passwordAnswer, isApproved, providerUserKey, out status);
+    }
+
+    /// <summary>
+    /// The delete user.
+    /// </summary>
+    /// <param name="username">
+    /// The username.
+    /// </param>
+    /// <param name="deleteAllRelatedData">
+    /// The delete all related data.
+    /// </param>
+    /// <returns>
+    /// The delete user.
+    /// </returns>
+    public override bool DeleteUser(string username, bool deleteAllRelatedData)
+    {
+      return this._realProvider.DeleteUser(username, deleteAllRelatedData);
+    }
+
+    /// <summary>
+    /// The find users by email.
+    /// </summary>
+    /// <param name="emailToMatch">
+    /// The email to match.
+    /// </param>
+    /// <param name="pageIndex">
+    /// The page index.
+    /// </param>
+    /// <param name="pageSize">
+    /// The page size.
+    /// </param>
+    /// <param name="totalRecords">
+    /// The total records.
+    /// </param>
+    /// <returns>
+    /// </returns>
+    public override MembershipUserCollection FindUsersByEmail(string emailToMatch, int pageIndex, int pageSize, out int totalRecords)
+    {
+      return this._realProvider.FindUsersByEmail(emailToMatch, pageIndex, pageSize, out totalRecords);
+    }
+
+    /// <summary>
+    /// The find users by name.
+    /// </summary>
+    /// <param name="usernameToMatch">
+    /// The username to match.
+    /// </param>
+    /// <param name="pageIndex">
+    /// The page index.
+    /// </param>
+    /// <param name="pageSize">
+    /// The page size.
+    /// </param>
+    /// <param name="totalRecords">
+    /// The total records.
+    /// </param>
+    /// <returns>
+    /// </returns>
+    public override MembershipUserCollection FindUsersByName(string usernameToMatch, int pageIndex, int pageSize, out int totalRecords)
+    {
+      return this._realProvider.FindUsersByName(usernameToMatch, pageIndex, pageSize, out totalRecords);
+    }
+
+    /// <summary>
+    /// The get all users.
+    /// </summary>
+    /// <param name="pageIndex">
+    /// The page index.
+    /// </param>
+    /// <param name="pageSize">
+    /// The page size.
+    /// </param>
+    /// <param name="totalRecords">
+    /// The total records.
+    /// </param>
+    /// <returns>
+    /// </returns>
+    public override MembershipUserCollection GetAllUsers(int pageIndex, int pageSize, out int totalRecords)
+    {
+      return this._realProvider.GetAllUsers(pageIndex, pageSize, out totalRecords);
+    }
+
+    /// <summary>
+    /// The get number of users online.
+    /// </summary>
+    /// <returns>
+    /// The get number of users online.
+    /// </returns>
+    public override int GetNumberOfUsersOnline()
+    {
+      return this._realProvider.GetNumberOfUsersOnline();
+    }
+
+    /// <summary>
+    /// The get password.
+    /// </summary>
+    /// <param name="username">
+    /// The username.
+    /// </param>
+    /// <param name="answer">
+    /// The answer.
+    /// </param>
+    /// <returns>
+    /// The get password.
+    /// </returns>
+    public override string GetPassword(string username, string answer)
+    {
+      return this._realProvider.GetPassword(username, answer);
+    }
+
+    /// <summary>
+    /// The get user.
+    /// </summary>
+    /// <param name="username">
+    /// The username.
+    /// </param>
+    /// <param name="userIsOnline">
+    /// The user is online.
+    /// </param>
+    /// <returns>
+    /// </returns>
+    public override MembershipUser GetUser(string username, bool userIsOnline)
+    {
+      return this._realProvider.GetUser(username, userIsOnline);
+    }
+
+    /// <summary>
+    /// The get user.
+    /// </summary>
+    /// <param name="providerUserKey">
+    /// The provider user key.
+    /// </param>
+    /// <param name="userIsOnline">
+    /// The user is online.
+    /// </param>
+    /// <returns>
+    /// </returns>
+    public override MembershipUser GetUser(object providerUserKey, bool userIsOnline)
+    {
+      return this._realProvider.GetUser(providerUserKey, userIsOnline);
+    }
+
+    /// <summary>
+    /// The get user name by email.
+    /// </summary>
+    /// <param name="email">
+    /// The email.
+    /// </param>
+    /// <returns>
+    /// The get user name by email.
+    /// </returns>
+    public override string GetUserNameByEmail(string email)
+    {
+      return this._realProvider.GetUserNameByEmail(email);
+    }
+
+    /// <summary>
+    /// The reset password.
+    /// </summary>
+    /// <param name="username">
+    /// The username.
+    /// </param>
+    /// <param name="answer">
+    /// The answer.
+    /// </param>
+    /// <returns>
+    /// The reset password.
+    /// </returns>
+    public override string ResetPassword(string username, string answer)
+    {
+      return this._realProvider.ResetPassword(username, answer);
+    }
+
+    /// <summary>
+    /// The unlock user.
+    /// </summary>
+    /// <param name="userName">
+    /// The user name.
+    /// </param>
+    /// <returns>
+    /// The unlock user.
+    /// </returns>
+    public override bool UnlockUser(string userName)
+    {
+      return this._realProvider.UnlockUser(userName);
+    }
+
+    /// <summary>
+    /// The update user.
+    /// </summary>
+    /// <param name="user">
+    /// The user.
+    /// </param>
+    public override void UpdateUser(MembershipUser user)
+    {
+      this._realProvider.UpdateUser(user);
+    }
+
+    /// <summary>
+    /// The validate user.
+    /// </summary>
+    /// <param name="username">
+    /// The username.
+    /// </param>
+    /// <param name="password">
+    /// The password.
+    /// </param>
+    /// <returns>
+    /// The validate user.
+    /// </returns>
+    public override bool ValidateUser(string username, string password)
+    {
+      return this._realProvider.ValidateUser(username, password);
+    }
+  }
+}

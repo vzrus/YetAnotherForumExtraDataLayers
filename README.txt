@@ -1,0 +1,2 @@
+This is MySQL data layer for YetAnotherForum. It should be completely compatible with the previous versions for YAF. REport bugs if there will be problems.
+Simply replace corresponding files. Details are in manual. It's a bit outdated but I'll sync it when I have time.

@@ -1,0 +1,179 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+
+<head>
+  <title>template: page 3</title>
+  <meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+
+  <!-- **** layout stylesheet **** -->
+  <link rel="stylesheet" type="text/css" href="style/style.css" />
+
+  <!-- **** colour scheme stylesheet **** -->
+  <link rel="stylesheet" type="text/css" href="style/colour.css" />
+
+  <style type="text/css">
+  .style1 {
+	  color: #800000;
+  }
+  .style2 {
+	  color: #FF0000;
+  }
+  </style>
+
+</head>
+
+<body>
+  <div id="main">
+    <div id="links">
+      <!-- **** INSERT LINKS HERE **** -->      
+    </div>
+    <div id="logo"><h1>YET ANOTHER FORUM EXTRA DATA LAYERS</h1></div>
+    <div id="content">
+      <div id="menu">
+         <ul>        
+          <li><a href="index.html">Main</a></li>
+          <li><a href="mysql.html">MySQL</a></li>
+          <li><a href="postgresql.html">PostgreSQL</a></li>
+          <li><a   href="firebird.html">Firebird</a></li>          
+          <li><a id="selected" href="configuration.html">CONFIGURATION</a></li>
+          <li><a  href="contact.html">CONTACTS</a></li>       
+        </ul>
+      </div>
+         <div id="column1">
+  
+        <div class="sidebaritem">
+          <div class="sbihead">
+            <h1>Links</h1>
+          </div>
+          <div class="sbilinks">
+            <!-- **** INSERT ADDITIONAL LINKS HERE **** -->
+            <ul>
+              <li><a href="http://www.yetanotherforum.net">YAF web site</a></li>
+              <li><a href="http://www.forum.yetanotherforum.net">YAF Support Forum</a></li>
+              <li><a href="http://www.sourceforge.net/yaf-datalayers">Extra data layers</a></li>
+             </ul>
+          </div>
+        </div>
+        <div class="sidebaritem">
+          <div class="sbihead">
+            <h1>other information</h1>
+          </div>
+          <div class="sbicontent">
+            <!-- **** INSERT OTHER INFORMATION HERE **** -->
+            <p>
+              The data layers are not an official part of Yet Another Forum. 
+              No liabilities as to support, you use the software at your own risk.               
+            </p>
+          </div>
+        </div>
+      </div>
+      <div id="column2">
+        <h1>CONFIGURATION OPTIONS</h1>
+        <!-- **** INSERT PAGE CONTENT HERE **** -->
+        <p>
+          &nbsp;******************************************************************<br />
+		  ** DatabaseSchemaName Key ** Defaults to: public **<br />
+		  ******************************************************************<br />
+		  <br />
+		  For advanced users who want to the change the default permissions<br />
+		  for the YAF DB structure. It applies to PostgreSql database and can be 
+		  used in<br />
+		  MySql dayalayer.<br />
+		  <br />
+		  &lt;<span class="style1"><strong>add</strong></span> 
+		  <span class="style2"><strong>key</strong></span>=&quot;YAF.DatabaseSchemaName&quot; 
+		  <span class="style2"><strong>value</strong></span>=&quot;public&quot; /&gt;<br />
+        </p>
+			  <p>
+          	******************************************************************br />
+			  ** DatabaseGranteeName Key ** Defaults to: public **<br />
+			  ******************************************************************<br />
+			  <br />
+			  For advanced users who want to the change the default permissions<br />
+			  for the YAF DB structure. It used in PostgreSql datalayer.</p>
+			  <p>
+          	<br />
+			  &lt;<span class="style1"><strong>add</strong></span> 
+			  <span class="style2"><strong>key</strong></span>=&quot; YAF.DatabaseGranteeName&quot; 
+			  <span class="style2"><strong>value</strong></span>=&quot;public&quot; /&gt;</p>
+			  <p>
+          	<br />
+			  ******************************************************************<br />
+			  ** DatabaseName Key ** Defaults to: yafnet **<br />
+			  ******************************************************************<br />
+			  <br />
+			  For advanced users who want to the change the default permissions<br />
+			  for the YAF DB structure. It used in PostgreSql datalayer and can 
+			  be used in <br />
+			  MySql datalayer.</p>
+			  <p>
+          	<br />
+			  &lt;<span class="style1"><strong>add</strong></span> 
+			  <span class="style2"><strong>key</strong></span>=&quot;YAF.DatabaseName&quot; 
+			  <span class="style2"><strong>value</strong></span>=&quot;yafnet&quot; /&gt;<br />
+        </p>
+        <p>
+          ******************************************************************<br />
+		  ** DatabaseWithOIDs Key ** Defaults to: false if not specified **<br />
+		  ******************************************************************</p>
+			  <p>
+          	<br />
+			  For advanced users who want to the change the default permissions<br />
+			  for the YAF DB structure. It used in PostgreSql datalayer.</p>
+			  <p>
+          	  &lt;<span class="style1"><strong>add</strong></span> 
+			  <span class="style2"><strong>key</strong></span>=&quot;YAF.DatabaseWithOIDs&quot; 
+			  <span class="style2"><strong>value</strong></span>=&quot;false&quot; /&gt;</p>
+			  <p>
+          	<br />
+			  *********************************************************************<br />
+			  ** DatabaseHostName Key ** Defaults to: localhost if not specified 
+			  **<br />
+			  *********************************************************************</p>
+			  <p>
+          	<br />
+			  For advanced users who want to the change the default permissions<br />
+			  for the YAF DB structure. It used in many datalayers and should be 
+			  the same as <br />
+			  in the connection string db.config file.</p>
+			  <p>
+          	<br />
+			  &lt;<span class="style1"><strong>add</strong></span> 
+			  <span class="style2"><strong>key</strong></span>=&quot;YAF.DatabaseHostName&quot; 
+			  <span class="style2"><strong>value</strong></span>=&quot;localhost&quot; /&gt;</p>
+        <p>
+          <br />
+		  *********************************************************************<br />
+		  ** DatabaseEncoding Key ** Defaults to: utf8 if not specified **<br />
+		  *********************************************************************</p>
+			  <p>
+          	<br />
+			  For advanced users who want to the change the default permissions<br />
+			  for the YAF DB structure. It used in MySQL data layer <br />
+			  and should be the same as <br />
+			  in the connection string Charset setting in the db.config file.</p>
+			  <p>
+          	<br />
+			  &lt;<span class="style1"><strong>add</strong></span> 
+			  <span class="style2"><strong>key</strong></span>=&quot;YAF.DatabaseEncoding&quot; 
+			  <span class="style2"><strong>value</strong></span>=&quot;utf8&quot; /&gt;</p>
+        <p>
+          *********************************************************************<br />
+		  ** DatabaseCollation Key ** Defaults to: utf8_general_ci if not 
+		  specified **<br />
+		  *********************************************************************</p>
+			  <p>
+          	For advanced users who want to the change the default permissions for the YAF DB structure. It used in MySQL data layer and should 
+			  be in accord with <br />
+			  the encoding in the connection string in the db.config file.</p>
+			  <p>
+          	&nbsp;</p>
+			  <p>
+          	&lt;<span class="style1"><strong>add</strong></span>
+			  <span class="style2"><strong>key</strong></span>=&quot;YAF.DatabaseCollation&quot; 
+			  <span class="style2"><strong>value</strong></span>=&quot;general_ci&quot; /&gt;</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

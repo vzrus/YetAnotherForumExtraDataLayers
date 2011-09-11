@@ -1,0 +1,167 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+
+<head>
+  <title>YAF-Datalayers:Firebird</title>
+  <meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+
+  <!-- **** layout stylesheet **** -->
+  <link rel="stylesheet" type="text/css" href="style.css" />
+
+  <!-- **** colour scheme stylesheet **** -->
+  <link rel="stylesheet" type="text/css" href="colour.css" />
+
+</head>
+
+<body>
+  <div id="main">
+    <div id="links">
+      <!-- **** INSERT LINKS HERE **** -->    
+    </div>
+    <div id="logo"><h1>YET ANOTHER FORUM EXTRA DATA LAYERS</h1></div>
+    <div id="content">
+      <div id="menu">
+        <ul>        
+          <li><a href="index.html">Main</a></li>
+          <li><a href="mysql.html">MySQL</a></li>
+          <li><a href="postgresql.html">PostgreSQL</a></li>
+          <li><a id="selected"  href="firebird.html">Firebird</a></li>          
+          <li><a href="configuration.html">CONFIGURATION</a></li>
+          <li><a href="contact.html">CONTACTS</a></li>       
+        </ul>
+      </div>
+         <div id="column1">
+  
+        <div class="sidebaritem">
+          <div class="sbihead">
+            <h1>Links</h1>
+          </div>
+          <div class="sbilinks">
+            <!-- **** INSERT ADDITIONAL LINKS HERE **** -->
+            <ul>
+              <li><a href="http://www.yetanotherforum.net">YAF web site</a></li>
+              <li><a href="http://www.forum.yetanotherforum.net">YAF Support Forum</a></li>
+              <li><a href="http://www.sourceforge.net/yaf-datalayers">Extra data layers</a></li>
+             </ul>
+          </div>
+        </div>
+        <div class="sidebaritem">
+          <div class="sbihead">
+            <h1>other information</h1>
+          </div>
+          <div class="sbicontent">
+            <!-- **** INSERT OTHER INFORMATION HERE **** -->
+            <p>
+              The data layers are not an official part of Yet Another Forum. 
+              No liabilities as to support, you use the software at your own risk.               
+            </p>
+          </div>
+        </div>
+      </div>
+      <div id="column2">
+        <h1>Firebird System Requirements</h1>       
+          <blockquote>
+           <p>Database:  The minimal Firebird version is 2.5.0.</p>
+           <p>OS:  Windows XP,Windows Vista,Windows Server 2003,Windows Server 2008.</p>
+             
+          </blockquote>        
+        <h1>Firebird Installation</h1>
+        <!-- **** INSERT PAGE CONTENT HERE **** -->
+       
+        <h2>1.Install & configure Firebird database &amp; server</h2>
+        
+        <p>                <!-- **** INSERT PAGE CONTENT HERE **** -->
+                Download archive from <a href="http://sourceforge.net/projects/firebird/files/">here</a>, choose your architecture.  
+       
+       </p>
+			  <p> Files for server called 
+			  like:</p>
+			 <p> For win32:                
+			  <a class="dload { url: 'http://downloads.sourceforge.net/project/firebird/firebird-win32/2.5-Beta1/Firebird-2.5.0.23247_1_Win32_Beta1.exe' }" href="http://sourceforge.net/projects/firebird/files/firebird-win32/2.5-Beta1/Firebird-2.5.0.23247_1_Win32_Beta1.exe/download" title="/firebird-win32/2.5-Beta1/Firebird-2.5.0.23247_1_Win32_Beta1.exe:  released on Apr 10 2009">
+			  Firebird-2.5.0.23247_1_Win32_Beta1.exe</a></p>
+			  <p> For win64:                
+			  <a class="dload { url: 'http://downloads.sourceforge.net/project/firebird/firebird-win64/2.5-Beta1/Firebird-2.5.0.23247_1_x64_Beta1.exe/download' }" href="http://sourceforge.net/projects/firebird/files/firebird-win64/2.5-Beta1/Firebird-2.5.0.23247_1_x64_Beta1.exe/download" title="/firebird-win64/2.5-Beta1/Firebird-2.5.0.23247_1_Win32_Beta1.exe:  released on Apr 10 2009">
+			  Firebird-2.5.0.23247_1_Win64_Beta1.exe</a></p>
+			  <p>Files for embedded called 
+			  like:                    
+			  <a class="dload { url: 'http://downloads.sourceforge.net/project/firebird/firebird-win32/2.5-Beta1/Firebird-2.5.0.23247-1_Win32_embed_Beta1.zip' }" href="http://sourceforge.net/projects/firebird/files/firebird-win32/2.5-Beta1/Firebird-2.5.0.23247-1_Win32_embed_Beta1.zip/download" title="/firebird-win32/2.5-Beta1/Firebird-2.5.0.23247-1_Win32_embed_Beta1.zip:  released on Apr 10 2009">
+			  Firebird-2.5.0.23247-1_Win32_embed_Beta1.zip</a></p>
+			  <p>For further instruction see 
+			   <a href="http://www.firebirdsql.org">firebird official site</a>
+              </p>        
+     
+         <h2>1.1.Install Firebird server</h2>
+			  <p>&nbsp;</p>
+        
+	
+
+	<br />	
+	<p>1. Download the archive or version from our svn. </p>	
+   <br />
+   <p>2. Unzip the entire archive to to a folder you want to run YAF in on your web 
+	server.<br />
+	Apply all svn patches to corresponding svn version if present</p>
+	<br />
+
+<hr />
+<br /><h2>STEP 2. INSTALL/CHECK Firebird DB SETTINGS.</h2>
+ <!-- **** INSERT PAGE CONTENT HERE **** -->
+
+<hr />
+<h2>STEP 3. REPLACE FILES and folders in the archive.</h2>
+<br />
+
+<p>Replace all the files in the archive. If a folder misses, create it.</p>
+<hr />
+<br />
+<h2>STEP 4a. REPLACE OR ADD FILES IN FOLDERS.</h2>
+Simply replace YAF distribution files with /Distribution folder content or add new ones if they are in distribution.
+	<br />
+<hr />
+
+	
+<br />
+<h2>STEP 4b. COMPILE YAF(optional).	</h2>
+
+ <!-- **** INSERT PAGE CONTENT HERE **** -->
+<hr />
+	 <h1>Firebird Configuration</h1> 
+	 <br></br>
+	 <h2>1.Page size and encoding</h2>
+	 	<br></br>
+	 <p>If you use UTF8 keep in mind that page size must be more 4096kB.</p> 
+	 <br></br>
+     <h2>2.Connection strings examples</h2>
+     <br></br>
+ <h2> -- firebird as embeded minimal --</h2>
+   
+
+			 <br></br>
+			 <p>connectionString="Database=C:\Documents and Settings\bob\My Documents\Projects\yaffirebird\YetAnotherForum.NET\App_Data\yafnet.fdb;
+      Server Type=1"</p>       
+    <br></br>
+			 <h2>-- firebird as embeded full or as a file --</h2>
+	<br></br>	     
+<p>connectionString="User=SYSDBA;Password=myfirebird;
+Database=C:\Documents and Settings\bob\My Documents\Projects\yaffirebird\YetAnotherForum.NET\App_Data\yafnet.fdb;Dialect=3;
+Charset=UNICODE_FSS;Role=;
+Connection lifetime=0;Connection timeout=15;Pooling=True;
+Server Type=1"</p>     
+			 <br></br>
+			  <h2>-- firebird as server minimal -- </h2>
+			  <p>connectionString="Server=localhost; User=SYSDBA;Password=masterkey;Database=C:\data\test.fdb"</p>
+			 <br></br>
+<h2>-- firebird as server full</h2>
+<p> connectionString="User=yafuser;Password=yaf123;
+Database=C:\Documents and Settings\bob\My Documents\Projects\yaffirebird\YetAnotherForum.NET\App_Data\yafnet.fdb;
+Port=3050;Dialect=3;Charset=UTF8;Role=;
+Connection lifetime=0;Connection timeout=15;Pooling=True;
+Packet Size=8192;Server Type=0"</p> 
+ </div>  
+ </div> 
+    <div id="footer">
+      copyright &copy; 2009 vzrus | <a href="#">email@emailaddress</a> | <a href="http://validator.w3.org/check?uri=referer">XHTML 1.1</a> | <a href="http://jigsaw.w3.org/css-validator/check/referer">CSS</a> | <a href="http://www.dcarter.co.uk">design by dcarter</a>
+    </div>
+   </div> 
+</body>
+</html>

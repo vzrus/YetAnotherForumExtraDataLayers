@@ -1,0 +1,10 @@
+C:\Users\Vladimir\Projects\yaf_hgmain\yafsrc\YAF.Providers\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\Vladimir\Projects\yaf_hgmain\Web\bin\YAF.Providers.dll
+C:\Users\Vladimir\Projects\yaf_hgmain\Web\bin\YAF.Providers.pdb
+C:\Users\Vladimir\Projects\yaf_hgmain\yafsrc\YAF.Providers\obj\Debug\YAF.Providers.dll
+C:\Users\Vladimir\Projects\yaf_hgmain\yafsrc\YAF.Providers\obj\Debug\YAF.Providers.pdb
+C:\Users\Vladimir\Projects\yaf_hgmain_MySQL\yafsrc\YAF.Providers\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\Vladimir\Projects\yaf_hgmain_MySQL\yafsrc\YAF.Providers\obj\Debug\YAF.Providers.dll
+C:\Users\Vladimir\Projects\yaf_hgmain_MySQL\yafsrc\YAF.Providers\obj\Debug\YAF.Providers.pdb
+C:\Users\Vladimir\Projects\yaf_hgmain_MySQL\yafsrc\YetAnotherForum.NET\Bin\YAF.Providers.dll
+C:\Users\Vladimir\Projects\yaf_hgmain_MySQL\yafsrc\YetAnotherForum.NET\Bin\YAF.Providers.pdb
