@@ -307,10 +307,16 @@ namespace YAF.Providers.Membership
 		{
 			using ( MySqlCommand cmd = new MySqlCommand( MsSqlDbAccess.GetObjectName( "prov_updateuser" ) ) )
 			{
+                object providerUserKey = null;
+                if (user.ProviderUserKey != null)
+                {
+                    providerUserKey = MsSqlDbAccess.GuidConverter(new Guid(user.ProviderUserKey.ToString())).ToString();
+                }
+
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add( "i_ApplicationName", MySqlDbType.VarChar ).Value = appName;
 				// Nonstandard args
-				cmd.Parameters.Add( "i_UserKey", MySqlDbType.String ).Value = user.ProviderUserKey;
+                cmd.Parameters.Add("i_UserKey", MySqlDbType.String).Value = providerUserKey;
                 cmd.Parameters.Add( "i_UserName", MySqlDbType.VarChar ).Value = user.UserName;
                 cmd.Parameters.Add( "i_Email", MySqlDbType.VarChar ).Value = user.Email;
                 cmd.Parameters.Add( "i_Comment", MySqlDbType.VarChar ).Value = user.Comment;
@@ -318,13 +324,9 @@ namespace YAF.Providers.Membership
                 cmd.Parameters.Add( "i_LastLogin", MySqlDbType.Timestamp ).Value = user.LastLoginDate;
 				cmd.Parameters.Add( "i_LastActivity", MySqlDbType.Timestamp ).Value = user.LastActivityDate.ToUniversalTime();
                 cmd.Parameters.Add( "i_UniqueEmail", MySqlDbType.Byte ).Value = requiresUniqueEmail;
-				// Add Return Value
-                MySqlParameter p = new MySqlParameter( "i_ReturnValue", MySqlDbType.Int32 );
-				p.Direction = ParameterDirection.ReturnValue;
-				cmd.Parameters.Add( p );
-
-				_msSqlDbAccess.ExecuteNonQuery( cmd) ; // Execute Non SQL Query
-				return (int) p.Value ; // Return
+				
+                return (int) _msSqlDbAccess.ExecuteScalar(cmd); // Execute Scalar
+			
 			}
 		}
       /*  public void UpgradeMembership(int previousVersion, int newVersion)

@@ -798,21 +798,25 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}prov_updateuser
  )
  BEGIN
  	DECLARE ici_ApplicationID BINARY(16);
-        DECLARE i_Return INT DEFAULT 1;
+    DECLARE i_Return INT DEFAULT 1;
  
  	CALL {databaseName}.{objectQualifier}prov_CreateApplication (i_ApplicationName, ici_ApplicationID);
  	
  		/* Check UserKey */
  	sproc:BEGIN
         IF (i_UserKey IS NULL) THEN
-         SET i_Return = 1 ; LEAVE sproc; END IF; 
+             SET i_Return = 1 ;			  
+			 LEAVE sproc; 
+		END IF; 
  
  	/* Check for UniqueEmail */
- 	IF (i_UniqueEmail = 1) THEN
- 	
+ 	IF (i_UniqueEmail = 1) THEN 	
  		IF (EXISTS (SELECT 1 FROM {databaseName}.{objectQualifier}prov_Membership m WHERE m.UserID != UNHEX(REPLACE(i_UserKey,'-','')) AND m.EmailLwd=LOWER(i_Email) AND m.ApplicationID=ici_ApplicationID) )
-THEN  SET i_Return = 2; LEAVE sproc; END IF; 			
- 	END IF;
+           THEN  
+		   SET i_Return = 2;		 
+		   LEAVE sproc; 
+		   END IF; 			
+ 	    END IF;
  	
  	UPDATE {databaseName}.{objectQualifier}prov_Membership SET
  	Username = i_UserName,
@@ -828,9 +832,9 @@ THEN  SET i_Return = 2; LEAVE sproc; END IF;
  
  	/* Return successful */
  	 SET i_Return = 0;
-END;
+     END;
          SELECT i_Return; 
-END;
+   END;
 --GO
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */ 
 CREATE PROCEDURE {databaseName}.{objectQualifier}prov_setprofileproperties
