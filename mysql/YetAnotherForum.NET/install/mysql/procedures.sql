@@ -8254,6 +8254,8 @@ BEGIN
  			SET i_DisplayName = CONCAT('%',i_DisplayName,'%');  END IF;
  		SELECT 
  			a.*,
+			((`a`.`Flags` & 2) = 2)  AS IsApproved,
+			{databaseName}.{objectQualifier}biginttobool(cast(((`a`.`Flags` & 16) = 16) as signed)) AS IsActiveExcluded,
  			(SELECT COUNT(1) FROM {databaseName}.{objectQualifier}UserGroup x join {databaseName}.{objectQualifier}Group y ON x.GroupID=y.GroupID WHERE x.UserID=a.UserID AND (y.Flags & 2)<>0) AS IsGuest,
  			(SELECT COUNT(1) from {databaseName}.{objectQualifier}UserGroup x JOIN {databaseName}.{objectQualifier}Group y ON x.GroupID=y.GroupID where x.UserID=a.UserID and (y.Flags & 1)<>0) AS IsAdmin
  		FROM 
@@ -8271,6 +8273,8 @@ BEGIN
  	
  		SELECT
  			a.*,
+			((`a`.`Flags` & 2) = 2)	 AS IsApproved,
+			{databaseName}.{objectQualifier}biginttobool(cast(((`a`.`Flags` & 16) = 16) as signed)) AS IsActiveExcluded,
  			(SELECT count(1) from {databaseName}.{objectQualifier}UserGroup x JOIN {databaseName}.{objectQualifier}Group y ON x.GroupID=y.GroupID where x.UserID=a.UserID and (y.Flags & 2)<>0) AS IsGuest,
  			(SELECT count(1) from {databaseName}.{objectQualifier}UserGroup x JOIN {databaseName}.{objectQualifier}Group y ON x.GroupID=y.GroupID where x.UserID=a.UserID and (y.Flags & 1)<>0) AS IsAdmin
  		FROM 
@@ -8827,6 +8831,8 @@ BEGIN
  	IF i_UserID IS NOT NULL THEN
  		SELECT 
  			a.*, 
+			{databaseName}.{objectQualifier}biginttobool(cast(((`a`.`Flags` & 2) = 2) as signed))	 AS IsApproved,
+			{databaseName}.{objectQualifier}biginttobool(cast(((`a`.`Flags` & 16) = 16) as signed)) AS IsActiveExcluded,
 			a.Culture AS CultureUser,						
  			b.Name AS RankName,
  			(case(i_StyledNicks)
@@ -8859,7 +8865,9 @@ BEGIN
 
  	ELSEIF i_GroupID IS NULL and i_RankID IS NULL THEN
  		SELECT 
- 			a.*,  
+ 			a.*,
+			{databaseName}.{objectQualifier}biginttobool(cast(((`a`.`Flags` & 2) = 2) as signed))	 AS IsApproved,
+			{databaseName}.{objectQualifier}biginttobool(cast(((`a`.`Flags` & 16) = 16) as signed)) AS IsActiveExcluded,
 			a.Culture AS CultureUser,						
  			b.Name AS RankName,
  			(case(i_StyledNicks)
@@ -8887,6 +8895,8 @@ BEGIN
  	ELSE
  		SELECT 
  			a.*,
+			{databaseName}.{objectQualifier}biginttobool(cast(((`a`.`Flags` & 2) = 2) as signed))	 AS IsApproved,
+			{databaseName}.{objectQualifier}biginttobool(cast(((`a`.`Flags` & 16) = 16) as signed)) AS IsActiveExcluded,
 			a.Culture AS CultureUser,				
  			b.Name AS RankName,	
  			(case(i_StyledNicks)
@@ -8925,6 +8935,8 @@ create procedure {databaseName}.{objectQualifier}admin_list(i_BoardID int, i_Sty
 begin
 		 select 
 			a.*,
+			((a.Flags & 2) = 2) AS IsApproved,
+			((a.Flags & 16) = 16) AS IsActiveExcluded,
 			a.NumPosts,
 			a.Culture AS CultureUser,			
 			r.RankID,						
@@ -10052,7 +10064,7 @@ PREPARE stmt_tl FROM 'SELECT
     END;    
 --GO
 
-  /* STORED PROCEDURE CREATED BY VZ-TEAM topic_simplelist */
+ /* STORED PROCEDURE CREATED BY VZ-TEAM topic_simplelist */
     CREATE PROCEDURE {databaseName}.{objectQualifier}topic_simplelist(
     i_StartID INT,
     i_Limit   INT)
@@ -10305,7 +10317,7 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}message_simplelist(
 BEGIN
         DECLARE ici_Limit INT DEFAULT 1000;
         DECLARE ici_StartID INT DEFAULT 0; 
-           
+        DECLARE firstMessage INT DEFAULT 1;   
         IF i_StartID IS NOT NULL THEN 
         SET ici_StartID =i_StartID ;
         END IF; 
@@ -10314,17 +10326,20 @@ BEGIN
         SET ici_Limit=i_Limit;
         END IF;
 
+		SELECT  m.`MessageID`
+                    INTO  firstMessage  
+        FROM     {databaseName}.{objectQualifier}Message m
+        WHERE    m.`MessageID` >= i_StartID LIMIT 1;
 
-        SET @_uvp7_start = ici_StartID, @_uvp7_limit = ici_Limit;
+        SET @_uvp7_start = firstMessage, @_uvp7_limit = ici_Limit;
 
     PREPARE stmt_msl FROM 'SELECT  m.`MessageID`,
                  m.`TopicID`        
         FROM     {databaseName}.{objectQualifier}Message m
-        WHERE    m.`MessageID` >= ?
-        AND m.`MessageID` < (? + ?)
-        AND m.`TopicID` IS NOT NULL ORDER BY m.`MessageID` LIMIT ?, ?';
+        WHERE    m.`MessageID` >= ?     
+        AND m.`TopicID` IS NOT NULL ORDER BY m.`MessageID` LIMIT ?';
 
-    EXECUTE stmt_msl USING @_uvp7_start, @_uvp7_start,@_uvp7_limit,@_uvp7_start,@_uvp7_limit;
+    EXECUTE stmt_msl USING @_uvp7_start,@_uvp7_limit;
     DEALLOCATE PREPARE stmt_msl;       
         
     END;
