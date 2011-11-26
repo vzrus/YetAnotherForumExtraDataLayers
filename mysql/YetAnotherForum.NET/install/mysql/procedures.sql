@@ -3808,7 +3808,7 @@ BEGIN
         SELECT *
         FROM   {databaseName}.{objectQualifier}Group
         WHERE  BoardID = i_BoardID
-        AND GroupID = i_GroupID AND Flags & 2 = 2;
+        AND GroupID = i_GroupID LIMIT 1;
         END IF;
         END;
 --GO
