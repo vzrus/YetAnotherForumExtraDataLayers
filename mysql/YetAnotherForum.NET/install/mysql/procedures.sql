@@ -8010,26 +8010,19 @@ BEGIN
  	DECLARE ici_UserID INT;
         DECLARE ici_RankID INT;
         DECLARE ici_approvedFlag INT;
- 
+        DECLARE ici_DisplayName VARCHAR(128);
  	SET ici_approvedFlag = 0;
  	IF (i_IsApproved = 1) THEN SET ici_approvedFlag = 2;END IF;	
  	
- 	IF EXISTS(SELECT 1 FROM {databaseName}.{objectQualifier}User 
+	SELECT UserID, DisplayName INTO ici_UserID,ici_DisplayName  FROM {databaseName}.{objectQualifier}User 
                   WHERE BoardID=i_BoardID 
-                  AND ((`ProviderUserKey`=i_ProviderUserKey) OR (`Name` = i_UserName))) THEN
- 	
- 		SELECT UserID INTO ici_UserID 
- 		from {databaseName}.{objectQualifier}User 
- 		where `BoardID`=i_BoardID AND ((`ProviderUserKey`=i_ProviderUserKey) OR (`Name` = i_UserName)) LIMIT 1;
- 		
- 		IF (i_DisplayName IS NULL) 
-		THEN
-			SELECT DisplayName INTO i_DisplayName FROM {databaseName}.{objectQualifier}User WHERE UserId = i_UserID LIMIT 1;
-		END IF;
+                  AND ((`ProviderUserKey`=i_ProviderUserKey) OR (`Name` = i_UserName)) LIMIT 1;
+
+ 	IF ici_UserID IS NOT NULL THEN 	 		
 		
  		UPDATE {databaseName}.{objectQualifier}User SET 
  			`Name` = i_UserName,
- 			`DisplayName` = i_DisplayName, 
+ 			`DisplayName` = IFNULL(i_DisplayName,ici_DisplayName), 
  			Email = i_Email,
  			Flags = Flags | ici_approvedFlag
  		WHERE
@@ -8037,23 +8030,22 @@ BEGIN
  	ELSE
  	
  		SELECT RankID INTO ici_RankID FROM {databaseName}.{objectQualifier}Rank 
-                  WHERE (Flags & 1)<>0 AND BoardID=i_BoardID;
+                  WHERE (Flags & 1)<>0 AND BoardID=i_BoardID LIMIT 1;
       IF (i_DisplayName IS NULL) 
 		THEN
 			SET i_DisplayName = i_UserName;
 		END IF;		
 
                   INSERT INTO {databaseName}.{objectQualifier}User(BoardID,RankID,`Name`,`DisplayName`,Password,Email,Joined,LastVisit,NumPosts,TimeZone,Flags,ProviderUserKey)
-                  VALUES(i_BoardID,ici_RankID,i_UserName,i_DisplayName,'-',i_Email,UTC_TIMESTAMP(),UTC_TIMESTAMP(),0,IFNULL((SELECT CAST(CAST(Value AS CHAR(5)) AS SIGNED) from {databaseName}.{objectQualifier}Registry where Name LIKE 'timezone' and BoardID = i_BoardID),0),ici_approvedFlag,i_ProviderUserKey);
+                  VALUES(i_BoardID,ici_RankID,i_UserName,i_DisplayName,'-',i_Email,UTC_TIMESTAMP(),UTC_TIMESTAMP(),0,IFNULL((SELECT CAST(CAST(Value AS CHAR(10)) AS SIGNED) from {databaseName}.{objectQualifier}Registry where Name LIKE 'timezone' and BoardID = i_BoardID),0),ici_approvedFlag,i_ProviderUserKey);
 
                   SET ici_UserID = LAST_INSERT_ID();
-
-                  END IF;
+       END IF;
 
                   SELECT  ici_UserID AS UserID;
-                  END;
+       END;
 
-
+--GO
 
                   /* STORED PROCEDURE CREATED BY VZ-TEAM */                  
                   CREATE PROCEDURE {databaseName}.{objectQualifier}user_avatarimage(i_UserID INT)
