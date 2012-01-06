@@ -10207,7 +10207,7 @@ PREPARE stmt_tl FROM 'SELECT
 )
 BEGIN	
 DECLARE ici_SQL VARCHAR(1000); 
- 	SET ici_SQL ='
+ 	PREPARE stmt_ta FROM '
 	SELECT
 	    m.Message AS LastMessage,
 		t.LastPosted,
@@ -10235,11 +10235,11 @@ DECLARE ici_SQL VARCHAR(1000);
 		{databaseName}.{objectQualifier}ActiveAccess v ON v.ForumID=f.ForumID
 	WHERE	
 		c.BoardID = ?
-		AND t.TopicMovedID IS NULL 
+		AND (t.TopicMovedID IS NULL) 
 		AND (v.UserID = ?) 
 		AND (CAST(v.ReadAccess AS UNSIGNED) <> 0) 
-		AND t.IsDeleted != 1  
-		AND t.LastPosted IS NOT NULL
+		AND (t.Flags & 8) != 8  
+		AND (t.LastPosted IS NOT NULL)
 		AND	f.Flags & 4 <> (CASE WHEN (?) > 0 THEN -1 ELSE 4 END)
 	ORDER BY
 		t.LastPosted DESC LIMIT ?';
@@ -10248,12 +10248,11 @@ DECLARE ici_SQL VARCHAR(1000);
               @_uvp5_boardID = CONVERT(i_BoardID, CHAR),
               @_uvp5_numPosts = CONVERT (i_NumPosts, CHAR),							
 			  @_uvp5_shownocount = CONVERT (i_ShowNoCountPosts, CHAR);
-        PREPARE stmt_ta FROM @ici_SQL;
+        
         EXECUTE stmt_ta USING  @_uvp5_boardID, @_uvp5_userID, @_uvp5_shownocount, @_uvp5_numPosts ;
         DEALLOCATE PREPARE stmt_ta;	
 END;
 --GO
-
      
  /* STORED PROCEDURE CREATED BY VZ-TEAM */
 
