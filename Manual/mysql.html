@@ -47,7 +47,7 @@
             <ul>
               <li><a href="http://www.yetanotherforum.net">YAF web site</a></li>
               <li><a href="http://www.forum.yetanotherforum.net">YAF Support Forum</a></li>
-              <li><a href="http://www.sourceforge.net/yaf-datalayers">Extra data layers</a></li>
+               <li><a href="https://github.com/vzrus/YetAnotherForumExtraDataLayers">Extra data layers</a></li>
              </ul>
           </div>
         </div>
@@ -67,28 +67,46 @@
       <div id="column2">     
       <h1>MySQL System Requirements</h1>
           <blockquote>
-             <p>Database: The minimal version is 5.30.</p>
+             <p>Database: The minimal version is 5.30 for 1.9.3 and 5.1.x for 1.9.6 and higher. 
+             You should have a possibility to create functions on your MySQL hoster's server. 
+			 Check it first. The db object names should be case insensitive.</p>
               <p>OS: Windows XP,Windows Vista,Windows Server 2003,Windows Server 2008.</p>
+              <p>.NET Framework: 4.0 for 1.9.6 Beta1 and higher and 2.0 for 1.9.3</p>
           </blockquote>  
 
         <h1>
 		My SQL INSTALLATION
 			  </h1>
         <!-- **** INSERT PAGE CONTENT HERE **** -->
-        <h2>STEP 1.Download and unpack archive.</h2>
+    
+        <h2>STEP 1.Download and unpack archive.</h2>        
         <ol>
           <li>
        Download the archive from <a href="http://yaf-datalayers.sourceforge.net">here</a> . The files named like <strong>yaf_mysql_</strong>193.
 	Releases like <strong>yaf_mysql_193-r1...</strong> - are simply bugfixes to 
-		 main release&nbsp; and contain 
-	all the files from above version and a separate upgrade file and/or folder. </li>	
+		 main 1.9.3 release&nbsp; and contain 
+	all the files from above version and a separate upgrade file and/or folder.
+	    <blockquote>
+    For new YAF versions 1.9.6 Beta 1 and higher use source code 
+	from <a href="https://github.com/vzrus/YetAnotherForumExtraDataLayers">here</a>.
+	Installation details are mostly for the old version. For the version simply 
+		 replace corresponding files according to folder structure. Delete 
+		 /mssql folder in YAF.Classes.Data too. Configuration details are mostly common.
+	You can use MySQL 5.1 and higher.  
+	</blockquote>
+ 
+	</li>
+
+
+	 	
  <li>
-   Unzip the entire archive to to a folder you want to run YAF in on your web 
+   Unzip the entire archive to a folder you want to run YAF in on your web 
 	server.
 </li>    
  </ol>        
         <h2>STEP 2. INSTALL/CHECK MySQL DB SETTINGS.</h2>
-        	It supports MySQL  5.0.30 incl. 5.1.x. 
+        	It supports MySQL  5.0.30 incl. 5.1.x. and  5.1.x. and higher beginning with 1.9.6 Beta.
+        	Other versions support is not garanteed.
 		 
 
 	 <blockquote>
@@ -107,8 +125,6 @@
        Allow User Variables=True;(for all versions but it treated in data layer code.)
        Use Procedure Bodies=false;(for 5.1)
        Treat Tiny As Boolean=true;(provider default settings)</p>
-       
-		  <br />
 		  &nbsp;
 		  Create new database yafnet(by default). All rights for your database should 
 	be granted to yafuser (by default) to simplify the install process.
@@ -116,7 +132,7 @@
 &nbsp;
 	The created user should have access to information_schema select and 
 		  references priviliges and you should grant him all yafnet db 
-	priv. too. After installing you can drop a part of privileges.<br />
+	priv. too. After installing you can drop a part of the privileges.<br />
 &nbsp;
 	Change db.config and app.config to your preferred settings. <br />
 
@@ -129,7 +145,7 @@
 	  </ul>
 	
 	
-         <h2>STEP 4a. COMPILE YAF from source files (Optional)</h2> 
+         <h2>STEP 4a. COMPILE YAF from source files (Optional for YAF 1.9.3)</h2> 
        If you have chosen this option than omit Step 4b. 
  <p>
           Use <em>/Source</em> folder files. Replace all other files in included folders.        
@@ -137,10 +153,13 @@
 		  ready 
 		  site.
 		  		  Source folder contains source code. 
-			  </p>			
+			  </p>
+		  
+          <blockquote><p>For YAF beginning with version 1.9.6 Beta 1 you should compile YAF 
+		  from source code.</p></blockquote>			
 			<hr></hr> 
         
-          <h2>STEP 4b. INSTALL YAF MYSQL data layer.</h2>
+          <h2>STEP 4b. INSTALL YAF MYSQL data layer(YAF 1.9.3 only).</h2>
           If you have chosen this option than omit Step 4b.
 
         <ol>
