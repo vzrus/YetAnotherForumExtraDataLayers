@@ -5902,12 +5902,12 @@ END;
 SELECT
  		(SELECT COUNT(1) FROM {databaseName}.{objectQualifier}userpmessage 
  		WHERE IFNULL(SIGN(Flags & 1)>0,0) <>0   
- 		AND SIGN(Flags & 8) <>0 ) AS NumRead, 		
+ 		AND SIGN(Flags & 8) <>1 ) AS NumRead, 		
  		(SELECT COUNT(1) FROM {databaseName}.{objectQualifier}userpmessage
  		WHERE IFNULL(SIGN(Flags & 1)=0,false) = 0   
- 		AND SIGN(Flags & 8) <>0 ) AS NumUnread,
+ 		AND SIGN(Flags & 8) <>1 ) AS NumUnread,
 		(SELECT COUNT(1) FROM {databaseName}.{objectQualifier}userpmessage
-		WHERE SIGN(Flags & 8) <>0 ) AS NumTotal;
+		WHERE SIGN(Flags & 8) <>1 ) AS NumTotal;
 		
 END;
 --GO
