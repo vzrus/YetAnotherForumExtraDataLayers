@@ -1,7 +1,7 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="AssemblyInfo.cs" company="Tiny Gecko">
 //  YetAnotherForum.NET
-//  Copyright (C) 2006-2011 Jaben Cargman
+//  Copyright (C) 2006-2012 Jaben Cargman
 //  http://www.yetanotherforum.net/
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
@@ -28,11 +28,11 @@ using System.Security;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("YAF.Classes.Data")]
-[assembly: AssemblyDescription("My SQL data layer for  YetAnotherForum")]
+[assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("https://github.com/vzrus")]
+[assembly: AssemblyCompany("vzrus https://github.com/vzrus")]
 [assembly: AssemblyProduct("YAF.Classes.Data")]
-[assembly: AssemblyCopyright("Copyright © 2006-2011 Vladimir Zakharov")]
+[assembly: AssemblyCopyright("Copyright © 2006-2012 Vladimir Zakharov")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

@@ -60,7 +60,7 @@
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="MySql.Data, Version=6.4.3.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
+    <Reference Include="MySql.Data, Version=6.4.4.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\YetAnotherForum.NET\Bin\MySql.Data.dll</HintPath>
     </Reference>
@@ -80,7 +80,6 @@
     <Compile Include="mysql\Membership\UserPasswordInfo.cs" />
     <Compile Include="mysql\Membership\YafMembershipProvider.cs" />
     <Compile Include="mysql\Profile\DB.cs" />
-    <Compile Include="mysql\Profile\SettingsPropertyColumn.cs" />
     <Compile Include="mysql\Profile\YafProfileProvider.cs" />
     <Compile Include="mysql\Roles\DB.cs" />
     <Compile Include="mysql\Roles\YafRoleProvider.cs" />

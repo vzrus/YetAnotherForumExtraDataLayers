@@ -1,22 +1,7 @@
-/* Yet Another Forum.NET MySQL data layer by vzrus
- * Copyright (C) 2006-2011 Vladimir Zakharov
- * https://github.com/vzrus
- * http://sourceforge.net/projects/yaf-datalayers/
- * 
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- */
+-- This scripts for MySQL for Yet Another Forum http://sourceforge.net/projects/yafdotnet/
+-- were created by vzrus from vz-team https://github.com/vzrus http://sourceforge.net/projects/yaf-datalayers/
+-- They are distributed under terms of GPLv2 only licence as in http://www.fsf.org/licensing/licenses/gpl.html
+-- Copyright vzrus(c) 2008-2012
 
 /*Here we add or check foreign keys*/
 DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}delete_foreign_keys_by_table;
@@ -215,6 +200,8 @@ CALL {databaseName}.{objectQualifier}add_or_check_fkeys('UserAlbumImage','AlbumI
 CALL {databaseName}.{objectQualifier}add_or_check_fkeys('UserAlbum','AlbumID','User','UserID','FK_{databaseName}_{objectQualifier}UserAlbum_{objectQualifier}User','NO ACTION','NO ACTION');
 --GO
 CALL {databaseName}.{objectQualifier}add_or_check_fkeys('MessageHistory','MessageID','Message','MessageID','FK_{databaseName}_{objectQualifier}MessageHistory_{objectQualifier}Message','NO ACTION','NO ACTION');
+--GO
+CALL {databaseName}.{objectQualifier}add_or_check_fkeys('UserProfile','userID','User','userID','FK_{databaseName}_{objectQualifier}UserProfile_{objectQualifier}User','CASCADE','NO ACTION');
 --GO
 
 DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}add_or_check_fkeys;

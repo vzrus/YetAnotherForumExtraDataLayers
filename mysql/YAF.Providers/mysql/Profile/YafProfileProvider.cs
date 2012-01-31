@@ -22,6 +22,7 @@
  */
 
 using System.Web.Configuration;
+using YAF.Classes.Data;
 using YAF.Types.Interfaces;
 using YAF.Utils;
 

@@ -15,6 +15,62 @@
   .style1 {
 	  background-color: #FFFFFF;
   }
+  span.section code.literal, 
+div.section code.literal, 
+
+div.section code.classname, 
+div.example code.literal
+{
+  font-family: "Courier New", Courier, fixed, monospace;
+  font-weight: bold;
+  color: #026789;
+  background-color: white;
+  font-size: 95%;
+  }
+
+div.book a code, 
+div.chapter a code, 
+div.section a code
+{
+  text-decoration: underline;
+  }
+
+div.chapter code,div.section code
+{
+  color: #0e4075;
+  background-color: white;
+  font-weight: normal;
+  font-family: "Courier New", Courier, fixed, monospace;
+  font-size: 95%;
+  }
+
+.literal {
+	font-size: 120%;
+}
+
+code
+{
+  font-size: 95%;
+  }
+
+code    {
+    color:#761596;
+    font-size: 120%;
+}
+
+.auto-style1 {
+	font-size: 100%;
+	vertical-align: baseline;
+	border-style: none;
+	border-color: inherit;
+	border-width: 0;
+	margin: 0;
+	padding: 0;
+	background:;
+}
+.auto-style2 {
+	color: #761596;
+}
   </style>
 
 </head>
@@ -69,7 +125,18 @@
           <blockquote>
              <p>Database: The minimal version is 5.30 for 1.9.3 and 5.1.x for 1.9.6 and higher. 
              You should have a possibility to create functions on your MySQL hoster's server. 
-			 Check it first. The db object names should be case insensitive.</p>
+			 Check it first. </p>
+			  <p>
+			  <a href="http://dev.mysql.com/doc/refman/5.6/en/create-trigger.html">
+			  <span class="auto-style2">CREATE FUNCTION in YAF</span></a> might 
+			  require the
+			  <a href="http://dev.mysql.com/doc/refman/5.6/en/privileges-provided.html#priv_super">
+			  <code class="auto-style1" style="outline: 0;">SUPER</code></a> 
+			  privilege to install functions, as described in
+			  <a href="http://dev.mysql.com/doc/refman/5.6/en/stored-programs-logging.html" title="17.7. Binary Logging of Stored Programs">
+			  Section 17.7, &#8220;Binary Logging of Stored Programs&#8221;</a>.&nbsp; Che&#1089;k 
+			  it befor installing.</p>
+			  <p>The db object names should be case insensitive.</p>
               <p>OS: Windows XP,Windows Vista,Windows Server 2003,Windows Server 2008.</p>
               <p>.NET Framework: 4.0 for 1.9.6 Beta1 and higher and 2.0 for 1.9.3</p>
           </blockquote>  
@@ -139,9 +206,9 @@
 	<br />
 		  Defaults:&nbsp;
 		<ul>
-	<li>user: yafuser  </li>
-	<li>password : yaf123 </li>
-	<li>database  : yafnet </li>
+	<li>user:  </li>
+	<li>password : </li>
+	<li>database : </li>
 	  </ul>
 	
 	

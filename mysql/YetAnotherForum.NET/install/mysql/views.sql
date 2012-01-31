@@ -1,22 +1,7 @@
-/* Yet Another Forum.NET MySQL data layer by vzrus
- * Copyright (C) 2006-2011 Vladimir Zakharov
- * https://github.com/vzrus
- * http://sourceforge.net/projects/yaf-datalayers/
- * 
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- */
+-- This scripts for MySQL for Yet Another Forum http://sourceforge.net/projects/yafdotnet/
+-- were created by vzrus from vz-team https://github.com/vzrus http://sourceforge.net/projects/yaf-datalayers/
+-- They are distributed under terms of GPLv2 only licence as in http://www.fsf.org/licensing/licenses/gpl.html
+-- Copyright vzrus(c) 2008-2012
 
 
 /* Views */
@@ -357,53 +342,7 @@ ON a.UserID = x_1.UserID
 INNER JOIN {databaseName}.{objectQualifier}Group AS b
 ON b.GroupID = a.GroupID
 GROUP BY a.UserID, x_1.ForumID;
---GO  
-
-
- CREATE VIEW {databaseName}.{objectQualifier}UserPMessageSelectView
- AS
- SELECT
-a.UserPMessageID,
-a.UserID,
-a.PMessageID,
-a.Flags,
-IFNULL(SIGN(a.Flags & 1)>0,false) AS IsRead,
-IFNULL(SIGN(a.Flags & 2)>0,false) AS IsInOutbox,
-IFNULL(SIGN(a.Flags & 4)>0,false) AS IsArchived,
-IFNULL(SIGN(a.Flags & 8)>0,false) AS IsDeleted
- FROM
- 	{databaseName}.{objectQualifier}UserPMessage a; 	
---GO
-
-CREATE VIEW {databaseName}.{objectQualifier}PMessageView
- AS
- SELECT
-	a.PMessageID, 
-        b.UserPMessageID, 
-        a.FromUserID, 
-        d.`Name` AS FromUser, 
- 	b.`UserID` AS ToUserId, 
-        c.`Name` AS ToUser, 
-        a.Created, a.Subject, 
- 	a.Body, 
-        a.Flags, 
-        b.IsRead, 
-        b.IsInOutbox, 
-        b.IsArchived,
-        b.IsDeleted
- FROM
- 	{databaseName}.{objectQualifier}PMessage a
- INNER JOIN
- 	{databaseName}.{objectQualifier}UserPMessageSelectView b ON a.PMessageID = b.PMessageID
- INNER JOIN
- 	{databaseName}.{objectQualifier}User c ON b.UserID = c.UserID
- INNER JOIN
- 	{databaseName}.{objectQualifier}User d ON a.FromUserID = d.UserID;
---GO
-
-
-
- 
+--GO   
 
  CREATE VIEW {databaseName}.{objectQualifier}TopicSelectView
  AS

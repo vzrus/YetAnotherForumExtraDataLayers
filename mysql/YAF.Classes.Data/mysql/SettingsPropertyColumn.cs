@@ -1,5 +1,10 @@
-/* Yet Another Forum.NET
- * Copyright (C) 2006-2010 Jaben Cargman
+/* Yet Another Forum.NET MySQL data layer by vzrus
+ * Adopted for MySQL by vzrus https://github.com/vzrus 
+ * http://sourceforge.net/projects/yaf-datalayers/
+ * General class structure is based on MS SQL Server code,
+ * created by YAF developers
+ * Copyright (C) 2003-2005 Bjørnar Henden
+ * Copyright (C) 2006-2009 Jaben Cargman
  * http://www.yetanotherforum.net/
  * 
  * This program is free software; you can redistribute it and/or
@@ -15,8 +20,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ *
+ * 
  */
-namespace YAF.Providers.Profile
+namespace YAF.Classes.Data
 {
   using System.Configuration;
   using System.Data;

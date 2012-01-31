@@ -1,9 +1,10 @@
 /* Yet Another Forum.NET MySQL data layer by vzrus
- * Copyright (C) 2006-2011 Vladimir Zakharov
- * https://github.com/vzrus
+ * Copyright (C) 2009-2010 vzrus
  * http://sourceforge.net/projects/yaf-datalayers/
  * General class structure is based on MS SQL Server code,
  * created by YAF developers
+ * Copyright (C) 2003-2005 Bjørnar Henden
+ * Copyright (C) 2006-2009 Jaben Cargman
  * http://www.yetanotherforum.net/
  * 
  * This program is free software; you can redistribute it and/or
@@ -19,13 +20,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ *
+ * 
  */
 
 
-
+using System.Configuration;
 using YAF.Types.Handlers;
-
-namespace YAF.Classes.Data 
+namespace YAF.Classes.Data
 {
     using System;
     using System.Collections.Generic;
@@ -34,7 +36,6 @@ namespace YAF.Classes.Data
     using System.Linq;
     using System.Web.Hosting;
     using System.Web.Security;
-    
     using YAF.Classes.Pattern;
     using System.Text;
     using YAF.Types.Objects;
@@ -693,6 +694,7 @@ namespace YAF.Classes.Data
 		                                               	"mysql/indexes.sql",
                                                         "mysql/fkeys.sql",
 		                                               	"mysql/constraints.sql",
+                                                        "mysql/triggers.sql",
 		                                               	"mysql/types.sql",
 		                                               	"mysql/views.sql",                                                      
 		                                               	"mysql/procedures.sql",
@@ -714,7 +716,7 @@ namespace YAF.Classes.Data
 
         static private bool GetBooleanRegistryValue(string name)
         {
-            using ( DataTable dt = YAF.Classes.Data.LegacyDb.registry_list( name ) )
+            using ( DataTable dt = LegacyDb.registry_list( name ) )
             {
                 foreach ( DataRow dr in dt.Rows )
                 {
@@ -730,6 +732,52 @@ namespace YAF.Classes.Data
 		#endregion
 
 		#region Forum
+
+        /// <summary>
+        /// Listes all forums accessible to a user
+        /// </summary>
+        /// <param name="boardId">BoardID</param>
+        /// <param name="userId">ID of user</param>
+        /// <returns>DataTable of all accessible forums</returns>
+
+
+        static public DataTable forum_listall_sorted(object boardId, object userId)
+        {
+            return forum_listall_sorted( boardId, userId, null, false, 0);
+        }
+
+        static public DataTable forum_listall_sorted(object boardId, object userId, int[] forumidExclusions)
+        {
+            return forum_listall_sorted( boardId, userId, null, false, 0);
+        }
+
+
+
+        //Here
+        static public DataTable forum_listall_sorted(object boardId, object userId, int[] forumidExclusions, bool emptyFirstRow, int startAt)
+        {
+            using (DataTable dataTable = forum_listall( boardId, userId, startAt))
+            {
+                int baseForumId = 0;
+                int baseCategoryId = 0;
+
+                if (startAt != 0)
+                {
+                    // find the base ids...
+                    foreach (DataRow dataRow in dataTable.Rows)
+                    {
+                        if (Convert.ToInt32(dataRow["ForumID"]) == startAt)
+                        {
+                            baseForumId = Convert.ToInt32(dataRow["ParentID"]);
+                            baseCategoryId = Convert.ToInt32(dataRow["CategoryID"]);
+                            break;
+                        }
+                    }
+                }
+
+                return forum_sort_list( dataTable, baseForumId, baseCategoryId, 0, forumidExclusions, emptyFirstRow);
+            }
+        }
         /// <summary>
         /// Get the list of recently logged in users.
         /// </summary>
@@ -751,7 +799,7 @@ namespace YAF.Classes.Data
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("I_BoardID", MySqlDbType.Int32).Value = boardID;
-                cmd.Parameters.Add("I_TimeSinceLastLogin", MySqlDbType.DateTime).Value = timeSinceLastLogin;
+                cmd.Parameters.Add("I_TimeSinceLastLogin", MySqlDbType.Int32).Value = timeSinceLastLogin;
                 cmd.Parameters.Add("I_StyledNicks", MySqlDbType.Byte).Value = styledNicks;
                 return MsSqlDbAccess.Current.GetData(cmd);
             }
@@ -819,6 +867,7 @@ namespace YAF.Classes.Data
         /// <exception cref="ApplicationException">
         /// </exception>
         static public DataRow pageload(
+            
             object sessionId, 
             object boardId,
             object userKey, 
@@ -848,7 +897,7 @@ namespace YAF.Classes.Data
                         cmd.CommandType = CommandType.StoredProcedure;
                         cmd.Parameters.Add("i_SessionID", MySqlDbType.VarChar).Value = sessionId;
                         cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
-                        cmd.Parameters.Add("i_UserKey", MySqlDbType.VarChar).Value = userKey;
+                        cmd.Parameters.Add("i_UserKey", MySqlDbType.VarChar).Value = userKey ?? DBNull.Value;
                         cmd.Parameters.Add("i_IP", MySqlDbType.VarChar).Value = ip;
                         cmd.Parameters.Add("i_Location", MySqlDbType.VarChar, 128 ).Value = location;
                         cmd.Parameters.Add("i_ForumPage", MySqlDbType.VarChar, 128).Value = forumPage;                        
@@ -861,7 +910,8 @@ namespace YAF.Classes.Data
                         cmd.Parameters.Add("i_IsCrawler", MySqlDbType.Byte).Value = isCrawler ?? 0;
                         cmd.Parameters.Add("i_IsMobileDevice", MySqlDbType.Byte).Value = isMobileDevice ?? 0; 
                         cmd.Parameters.Add("i_DontTrack", MySqlDbType.Byte ).Value = donttrack ?? 0;
-                       
+                        cmd.Parameters.Add("i_CurrentTime", MySqlDbType.Timestamp).Value = DateTime.UtcNow;
+                      
                         using (DataTable dt = MsSqlDbAccess.Current.GetData(cmd))
                         {
                             if (dt.Rows.Count > 0)
@@ -875,7 +925,7 @@ namespace YAF.Classes.Data
                         }
                         
                         //We don't trigger AcceptChanges() as we need to return more 
-                        dt1 = MsSqlDbAccess.Current.GetDataTableFromReader( cmd, false, false);
+                        dt1 = MsSqlDbAccess.Current.GetDataTableFromReader( cmd, false, false );
                     }
                     //int firstColumnIndex = dt1.Columns.Count;
                     if (dt1.Columns.Count == 0) throw new ArgumentOutOfRangeException();
@@ -919,7 +969,7 @@ namespace YAF.Classes.Data
 		/// <param name="fid"></param>
 		/// <param name="UserID">ID of user</param>
         /// <returns>Results</returns>
-		static public DataTable GetSearchResult( string toSearchWhat, string toSearchFromWho, SearchWhatFlags searchFromWhoMethod, SearchWhatFlags searchWhatMethod, int forumIDToStartAt, int userID, int boardId, int maxResults, bool useFullText, 
+		static public DataTable GetSearchResult(string toSearchWhat, string toSearchFromWho, SearchWhatFlags searchFromWhoMethod, SearchWhatFlags searchWhatMethod, int forumIDToStartAt, int userID, int boardId, int maxResults, bool useFullText, 
 		 bool searchDisplayName)
 		{
             bool bFirst = true;
@@ -939,7 +989,7 @@ namespace YAF.Classes.Data
             //Search not in all forums
             if ( forumIDToStartAt != 0 )
 			{
-				DataTable dt = forum_listall_sorted( boardId, userID, null, false, forumIDToStartAt );
+                DataTable dt = LegacyDb.forum_listall_sorted( boardId, userID, null, false, forumIDToStartAt);
 				
                 foreach ( DataRow dr in dt.Rows )
 				forumIDs = forumIDs + Convert.ToInt32( dr ["ForumID"] ).ToString() + ",";
@@ -1202,12 +1252,32 @@ namespace YAF.Classes.Data
 		#endregion
 
 		#region DataSets
+
+        static public void forum_list_sort_basic(DataTable listsource, DataTable list, int parentid, int currentLvl)
+        {
+            for (int i = 0; i < listsource.Rows.Count; i++)
+            {
+                DataRow row = listsource.Rows[i];
+                if ((row["ParentID"]) == DBNull.Value)
+                    row["ParentID"] = 0;
+
+                if ((int)row["ParentID"] == parentid)
+                {
+                    string sIndent = "";
+                    int iIndent = Convert.ToInt32(currentLvl);
+                    for (int j = 0; j < iIndent; j++) sIndent += "--";
+                    row["Name"] = string.Format(" -{0} {1}", sIndent, row["Name"]);
+                    list.Rows.Add(row.ItemArray);
+                    forum_list_sort_basic( listsource, list, (int)row["ForumID"], currentLvl + 1);
+                }
+            }
+        }
 		/// <summary>
 		/// Gets a list of categories????
 		/// </summary>
 		/// <param name="boardId">BoardID</param>
 		/// <returns>DataSet with categories</returns>
-		static public DataSet ds_forumadmin( object boardId )
+		static public DataSet ds_forumadmin(object boardId )
 		{
 			using ( MsSqlDbConnectionManager connMan = new MsSqlDbConnectionManager() )
 			{
@@ -1231,7 +1301,7 @@ namespace YAF.Classes.Data
 							dtForumListSorted.TableName = MsSqlDbAccess.GetObjectName( "Forum" );
 							ds.Tables.Add( dtForumListSorted );
 							dtForumListSorted.Dispose();
-							forum_list_sort_basic( ds.Tables [MsSqlDbAccess.GetObjectName( "ForumUnsorted" )], ds.Tables [MsSqlDbAccess.GetObjectName( "Forum" )], 0, 0 );
+                            LegacyDb.forum_list_sort_basic( ds.Tables[MsSqlDbAccess.GetObjectName("ForumUnsorted")], ds.Tables[MsSqlDbAccess.GetObjectName("Forum")], 0, 0);
 							ds.Tables.Remove( MsSqlDbAccess.GetObjectName( "ForumUnsorted" ) );
 							ds.Relations.Add( "FK_Forum_Category", ds.Tables [MsSqlDbAccess.GetObjectName( "Category" )].Columns ["CategoryID"], ds.Tables [MsSqlDbAccess.GetObjectName( "Forum" )].Columns ["CategoryID"] );
 							trans.Commit();
@@ -1262,7 +1332,7 @@ namespace YAF.Classes.Data
 		/// <param name="accessMaskID">ID of access mask</param>
         ///<param name="excludeFlags">Flags to exclude from edititing by certain roles</param>
 		/// <returns></returns>
-        static public DataTable accessmask_list( object boardId, object accessMaskID, object excludeFlags )
+        static public DataTable accessmask_list(object boardId, object accessMaskID, object excludeFlags )
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "accessmask_list" ) )
 			{
@@ -1282,7 +1352,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="accessMaskID">ID of access mask</param>
 		/// <returns></returns>
-		static public bool accessmask_delete( object accessMaskID )
+		static public bool accessmask_delete(object accessMaskID )
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "accessmask_delete" ) )
 			{
@@ -1308,7 +1378,7 @@ namespace YAF.Classes.Data
 		/// <param name="deleteAccess">Delete Access?</param>
 		/// <param name="uploadAccess">Upload Access?</param>
 		/// <param name="downloadAccess">Download Access?</param>
-		static public void accessmask_save( object accessMaskID, object boardId, object name, object readAccess, object postAccess, object replyAccess, object priorityAccess, object pollAccess, object voteAccess, object moderatorAccess, object editAccess, object deleteAccess, object uploadAccess, object downloadAccess, object sortOrder )
+		static public void accessmask_save(object accessMaskID, object boardId, object name, object readAccess, object postAccess, object replyAccess, object priorityAccess, object pollAccess, object voteAccess, object moderatorAccess, object editAccess, object deleteAccess, object uploadAccess, object downloadAccess, object sortOrder )
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "accessmask_save" ) )
 			{
@@ -1359,7 +1429,7 @@ namespace YAF.Classes.Data
         /// </param>
 		/// <returns>Returns a DataTable of active users</returns>
          
-		static public DataTable active_list( 
+		static public DataTable active_list(
             object boardId, 
             object guests,
             object showCrawlers, 
@@ -1426,7 +1496,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="forumID">forumId</param>
 		/// <returns>DataTable of all ative users in a forum</returns>
-        static public DataTable active_listforum( object forumId, object styledNicks )
+        static public DataTable active_listforum(object forumId, object styledNicks )
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "active_listforum" ) )
 			{
@@ -1443,7 +1513,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="topicID">ID of topic </param>
 		/// <returns>DataTable of all users that are in a topic</returns>
-        static public DataTable active_listtopic( object topicID, object styledNicks )
+        static public DataTable active_listtopic(object topicID, object styledNicks )
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "active_listtopic" ) )
 			{
@@ -1461,7 +1531,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="boardId">boardId</param>
 		/// <returns>DataRow of activity stata</returns>
-		static public DataRow active_stats( object boardId )
+		static public DataRow active_stats(object boardId )
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "active_stats" ) )
 			{
@@ -1483,7 +1553,7 @@ namespace YAF.Classes.Data
 		/// <param name="attachmentID">attachementID</param>
 		/// <param name="boardId">boardId</param>
 		/// <returns>DataTable with attachement list</returns>
-		static public DataTable attachment_list( object messageID, object attachmentID, object boardId )
+		static public DataTable attachment_list(object messageID, object attachmentID, object boardId )
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "attachment_list" ) )
 			{
@@ -1506,7 +1576,7 @@ namespace YAF.Classes.Data
 		/// <param name="bytes">number of bytes</param>
 		/// <param name="contentType">type of attchment</param>
 		/// <param name="stream">stream of bytes</param>
-		static public void attachment_save( object messageID, object fileName, object bytes, object contentType, System.IO.Stream stream )
+		static public void attachment_save(object messageID, object fileName, object bytes, object contentType, System.IO.Stream stream )
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "attachment_save" ) )
 			{
@@ -1537,7 +1607,7 @@ namespace YAF.Classes.Data
 		/// Delete attachment
 		/// </summary>
 		/// <param name="attachmentID">ID of attachment to delete</param>
-		static public void attachment_delete( object attachmentID )
+		static public void attachment_delete(object attachmentID )
 		{
             bool UseFileTable = GetBooleanRegistryValue("UseFileTable");
 
@@ -1586,7 +1656,7 @@ namespace YAF.Classes.Data
 		/// Attachement dowload
 		/// </summary>
 		/// <param name="attachmentID">ID of attachemnt to download</param>
-		static public void attachment_download( object attachmentID )
+		static public void attachment_download(object attachmentID )
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "attachment_download" ) )
 			{
@@ -1617,7 +1687,7 @@ namespace YAF.Classes.Data
 		/// <param name="boardId">ID of board</param>
 		/// <param name="ID">ID</param>
 		/// <returns>DataTable of banned IPs</returns>
-		static public DataTable bannedip_list( object boardId, object ID )
+		static public DataTable bannedip_list(object boardId, object ID )
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "bannedip_list" ) )
 			{
@@ -1637,7 +1707,7 @@ namespace YAF.Classes.Data
 		/// <param name="ID">ID</param>
 		/// <param name="boardId">BoardID</param>
 		/// <param name="Mask">Mask</param>
-		static public void bannedip_save( object ID, object boardId, object Mask, string reason, int userID )
+		static public void bannedip_save(object ID, object boardId, object Mask, string reason, int userID )
 		{            
 
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "bannedip_save" ) )
@@ -1664,7 +1734,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="boardId">board id</param>
 		/// <returns>DataTable</returns>
-        static public DataTable board_list( object boardId)
+        static public DataTable board_list(object boardId)
 		{
 
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "board_list" ) )
@@ -1691,7 +1761,7 @@ namespace YAF.Classes.Data
         /// <param name="useStyledNick">UseStyledNick</param>
         /// <param name="showNoCountPosts">ShowNoCountPosts</param> 
 		/// <returns>DataRow of Poststats</returns>	
-        static public DataRow board_poststats( int? boardId, bool useStyledNick, bool showNoCountPosts)
+        static public DataRow board_poststats(int? boardId, bool useStyledNick, bool showNoCountPosts)
 		{
 		    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("board_poststats"))
 		    {
@@ -1736,7 +1806,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// DataRow of Poststats
         /// </returns>
-        public static DataRow board_userstats( int? boardId)
+        public static DataRow board_userstats(int? boardId)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("board_userstats"))
             {
@@ -1762,7 +1832,7 @@ namespace YAF.Classes.Data
 		/// Recalculates topic and post numbers and updates last post for specified board
 		/// </summary>
 		/// <param name="boardId">BoardID of board to do re-sync for, if null, all boards are re-synced</param>
-		static public void board_resync( object boardId )
+		static public void board_resync(object boardId )
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "board_resync" ) )
 			{
@@ -1780,9 +1850,9 @@ namespace YAF.Classes.Data
 		/// <returns>DataRow</returns>
 		static public DataRow board_stats()
 		{
-			return board_stats(null);
+			return board_stats(  null );
 		}
-		static public DataRow board_stats(object boardId )
+		static public DataRow board_stats( object boardId )
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "board_stats" ) )
 			{
@@ -1864,7 +1934,7 @@ namespace YAF.Classes.Data
 		/// Deletes a board
 		/// </summary>
 		/// <param name="boardId">ID of board to delete</param>
-		static public void board_delete( object boardId )
+		static public void board_delete(object boardId )
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "board_delete" ) )
 			{
@@ -1881,7 +1951,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="CategoryID">ID of category to delete</param>
 		/// <returns>Bool value indicationg if category was deleted</returns>
-        static public bool category_delete( object CategoryID)
+        static public bool category_delete(object CategoryID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "category_delete" ) )
 			{
@@ -1898,7 +1968,7 @@ namespace YAF.Classes.Data
 		/// <param name="boardId">boardId</param>
 		/// <param name="categoryID">categotyID</param>
 		/// <returns>DataTable with a list of forums in a category</returns>
-        static public DataTable category_list( object boardId, object categoryID)
+        static public DataTable category_list(object boardId, object categoryID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "category_list" ) )
 			{
@@ -1922,7 +1992,7 @@ namespace YAF.Classes.Data
 		/// <param name="userID"></param>
 		/// <param name="categoryID"></param>
 		/// <returns></returns>
-        static public DataTable category_listread( object boardId, object userID, object categoryID)
+        static public DataTable category_listread(object boardId, object userID, object categoryID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "category_listread" ) )
 			{
@@ -1942,7 +2012,7 @@ namespace YAF.Classes.Data
 		/// <param name="StartID"></param>
 		/// <param name="Limit"></param>
 		/// <returns></returns>
-        static public DataTable category_simplelist( int startID, int limit)
+        static public DataTable category_simplelist(int startID, int limit)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "category_simplelist" ) )
 			{
@@ -1964,7 +2034,7 @@ namespace YAF.Classes.Data
 		/// <param name="CategoryID">CategoryID so save changes to</param>
 		/// <param name="Name">Name of the category</param>
 		/// <param name="SortOrder">Sort Order</param>
-        static public void category_save( object boardId, object categoryId, object name, object categoryImage, object sortOrder)
+        static public void category_save(object boardId, object categoryId, object name, object categoryImage, object sortOrder)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "category_save" ) )
 			{
@@ -1990,7 +2060,7 @@ namespace YAF.Classes.Data
 		/// <param name="UserID">ID of user to verify</param>
 		/// <param name="Hash">Hash of user</param>
 		/// <param name="Email">email of user</param>
-        static public void checkemail_save( object userID, object hash, object email)
+        static public void checkemail_save(object userID, object hash, object email)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "checkemail_save" ) )
 			{
@@ -2008,7 +2078,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="hash">New hash</param>
 		/// <returns>DataTable with user information</returns>
-        static public DataTable checkemail_update( object hash)
+        static public DataTable checkemail_update(object hash)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "checkemail_update" ) )
 			{
@@ -2024,7 +2094,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="email">Associated email</param>
 		/// <returns>DataTable with check email information</returns>
-        static public DataTable checkemail_list( object email)
+        static public DataTable checkemail_list(object email)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "checkemail_list" ) )
 			{
@@ -2045,7 +2115,7 @@ namespace YAF.Classes.Data
 		/// Saves a vote in the database
 		/// </summary>
 		/// <param name="choiceID">Choice of the vote</param>
-        static public void choice_vote( object choiceID, object userID, object remoteIP)
+        static public void choice_vote(object choiceID, object userID, object remoteIP)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "choice_vote" ) )
 			{
@@ -2064,7 +2134,7 @@ namespace YAF.Classes.Data
 		#endregion       
        
 		#region yaf_EventLog
-        static public void eventlog_create( object userID, object source, object description, object type)
+        static public void eventlog_create(object userID, object source, object description, object type)
 		{
 			try
 			{
@@ -2086,7 +2156,7 @@ namespace YAF.Classes.Data
 		}
 
 
-        static public void eventlog_create( object userID, object source, object description)
+        static public void eventlog_create(object userID, object source, object description)
 		{
 			eventlog_create( userID, ( object )source.GetType().ToString(), description, ( object )0 );
 		}
@@ -2095,7 +2165,7 @@ namespace YAF.Classes.Data
 		/// Deletes all event log entries for given board.
 		/// </summary>
 		/// <param name="boardId">ID of board.</param>
-        static public void eventlog_delete( int boardId)
+        static public void eventlog_delete(int boardId)
 		{
 			eventlog_delete( null, boardId );
 		}
@@ -2103,7 +2173,7 @@ namespace YAF.Classes.Data
 		/// Deletes event log entry of given ID.
 		/// </summary>
 		/// <param name="eventLogID">ID of event log entry.</param>
-        static public void eventlog_delete( object eventLogID)
+        static public void eventlog_delete(object eventLogID)
 		{
 			eventlog_delete( eventLogID, null );
 		}
@@ -2112,7 +2182,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="eventLogID">When not null, only given event log entry is deleted.</param>
 		/// <param name="boardId">Specifies board. It is ignored if eventLogID parameter is not null.</param>
-        static public void eventlog_delete( object eventLogID, object boardId)
+        static public void eventlog_delete(object eventLogID, object boardId)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "eventlog_delete" ) )
 			{
@@ -2128,7 +2198,7 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public DataTable eventlog_list( object boardId)
+        static public DataTable eventlog_list(object boardId)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "eventlog_list" ) )
 			{
@@ -2144,7 +2214,7 @@ namespace YAF.Classes.Data
         // Admin control of file extensions - MJ Hufford
 		#region yaf_Extensions
 
-        static public void extension_delete( object extensionId)
+        static public void extension_delete(object extensionId)
 		{
 			try
 			{
@@ -2164,7 +2234,7 @@ namespace YAF.Classes.Data
 		}
 
 		// Get Extension record by extensionId
-        static public DataTable extension_edit( object extensionId)
+        static public DataTable extension_edit(object extensionId)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "extension_edit" ) )
 			{
@@ -2178,7 +2248,7 @@ namespace YAF.Classes.Data
 		}
 
 		// Used to validate a file before uploading
-        static public DataTable extension_list( object boardId, object extension)
+        static public DataTable extension_list(object boardId, object extension)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "extension_list" ) )
 			{
@@ -2193,7 +2263,7 @@ namespace YAF.Classes.Data
 		}
 
 		// Returns an extension list for a given Board
-        static public DataTable extension_list( object boardId)
+        static public DataTable extension_list(object boardId)
 		{       
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "extension_list" ) )
 			{
@@ -2205,7 +2275,7 @@ namespace YAF.Classes.Data
 		}
 
 		// Saves / creates extension
-        static public void extension_save( object extensionId, object boardId, object Extension)
+        static public void extension_save(object extensionId, object boardId, object Extension)
 		{
 			try
 			{
@@ -2233,7 +2303,7 @@ namespace YAF.Classes.Data
 		/// Checks for a vote in the database
 		/// </summary>
 		/// <param name="choiceID">Choice of the vote</param>
-        static public DataTable pollvote_check( object pollid, object userid, object remoteip)
+        static public DataTable pollvote_check(object pollid, object userid, object remoteip)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "pollvote_check" ) )
 			{
@@ -2260,7 +2330,7 @@ namespace YAF.Classes.Data
         /// <param name="remoteIp">
         /// The remoteip.
         /// </param>
-        public static DataTable pollgroup_votecheck( object pollGroupId, object userId, object remoteIp)
+        public static DataTable pollgroup_votecheck(object pollGroupId, object userId, object remoteIp)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("pollgroup_votecheck"))
             {
@@ -2280,7 +2350,7 @@ namespace YAF.Classes.Data
 		/// Deletes attachments out of a entire forum
 		/// </summary>
 		/// <param name="ForumID">ID of forum to delete all attachemnts out of</param>
-        static private void forum_deleteAttachments( object forumID)
+        static private void forum_deleteAttachments(object forumID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "forum_listtopics" ) )
 			{
@@ -2306,39 +2376,63 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="ForumID">forum to delete</param>
 		/// <returns>bool to indicate that forum has been deleted</returns>
-        static public bool forum_delete( object forumID)
+        static public bool forum_delete(object forumID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "forum_listSubForums" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add("i_ForumID", MySqlDbType.Int32).Value = forumID;
-				
-                if ( MsSqlDbAccess.Current.ExecuteScalar(cmd) is DBNull )
-				{
-					forum_deleteAttachments( forumID );
-					using ( MySqlCommand cmd_new = MsSqlDbAccess.GetCommand( "forum_delete" ) )
-					{
-						cmd_new.CommandType = CommandType.StoredProcedure;
-                        cmd_new.CommandTimeout = 99999;
-                        cmd_new.Parameters.Add( "i_ForumID", MySqlDbType.Int32 ).Value = forumID;
-						MsSqlDbAccess.Current.ExecuteNonQuery( cmd_new);
-					}
-					return true;
-				}
-				else
-					return false;
+
+			    if (!(MsSqlDbAccess.Current.ExecuteScalar(cmd) is DBNull))
+			        return false;
+			    else
+			    {
+			        forum_deleteAttachments( forumID);
+			        using (MySqlCommand cmd_new = MsSqlDbAccess.GetCommand("forum_delete"))
+			        {
+			            cmd_new.CommandType = CommandType.StoredProcedure;
+			            cmd_new.CommandTimeout = 99999;
+			            cmd_new.Parameters.Add("i_ForumID", MySqlDbType.Int32).Value = forumID;
+			            MsSqlDbAccess.Current.ExecuteNonQuery(cmd_new);
+			        }
+			        return true;
+			    }
 			}
 		}
-		//END ABOT CHANGE 16.04.04
-		//ABOT NEW 16.04.04: This new function lists all moderated topic by the specified user
+
+        public static bool forum_move([NotNull] object forumOldID, [NotNull] object forumNewID)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("forum_listSubForums"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("i_ForumID", forumOldID);
+
+                if (!(MsSqlDbAccess.Current.ExecuteScalar(cmd) is DBNull))
+                {
+                    return false;
+                }
+
+                using (var cmd_new = MsSqlDbAccess.GetCommand("forum_move"))
+                {
+                    cmd_new.CommandType = CommandType.StoredProcedure;
+                    cmd_new.CommandTimeout = 99999;
+                    cmd_new.Parameters.AddWithValue("i_ForumOldID", forumOldID);
+                    cmd_new.Parameters.AddWithValue("i_ForumNewID", forumNewID);
+                    MsSqlDbAccess.Current.ExecuteNonQuery(cmd_new);
+                }
+
+                return true;
+            }
+        }
+
 		/// <summary>
 		/// Lists all moderated forums for a user
 		/// </summary>
 		/// <param name="boardId">board if of moderators</param>
 		/// <param name="userID">user id</param>
 		/// <returns>DataTable of moderated forums</returns>
-        static public DataTable forum_listallMyModerated( object boardId, object userID)
+        static public DataTable forum_listallMyModerated(object boardId, object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "forum_listallmymoderated" ) )
 			{
@@ -2357,7 +2451,7 @@ namespace YAF.Classes.Data
 		/// <param name="boardId">boardId</param>
 		/// <param name="ForumID">forumID</param>
 		/// <returns>DataTable with list of topics from a forum</returns>
-        static public DataTable forum_list( object boardId, object forumID)
+        static public DataTable forum_list(object boardId, object forumID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "forum_list" ) )
 			{
@@ -2377,7 +2471,7 @@ namespace YAF.Classes.Data
 		/// <param name="boardId">BoardID</param>
 		/// <param name="userID">ID of user</param>
 		/// <returns>DataTable of all accessible forums</returns>
-        static public DataTable forum_listall( object boardId, object userID)
+        static public DataTable forum_listall(object boardId, object userID)
 		{
             return forum_listall( boardId, userID, 0);
 		}
@@ -2389,7 +2483,7 @@ namespace YAF.Classes.Data
 		/// <param name="userID">ID of user</param>
 		/// <param name="startAt">startAt ID</param>
 		/// <returns>DataTable of all accessible forums</returns>
-        static public DataTable forum_listall( object boardId, object userID, object startAt)
+        static public DataTable forum_listall(object boardId, object userID, object startAt)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "forum_listall" ) )
 			{
@@ -2405,12 +2499,12 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        public static IEnumerable<TypedForumListAll> ForumListAll( int boardId, int userId)
+        public static IEnumerable<TypedForumListAll> ForumListAll(int boardId, int userId)
         {
             return forum_listall(boardId, userId, 0).AsEnumerable().Select(r => new TypedForumListAll(r));
         }
 
-        public static IEnumerable<TypedForumListAll> ForumListAll( int boardId, int userId, int startForumId)
+        public static IEnumerable<TypedForumListAll> ForumListAll(int boardId, int userId, int startForumId)
         {
             var allForums = ForumListAll(boardId, userId);
 
@@ -2447,7 +2541,7 @@ namespace YAF.Classes.Data
 		/// <param name="boardId">BoardID</param>
 		/// <param name="CategoryID">CategoryID</param>
 		/// <returns>DataTable with list</returns>
-        static public DataTable forum_listall_fromCat( object boardId, object categoryID)
+        static public DataTable forum_listall_fromCat(object boardId, object categoryID)
 		{
 			return forum_listall_fromCat( boardId, categoryID, true );
 		}
@@ -2457,7 +2551,7 @@ namespace YAF.Classes.Data
 		/// <param name="StartID"></param>
 		/// <param name="Limit"></param>
 		/// <returns></returns>
-        static public DataTable forum_simplelist( int StartID, int Limit)
+        static public DataTable forum_simplelist(int StartID, int Limit)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "forum_simplelist" ) )
 			{
@@ -2472,6 +2566,49 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
+        static private DataTable forum_sort_list(DataTable listSource, int parentID, int categoryID, int startingIndent, int[] forumidExclusions)
+        {
+            return forum_sort_list(listSource, parentID, categoryID, startingIndent, forumidExclusions, true);
+        }
+
+        static public DataTable forum_sort_list(DataTable listSource, int parentID, int categoryID, int startingIndent, int[] forumidExclusions, bool emptyFirstRow)
+        {
+            DataTable listDestination = new DataTable();
+            listDestination.TableName = "forum_sort_list";
+            listDestination.Columns.Add("ForumID", typeof(String));
+            listDestination.Columns.Add("Title", typeof(String));
+
+            if (emptyFirstRow)
+            {
+                DataRow blankRow = listDestination.NewRow();
+                blankRow["ForumID"] = string.Empty;
+                blankRow["Title"] = string.Empty;
+                listDestination.Rows.Add(blankRow);
+            }
+            // filter the forum list -- not sure if this code actually works
+            DataView dv = listSource.DefaultView;
+
+            if (forumidExclusions != null && forumidExclusions.Length > 0)
+            {
+                string strExclusions = "";
+                bool bFirst = true;
+
+                foreach (int forumID in forumidExclusions)
+                {
+                    if (bFirst) bFirst = false;
+                    else strExclusions += ",";
+
+                    strExclusions += forumID.ToString();
+                }
+
+                dv.RowFilter = string.Format("ForumID NOT IN ({0})", strExclusions);
+                dv.ApplyDefaultSort = true;
+            }
+
+            forum_sort_list_recursive( dv.ToTable(), listDestination, parentID, categoryID, startingIndent);
+
+            return listDestination;
+        }
 		/// <summary>
 		/// Lists all forums within a given subcategory
 		/// </summary>
@@ -2479,7 +2616,7 @@ namespace YAF.Classes.Data
 		/// <param name="CategoryID">CategoryID</param>
 		/// <param name="EmptyFirstRow">EmptyFirstRow</param>
 		/// <returns>DataTable with list</returns>
-        static public DataTable forum_listall_fromCat( object boardId, object categoryID, bool emptyFirstRow)
+        static public DataTable forum_listall_fromCat(object boardId, object categoryID, bool emptyFirstRow)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "forum_listall_fromCat" ) )
 			{
@@ -2492,7 +2629,7 @@ namespace YAF.Classes.Data
 
 				using ( DataTable dt = MsSqlDbAccess.Current.GetData(cmd) )
 				{
-                    return forum_sort_list( dt, 0, intCategoryID, 0, null, emptyFirstRow);
+                    return LegacyDb.forum_sort_list( dt, 0, intCategoryID, 0, null, emptyFirstRow);
 				}
 			}
 		}
@@ -2501,7 +2638,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="forumID"></param>
 		/// <returns></returns>
-        static public DataTable forum_listpath( object forumID)
+        static public DataTable forum_listpath(object forumID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "forum_listpath" ) )
 			{
@@ -2522,20 +2659,20 @@ namespace YAF.Classes.Data
         /// <param name="useStyledNicks">The useStyledNicks.</param>
 		/// <returns>DataTable with list</returns>
         static public DataTable forum_listread(
-            object boardId, 
-            object userId, 
-            object categoryId, 
-            object parentId, 
+            object boardID, 
+            object userID, 
+            object categoryID, 
+            object parentID, 
             object useStyledNicks,
             object findLastRead )
 		{
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("forum_listread"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
-                cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userId;
-                cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
-                cmd.Parameters.Add("i_ParentID", MySqlDbType.Int32).Value = parentId;
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardID;
+                cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userID;
+                cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryID;
+                cmd.Parameters.Add("i_ParentID", MySqlDbType.Int32).Value = parentID;
                 cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
                 cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = findLastRead;
                 return MsSqlDbAccess.Current.GetData(cmd);
@@ -2581,7 +2718,7 @@ namespace YAF.Classes.Data
 		/// <param name="boardId">BoardID</param>
 		/// <param name="userID">UserID</param>
 		/// <returns>DataSet with categories</returns>
-        static public DataSet forum_moderatelist( object userID, object boardId)
+        static public DataSet forum_moderatelist(object userID, object boardId)
 		{
 			using ( MsSqlDbConnectionManager connMan = new MsSqlDbConnectionManager() )
 			{
@@ -2604,7 +2741,7 @@ namespace YAF.Classes.Data
 							dtForumListSorted.TableName = MsSqlDbAccess.GetObjectName( "Forum" );
 							ds.Tables.Add( dtForumListSorted );
 							dtForumListSorted.Dispose();
-							forum_list_sort_basic( ds.Tables [MsSqlDbAccess.GetObjectName( "ForumUnsorted" )], ds.Tables [MsSqlDbAccess.GetObjectName( "Forum" )], 0, 0 );
+                            LegacyDb.forum_list_sort_basic( ds.Tables[MsSqlDbAccess.GetObjectName("ForumUnsorted")], ds.Tables[MsSqlDbAccess.GetObjectName("Forum")], 0, 0);
 							ds.Tables.Remove( MsSqlDbAccess.GetObjectName( "ForumUnsorted" ) );
                             // vzrus: Remove here all forums with no reports. Would be better to do it in query...
                             // Array to write categories numbers
@@ -2649,7 +2786,7 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public DataTable forum_moderators( object styledNicks)
+        static public DataTable forum_moderators(object styledNicks)
 		{
        
               /*  using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("forum_moderators"))   
@@ -2693,7 +2830,7 @@ namespace YAF.Classes.Data
         /// <returns>
         ///  Returns Data Table with all Mods
         /// </returns>
-        public static DataTable moderators_team_list( bool styledNicks)
+        public static DataTable moderators_team_list(bool styledNicks)
         {
             using (var cmd = MsSqlDbAccess.GetCommand("moderators_team_list"))
             {
@@ -2707,7 +2844,7 @@ namespace YAF.Classes.Data
 		/// Updates topic and post count and last topic for all forums in specified board
 		/// </summary>
 		/// <param name="boardId">BoardID</param>
-        static public void forum_resync( object boardId)
+        static public void forum_resync(object boardId)
 		{
             forum_resync( boardId, null);
 		}
@@ -2716,7 +2853,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="boardId">BoardID</param>
 		/// <param name="forumID">If null, all forums in board are updated</param>
-        static public void forum_resync( object boardId, object forumID)
+        static public void forum_resync(object boardId, object forumID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "forum_resync" ) )
 			{
@@ -2840,7 +2977,7 @@ namespace YAF.Classes.Data
         /// <param name="forumID"></param>
         /// <param name="parentID"></param>
         /// <returns>Integer value for a found dependency</returns>
-        public static int forum_save_parentschecker( object forumID, object parentID)
+        public static int forum_save_parentschecker(object forumID, object parentID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("SELECT " + MsSqlDbAccess.GetObjectName("forum_save_parentschecker") + "(@ForumID,@ParentID)", true))
             {
@@ -2851,97 +2988,8 @@ namespace YAF.Classes.Data
             }
 
         }
-        static private DataTable forum_sort_list( DataTable listSource, int parentID, int categoryID, int startingIndent, int[] forumidExclusions)
-		{
-            return forum_sort_list( listSource, parentID, categoryID, startingIndent, forumidExclusions, true);
-		}
 
-        private static DataTable forum_sort_list(
-        DataTable listSource, int parentID, int categoryID, int startingIndent, int[] forumidExclusions, bool emptyFirstRow)
-        {
-            var listDestination = new DataTable();
-            listDestination.TableName = "forum_sort_list";
-            listDestination.Columns.Add("ForumID", typeof(int));
-            listDestination.Columns.Add("Title", typeof(string));
-
-            if (emptyFirstRow)
-            {
-                DataRow blankRow = listDestination.NewRow();
-                blankRow["ForumID"] = 0;
-                blankRow["Title"] = string.Empty;
-                listDestination.Rows.Add(blankRow);
-            }
-
-            // filter the forum list
-            DataView dv = listSource.DefaultView;
-
-            if (forumidExclusions != null && forumidExclusions.Length > 0)
-            {
-                dv.RowFilter = string.Format("ForumID NOT IN ({0})", forumidExclusions.ToDelimitedString(","));
-                dv.ApplyDefaultSort = true;
-            }
-
-            forum_sort_list_recursive(dv.ToTable(), listDestination, parentID, categoryID, startingIndent);
-
-            return listDestination;
-        }
-
-        static public DataTable forum_listall_sorted( object boardId, object userID)
-		{
-			return forum_listall_sorted( boardId, userID, null, false, 0 );
-		}
-
-        static public DataTable forum_listall_sorted( object boardId, object userID, int[] forumidExclusions)
-		{
-			return forum_listall_sorted( boardId, userID, null, false, 0 );
-		}
-        //Here
-        static public DataTable forum_listall_sorted( object boardId, object userID, int[] forumidExclusions, bool emptyFirstRow, int startAt)
-        {
-            using ( DataTable dataTable = forum_listall( boardId, userID, startAt ) )
-            {
-                int baseForumId = 0;
-                int baseCategoryId = 0;
-
-                if ( startAt != 0 )
-                {
-                    // find the base ids...
-                    foreach ( DataRow dataRow in dataTable.Rows )
-                    {
-                        if ( Convert.ToInt32(dataRow["ForumID"]) == startAt )
-                        {
-                            baseForumId = Convert.ToInt32( dataRow["ParentID"] );
-                            baseCategoryId = Convert.ToInt32( dataRow["CategoryID"] );
-                            break;
-                        }
-                    }
-                }
-
-                return forum_sort_list(dataTable, baseForumId, baseCategoryId, 0, forumidExclusions, emptyFirstRow);
-            }
-        }
-
-        static private void forum_list_sort_basic( DataTable listsource, DataTable list, int parentid, int currentLvl)
-        {
-            for (int i = 0; i < listsource.Rows.Count; i++)
-            {
-                DataRow row = listsource.Rows[i];
-                if ((row["ParentID"]) == DBNull.Value)
-                    row["ParentID"] = 0;
-
-                if ((int)row["ParentID"] == parentid)
-                {
-                    string sIndent = "";
-                    int iIndent = Convert.ToInt32(currentLvl);
-                    for (int j = 0; j < iIndent; j++) sIndent += "--";
-                    row["Name"] = string.Format(" -{0} {1}", sIndent, row["Name"]);
-                    list.Rows.Add(row.ItemArray);
-                    forum_list_sort_basic(listsource, list, (int)row["ForumID"], currentLvl + 1);
-                }
-            }
-        }
-
-        static private void forum_sort_list_recursive( DataTable listSource, DataTable listDestination, int parentID, int categoryID, int currentIndent)
+        static private void forum_sort_list_recursive(DataTable listSource, DataTable listDestination, int parentID, int categoryID, int currentIndent)
         {
             DataRow newRow;
 
@@ -2986,7 +3034,7 @@ namespace YAF.Classes.Data
 		#endregion        
         
         #region yaf_ForumAccess
-        static public DataTable forumaccess_list( object forumID)
+        static public DataTable forumaccess_list(object forumID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "forumaccess_list" ) )
 			{
@@ -2997,7 +3045,7 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void forumaccess_save( object forumID, object groupID, object accessMaskID)
+        static public void forumaccess_save(object forumID, object groupID, object accessMaskID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "forumaccess_save" ) )
 			{
@@ -3010,7 +3058,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public DataTable forumaccess_group( object groupID)
+        static public DataTable forumaccess_group(object groupID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "forumaccess_group" ) )
 			{
@@ -3024,7 +3072,7 @@ namespace YAF.Classes.Data
 		#endregion
 
         #region yaf_Group
-        static public DataTable group_list( object boardId, object groupID)
+        static public DataTable group_list(object boardId, object groupID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "group_list" ) )
 			{
@@ -3034,7 +3082,7 @@ namespace YAF.Classes.Data
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void group_delete( object groupID)
+        static public void group_delete(object groupID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "group_delete" ) )
 			{
@@ -3043,7 +3091,7 @@ namespace YAF.Classes.Data
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public DataTable group_member( object boardId, object userID)
+        static public DataTable group_member(object boardId, object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "group_member" ) )
 			{
@@ -3094,7 +3142,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// The group_save.
         /// </returns>
-        static public long group_save( object groupID, 
+        static public long group_save(object groupID, 
             object boardId, object name, object isAdmin, 
             object isGuest, object isStart, object isModerator, 
             object accessMaskID, object pmlimit, object style, 
@@ -3136,7 +3184,7 @@ namespace YAF.Classes.Data
 		#endregion       
         
         #region yaf_Mail
-        static public void mail_delete( object mailID)
+        static public void mail_delete(object mailID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "mail_delete" ) )
 			{
@@ -3145,7 +3193,7 @@ namespace YAF.Classes.Data
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public DataTable mail_list( object processId)
+        static public DataTable mail_list(object processId)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "mail_list" ) )
 			{
@@ -3163,7 +3211,7 @@ namespace YAF.Classes.Data
         /// </param>
         /// <returns>
         /// </returns>
-        public static IEnumerable<TypedMailList> MailList( long processId)
+        public static IEnumerable<TypedMailList> MailList(long processId)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("mail_list"))
             {
@@ -3173,7 +3221,7 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.GetData(cmd).SelectTypedList(x => new TypedMailList(x));
             }
         }
-        static public void mail_createwatch( object topicID, object from, object fromName, object subject, object body, object bodyHtml, object userID)
+        static public void mail_createwatch(object topicID, object from, object fromName, object subject, object body, object bodyHtml, object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "mail_createwatch" ) )
 			{
@@ -3193,7 +3241,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void mail_create( object from, object fromName, object to, object toName, object subject, object body, object bodyHtml)
+        static public void mail_create(object from, object fromName, object to, object toName, object subject, object body, object bodyHtml)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "mail_create" ) )
 			{
@@ -3266,40 +3314,75 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Clear();
 			}
 
-            if (dtt != null && dtt.Rows.Count > 0)
+            if (dtt != null && dtt.Columns.Count > 0)
             {
-                rowNumber = 0;
-                using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("post_list_result"))
+                if (dtt.Rows.Count > 0)
                 {
-                    cmd.CommandType = CommandType.StoredProcedure;
+                    rowNumber = 0;
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("post_list_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
 
-                    cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = styledNicks;
-                    cmd.Parameters.Add("i_post_totalrowsnumber", MySqlDbType.Int32).Value =
-                        dtt.Rows[rowNumber]["PostTotalRowsNumber"];
-                    cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = dtt.Rows[rowNumber]["PageIndex"];
-                    cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
-                    cmd.Parameters.Add("i_TopicID", MySqlDbType.Int32).Value = topicId;
-                    cmd.Parameters.Add("i_AuthorUserID", MySqlDbType.Int32).Value = authorUserID;
-                    cmd.Parameters.Add("i_SortPosted", MySqlDbType.Int32).Value = sortPosted;
-                    cmd.Parameters.Add("i_SortEdited", MySqlDbType.Int32).Value = sortEdited;
-                    cmd.Parameters.Add("i_SortPosition", MySqlDbType.Int32).Value = sortPosition;
-                    cmd.Parameters.Add("i_SincePostedDate", MySqlDbType.DateTime).Value = sincePostedDate;
-                    cmd.Parameters.Add("i_ToPostedDate", MySqlDbType.DateTime).Value = toPostedDate;
-                    cmd.Parameters.Add("i_SinceEditedDate", MySqlDbType.DateTime).Value = sinceEditedDate;
-                    cmd.Parameters.Add("i_ToEditedDate", MySqlDbType.DateTime).Value = toEditedDate;
-                    cmd.Parameters.Add("i_FirstSelectPosted", MySqlDbType.DateTime).Value =
-                        dtt.Rows[rowNumber]["i_FirstSelectPosted"];
-                    cmd.Parameters.Add("i_FirstSelectEdited", MySqlDbType.DateTime).Value =
-                        dtt.Rows[rowNumber]["i_FirstSelectEdited"];
-                    cmd.Parameters.Add("i_ShowDeleted", MySqlDbType.Byte).Value = showDeleted;
-                    
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = styledNicks;
+                        cmd.Parameters.Add("i_post_totalrowsnumber", MySqlDbType.Int32).Value =
+                            dtt.Rows[rowNumber]["PostTotalRowsNumber"];
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = dtt.Rows[rowNumber]["PageIndex"];
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_TopicID", MySqlDbType.Int32).Value = topicId;
+                        cmd.Parameters.Add("i_AuthorUserID", MySqlDbType.Int32).Value = authorUserID;
+                        cmd.Parameters.Add("i_SortPosted", MySqlDbType.Int32).Value = sortPosted;
+                        cmd.Parameters.Add("i_SortEdited", MySqlDbType.Int32).Value = sortEdited;
+                        cmd.Parameters.Add("i_SortPosition", MySqlDbType.Int32).Value = sortPosition;
+                        cmd.Parameters.Add("i_SincePostedDate", MySqlDbType.DateTime).Value = sincePostedDate;
+                        cmd.Parameters.Add("i_ToPostedDate", MySqlDbType.DateTime).Value = toPostedDate;
+                        cmd.Parameters.Add("i_SinceEditedDate", MySqlDbType.DateTime).Value = sinceEditedDate;
+                        cmd.Parameters.Add("i_ToEditedDate", MySqlDbType.DateTime).Value = toEditedDate;
+                        cmd.Parameters.Add("i_FirstSelectPosted", MySqlDbType.DateTime).Value =
+                            dtt.Rows[rowNumber]["i_FirstSelectPosted"];
+                        cmd.Parameters.Add("i_FirstSelectEdited", MySqlDbType.DateTime).Value =
+                            dtt.Rows[rowNumber]["i_FirstSelectEdited"];
+                        cmd.Parameters.Add("i_ShowDeleted", MySqlDbType.Byte).Value = showDeleted;
 
-                    return MsSqlDbAccess.Current.GetData(cmd);
+
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
+                }
+                else
+                {
+                    rowNumber = 0;
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("post_list_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = styledNicks;
+                        cmd.Parameters.Add("i_post_totalrowsnumber", MySqlDbType.Int32).Value =
+                            1;
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = (int)pageIndex + 1;
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_TopicID", MySqlDbType.Int32).Value = topicId;
+                        cmd.Parameters.Add("i_AuthorUserID", MySqlDbType.Int32).Value = authorUserID;
+                        cmd.Parameters.Add("i_SortPosted", MySqlDbType.Int32).Value = sortPosted;
+                        cmd.Parameters.Add("i_SortEdited", MySqlDbType.Int32).Value = sortEdited;
+                        cmd.Parameters.Add("i_SortPosition", MySqlDbType.Int32).Value = sortPosition;
+                        cmd.Parameters.Add("i_SincePostedDate", MySqlDbType.DateTime).Value = sincePostedDate;
+                        cmd.Parameters.Add("i_ToPostedDate", MySqlDbType.DateTime).Value = toPostedDate;
+                        cmd.Parameters.Add("i_SinceEditedDate", MySqlDbType.DateTime).Value = sinceEditedDate;
+                        cmd.Parameters.Add("i_ToEditedDate", MySqlDbType.DateTime).Value = toEditedDate;
+                        cmd.Parameters.Add("i_FirstSelectPosted", MySqlDbType.DateTime).Value =
+                           DateTime.UtcNow;
+                        cmd.Parameters.Add("i_FirstSelectEdited", MySqlDbType.DateTime).Value =
+                             DateTime.UtcNow;
+                        cmd.Parameters.Add("i_ShowDeleted", MySqlDbType.Byte).Value = showDeleted;
+
+
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
                 }
             }
             return null;
         }
-        static public DataTable post_list_reverse10( object topicID)
+
+        static public DataTable post_list_reverse10(object topicID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "post_list_reverse10" ) )
 			{
@@ -3325,12 +3408,12 @@ namespace YAF.Classes.Data
         /// <returns>
         /// </returns>
         [Obsolete("Use post_alluser() instead.")]
-        public static DataTable post_last10user( object boardID, object userID, object pageUserID)
+        public static DataTable post_last10user(object boardID, object userID, object pageUserID)
         {
             // use all posts procedure to return top ten
             return post_alluser( boardID, userID, pageUserID, 10);
         }
-        static public DataTable post_alluser( object boardId, object userID, object pageUserID, object numberOfMessages)
+        static public DataTable post_alluser(object boardId, object userID, object pageUserID, object numberOfMessages)
 		{
             DataTable dt1 = null;         
         
@@ -3369,9 +3452,10 @@ namespace YAF.Classes.Data
 		}
 
 		// gets list of replies to message
-        static public DataTable message_getRepliesList( object messageID)
+        static public DataTable message_getRepliesList(object messageID)
 		{
 			DataTable list = new DataTable();
+            list.Columns.Add("MessageID", typeof(int));
 			list.Columns.Add( "Posted", typeof( DateTime ) );
 			list.Columns.Add( "Subject", typeof( string ) );
 			list.Columns.Add( "Message", typeof( string ) );
@@ -3392,7 +3476,7 @@ namespace YAF.Classes.Data
 				{
 					DataRow newRow = list.NewRow();
 					DataRow row = dtr.Rows [i];
-					newRow = list.NewRow();
+                    newRow["MessageID"] = row["MessageID"];
 					newRow ["Posted"] = row ["Posted"];
 					newRow ["Subject"] = row ["Subject"];
 					newRow ["Message"] = row ["Message"];
@@ -3408,7 +3492,7 @@ namespace YAF.Classes.Data
 		}
 
 		// gets list of nested replies to message
-        static private void message_getRepliesList_populate( DataTable listsource, DataTable list, int messageID)
+        static private void message_getRepliesList_populate(DataTable listsource, DataTable list, int messageID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "message_reply_list" ) )
 			{
@@ -3422,7 +3506,7 @@ namespace YAF.Classes.Data
 				{
 					DataRow newRow = list.NewRow();
 					DataRow row = dtr.Rows [i];
-					newRow = list.NewRow();
+                    newRow["MessageID"] = row["MessageID"];
 					newRow ["Posted"] = row ["Posted"];
 					newRow ["Subject"] = row ["Subject"];
 					newRow ["Message"] = row ["Message"];
@@ -3438,7 +3522,7 @@ namespace YAF.Classes.Data
 		}
 
 		//creates new topic, using some parameters from message itself
-        static public long topic_create_by_message( object messageID, object forumId, object newTopicSubj)
+        static public long topic_create_by_message(object messageID, object forumId, object newTopicSubj)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "topic_create_by_message" ) )
 			{
@@ -3454,7 +3538,7 @@ namespace YAF.Classes.Data
 		}
 
         [Obsolete("Use MessageList(int messageId) instead")]
-        static public DataTable message_list( object messageID)
+        static public DataTable message_list(object messageID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "message_list" ) )
 			{
@@ -3474,7 +3558,7 @@ namespace YAF.Classes.Data
         /// </param>
         /// <returns>
         /// </returns>
-        public static IEnumerable<TypedMessageList> MessageList( int messageID)
+        public static IEnumerable<TypedMessageList> MessageList(int messageID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("message_list"))
             {
@@ -3486,17 +3570,17 @@ namespace YAF.Classes.Data
             }
         }
 
-        static public void message_delete( object messageID, bool isModeratorChanged, string deleteReason, int isDeleteAction, bool DeleteLinked)
+        static public void message_delete(object messageID, bool isModeratorChanged, string deleteReason, int isDeleteAction, bool DeleteLinked)
 		{
 			message_delete( messageID, isModeratorChanged, deleteReason, isDeleteAction, DeleteLinked, false );
 		}
-        static public void message_delete( object messageID, bool isModeratorChanged, string deleteReason, int isDeleteAction, bool DeleteLinked, bool eraseMessage)
+        static public void message_delete(object messageID, bool isModeratorChanged, string deleteReason, int isDeleteAction, bool DeleteLinked, bool eraseMessage)
 		{
 			message_deleteRecursively( messageID, isModeratorChanged, deleteReason, isDeleteAction, DeleteLinked, false, eraseMessage );
 		}
 
 		// <summary> Retrieve all reported messages with the correct forumID argument. </summary>
-        static public DataTable message_listreported( object forumID)
+        static public DataTable message_listreported(object forumID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "message_listreported" ) )
 			{
@@ -3512,13 +3596,13 @@ namespace YAF.Classes.Data
         /// </summary>       
         /// <param name="MessageID">Should not be NULL</param>
         /// <returns>Returns reporters DataTable for a reported message.</returns>
-        static public DataTable message_listreporters( int messageID)
+        static public DataTable message_listreporters(int messageID)
         {
             
                 return message_listreporters( messageID, null );
            
         }
-        static public DataTable message_listreporters( int messageID, object userID)
+        static public DataTable message_listreporters(int messageID, object userID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand( "message_listreporters" ) )
             {
@@ -3529,7 +3613,7 @@ namespace YAF.Classes.Data
             }
         }
 		// <summary> Save reported message back to the database. </summary>
-        static public void message_report( object messageID, object userID, object reportedDateTime, object reportText)
+        static public void message_report(object messageID, object userID, object reportedDateTime, object reportText)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "message_report" ) )
 			{
@@ -3545,7 +3629,7 @@ namespace YAF.Classes.Data
 		}
 
 		// <summary> Copy current Message text over reported Message text. </summary>
-        static public void message_reportcopyover( object messageID)
+        static public void message_reportcopyover(object messageID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "message_reportcopyover" ) )
 			{
@@ -3558,7 +3642,7 @@ namespace YAF.Classes.Data
 		}
 
 		// <summary> Copy current Message text over reported Message text. </summary>
-        static public void message_reportresolve( object messageFlag, object messageID, object userID)
+        static public void message_reportresolve(object messageFlag, object messageID, object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "message_reportresolve" ) )
 			{
@@ -3574,11 +3658,11 @@ namespace YAF.Classes.Data
 
 		//BAI ADDED 30.01.2004
 		// <summary> Delete message and all subsequent releated messages to that ID </summary>
-        static private void message_deleteRecursively( object messageID, bool isModeratorChanged, string deleteReason, int isDeleteAction, bool DeleteLinked, bool isLinked)
+        static private void message_deleteRecursively(object messageID, bool isModeratorChanged, string deleteReason, int isDeleteAction, bool DeleteLinked, bool isLinked)
 		{
 			message_deleteRecursively( messageID, isModeratorChanged, deleteReason, isDeleteAction, DeleteLinked, isLinked, false );
 		}
-        static private void message_deleteRecursively( object messageID, bool isModeratorChanged, string deleteReason, int isDeleteAction, bool DeleteLinked, bool isLinked, bool eraseMessages)
+        static private void message_deleteRecursively(object messageID, bool isModeratorChanged, string deleteReason, int isDeleteAction, bool DeleteLinked, bool isLinked, bool eraseMessages)
 		{
             bool UseFileTable = GetBooleanRegistryValue("UseFileTable");
 
@@ -3665,7 +3749,7 @@ namespace YAF.Classes.Data
 		}
 
 		// <summary> Set flag on message to approved and store in DB </summary>
-        static public void message_approve( object messageID)
+        static public void message_approve(object messageID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "message_approve" ) )
 			{
@@ -3682,7 +3766,7 @@ namespace YAF.Classes.Data
 		/// <param name="StartID"></param>
 		/// <param name="Limit"></param>
 		/// <returns></returns>
-        static public DataTable message_simplelist( int StartID, int Limit)
+        static public DataTable message_simplelist(int StartID, int Limit)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "message_simplelist" ) )
 			{
@@ -3698,18 +3782,15 @@ namespace YAF.Classes.Data
 			}
 		}
 
-		// <summary> Update message to DB. </summary>
+
         public static void message_update(
-                object messageID, object priority, object message, object description, object status, object subject, object flags, object reasonOfEdit, object isModeratorChanged, object origMessage, object editedBy)
-        {
-            message_update( messageID, priority, message, description, status, subject, flags, reasonOfEdit, isModeratorChanged, null, origMessage, editedBy);
-        }
-        public static void message_update(
+            
             object messageID,
             object priority,
             object message,
             object description,
             object status,
+            object styles,
             object subject,
             object flags, 
             object reasonOfEdit,
@@ -3724,24 +3805,26 @@ namespace YAF.Classes.Data
 
 				cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.Add( "i_MessageID", MySqlDbType.Int32 ).Value = messageID;
-                cmd.Parameters.Add( "i_Priority", MySqlDbType.Int32 ).Value = priority;               
-                cmd.Parameters.Add( "i_Subject", MySqlDbType.VarChar ).Value = subject;
+                cmd.Parameters.Add("i_MessageID", MySqlDbType.Int32).Value = messageID;
+                cmd.Parameters.Add("i_Priority", MySqlDbType.Int32).Value = priority;               
+                cmd.Parameters.Add("i_Subject", MySqlDbType.VarChar).Value = subject;
                 cmd.Parameters.Add("i_status", MySqlDbType.VarChar).Value = status;
+                cmd.Parameters.Add("i_Styles", MySqlDbType.VarChar).Value = styles;
                 cmd.Parameters.Add("i_Description", MySqlDbType.Text).Value = description;
-                cmd.Parameters.Add( "i_Flags", MySqlDbType.Int32 ).Value = flags;
-                cmd.Parameters.Add( "i_Message", MySqlDbType.Text ).Value = message;
-                cmd.Parameters.Add( "i_Reason", MySqlDbType.VarChar ).Value = reasonOfEdit;
+                cmd.Parameters.Add("i_Flags", MySqlDbType.Int32).Value = flags;
+                cmd.Parameters.Add("i_Message", MySqlDbType.Text).Value = message;
+                cmd.Parameters.Add("i_Reason", MySqlDbType.VarChar).Value = reasonOfEdit;
                 cmd.Parameters.Add("i_EditedBy", MySqlDbType.Int32).Value = editedBy;
-                cmd.Parameters.Add( "i_IsModeratorChanged", MySqlDbType.Byte ).Value = isModeratorChanged;
-                cmd.Parameters.Add( "i_OverrideApproval", MySqlDbType.Byte ).Value = overrideApproval;
+                cmd.Parameters.Add("i_IsModeratorChanged", MySqlDbType.Byte ).Value = isModeratorChanged;
+                cmd.Parameters.Add("i_OverrideApproval", MySqlDbType.Byte ).Value = overrideApproval;
                 cmd.Parameters.Add("i_OriginalMessage", MySqlDbType.Text).Value = originalMessage;
-     
+                cmd.Parameters.Add("i_UtcTimeStamp", MySqlDbType.DateTime).Value = DateTime.UtcNow;
+
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		// <summary> Save message to DB. </summary>
-        static public bool message_save( object topicID, object userID, object message, object userName, object ip, object posted, object replyTo, object flags, ref long messageID)
+        static public bool message_save(object topicID, object userID, object message, object userName, object ip, object posted, object replyTo, object flags, ref long messageID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "message_save" ) )
 			{
@@ -3765,13 +3848,14 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add("i_ExternalMessageID", MySqlDbType.VarChar).Value = DBNull.Value;
                 cmd.Parameters.Add("i_ReferenceMessageID", MySqlDbType.VarChar).Value = DBNull.Value;	
                 cmd.Parameters.Add( "i_Flags", MySqlDbType.Int32 ).Value = flags;
+                
 				cmd.Parameters.Add( paramMessageID );
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				messageID = Convert.ToInt64( paramMessageID.Value );
 				return true;
 			}
 		}
-        static public DataTable message_unapproved( object forumID)
+        static public DataTable message_unapproved(object forumID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "message_unapproved" ) )
 			{
@@ -3806,7 +3890,7 @@ namespace YAF.Classes.Data
 		}
 
 		// message movind function
-        static public void message_move( object messageID, object moveToTopic, bool moveAll)
+        static public void message_move(object messageID, object moveToTopic, bool moveAll)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "message_move" ) )
 			{
@@ -3838,7 +3922,7 @@ namespace YAF.Classes.Data
 		}
 
 		//moves answers of moved post
-        static private void message_moveRecursively( object messageID, object moveToTopic)
+        static private void message_moveRecursively(object messageID, object moveToTopic)
 		{
             bool UseFileTable = GetBooleanRegistryValue( "UseFileTable" );
 
@@ -3871,7 +3955,7 @@ namespace YAF.Classes.Data
         // <summary> Checks if the message with the provided messageID is thanked 
         //           by the user with the provided UserID. if so, returns true,
         //           otherwise returns false. </summary>
-        static public bool message_isThankedByUser( object userID, object messageID)
+        static public bool message_isThankedByUser(object userID, object messageID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("message_isthankedbyuser"))
             {
@@ -3897,7 +3981,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// If the User Thanked the the Current Message
         /// </returns>
-        public static bool user_ThankedMessage( object messageId, object userId)
+        public static bool user_ThankedMessage(object messageId, object userId)
         {
             using (var cmd = MsSqlDbAccess.GetCommand("user_thankedmessage"))
             {
@@ -3916,7 +4000,7 @@ namespace YAF.Classes.Data
 
         // <summary> Return the number of times the message with the provided messageID
         //           has been thanked. </summary>
-        static public int message_ThanksNumber( object messageID)
+        static public int message_ThanksNumber(object messageID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("message_thanksnumber"))
             {
@@ -3930,7 +4014,7 @@ namespace YAF.Classes.Data
 
         // <summary> Returns the UserIDs and UserNames who have thanked the message
         //           with the provided messageID. </summary>
-        static public DataTable message_GetThanks( object messageID)
+        static public DataTable message_GetThanks(object messageID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("message_getthanks"))
             {
@@ -3951,7 +4035,7 @@ namespace YAF.Classes.Data
         /// </param>
         /// <returns>
         /// </returns>
-        public static DataTable message_GetTextByIds( string messageIDs)
+        public static DataTable message_GetTextByIds(string messageIDs)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("message_gettextbyids"))
             {
@@ -3970,7 +4054,7 @@ namespace YAF.Classes.Data
         /// </param>
         /// <returns>
         /// </returns>
-        public static IEnumerable<TypedAllThanks> MessageGetAllThanks( string messageIdsSeparatedWithColon)
+        public static IEnumerable<TypedAllThanks> MessageGetAllThanks(string messageIdsSeparatedWithColon)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("message_getallthanks"))
             {
@@ -3983,7 +4067,7 @@ namespace YAF.Classes.Data
 
         // <summary> Retuns All the Thanks for the Message IDs which are in the 
         //           delimited string variable MessageIDs </summary>
-        static public DataTable message_GetAllThanks( object MessageIDs)
+        static public DataTable message_GetAllThanks(object MessageIDs)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("message_getallthanks"))
             {
@@ -3993,7 +4077,7 @@ namespace YAF.Classes.Data
             }
         }
 
-        static public string message_AddThanks( object fromUserID, object messageID)
+        static public string message_AddThanks(object fromUserID, object messageID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("message_addthanks"))
             {
@@ -4006,7 +4090,7 @@ namespace YAF.Classes.Data
             }
         }
 
-        static public string message_RemoveThanks( object fromUserID, object messageID)
+        static public string message_RemoveThanks(object fromUserID, object messageID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("message_removethanks"))
             {
@@ -4034,7 +4118,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// List of all message changes. 
         /// </returns>
-        public static DataTable messagehistory_list( int messageID, int? daysToClean)
+        public static DataTable messagehistory_list(int messageID, int? daysToClean)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("messagehistory_list"))
             {
@@ -4053,7 +4137,7 @@ namespace YAF.Classes.Data
         /// <param name="messageID">The Message Id.</param>
         /// <param name="userID">The UserId.</param>
         /// <returns></returns>
-        public static DataTable message_secdata( int messageID, object pageUserId)
+        public static DataTable message_secdata(int messageID, object pageUserId)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("message_secdata"))
             {
@@ -4075,7 +4159,7 @@ namespace YAF.Classes.Data
 		/// Lists given medal.
 		/// </summary>
 		/// <param name="medalID">ID of medal to list.</param>
-        static public DataTable medal_list( object medalID)
+        static public DataTable medal_list(object medalID)
 		{
 			return medal_list( null, medalID, null );
 		}
@@ -4084,7 +4168,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="boardId">ID of board of which medals to list. Required.</param>
 		/// <param name="category">Cateogry of medals to list. Can be null. In such case this parameter is ignored.</param>
-        static public DataTable medal_list( object boardId, object category)
+        static public DataTable medal_list(object boardId, object category)
 		{
 			return medal_list( boardId, null, category );
 		}
@@ -4094,7 +4178,7 @@ namespace YAF.Classes.Data
 		/// <param name="boardId">ID of board of which medals to list. Can be null if medalID parameter is specified.</param>
 		/// <param name="medalID">ID of medal to list. When specified, boardId and category parameters are ignored.</param>
 		/// <param name="category">Cateogry of medals to list. Must be complemented with not-null boardId parameter.</param>
-        static public DataTable medal_list( object boardId, object medalID, object category)
+        static public DataTable medal_list(object boardId, object medalID, object category)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "medal_list" ) )
 			{
@@ -4119,7 +4203,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="medalID">Medal of which owners to get.</param>
 		/// <returns>List of users with their user id and usernames, who own this medal.</returns>
-        static public DataTable medal_listusers( object medalID)
+        static public DataTable medal_listusers(object medalID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "medal_listusers" ) )
 			{
@@ -4136,7 +4220,7 @@ namespace YAF.Classes.Data
 		/// Deletes given medal.
 		/// </summary>
 		/// <param name="medalID">ID of medal to delete.</param>
-        static public void medal_delete( object medalID)
+        static public void medal_delete(object medalID)
 		{
 			medal_delete( null, medalID, null );
 		}
@@ -4145,7 +4229,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="boardId">ID of board of which medals to delete. Required.</param>
 		/// <param name="category">Cateogry of medals to delete. Can be null. In such case this parameter is ignored.</param>
-        static public void medal_delete( object boardId, object category)
+        static public void medal_delete(object boardId, object category)
 		{
 			medal_delete( boardId, null, category );
 		}
@@ -4155,7 +4239,7 @@ namespace YAF.Classes.Data
 		/// <param name="boardId">ID of board of which medals to delete. Can be null if medalID parameter is specified.</param>
 		/// <param name="medalID">ID of medal to delete. When specified, boardId and category parameters are ignored.</param>
 		/// <param name="category">Cateogry of medals to delete. Must be complemented with not-null boardId parameter.</param>
-        static public void medal_delete( object boardId, object medalID, object category)
+        static public void medal_delete(object boardId, object medalID, object category)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "medal_delete" ) )
 			{
@@ -4256,7 +4340,7 @@ namespace YAF.Classes.Data
 		/// <param name="boardId">ID of board.</param>
 		/// <param name="medalID">ID of medal to re-sort.</param>
 		/// <param name="move">Change of sort.</param>
-        static public void medal_resort( object boardId, object medalID, int move)
+        static public void medal_resort(object boardId, object medalID, int move)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "medal_resort" ) )
 			{
@@ -4276,7 +4360,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="groupID">ID of group owning medal.</param>
 		/// <param name="medalID">ID of medal.</param>
-        static public void group_medal_delete( object groupID, object medalID)
+        static public void group_medal_delete(object groupID, object medalID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "group_medal_delete" ) )
 			{
@@ -4295,7 +4379,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="groupID">ID of group of which to list medals.</param>
 		/// <param name="medalID">ID of medal to list.</param>
-        static public DataTable group_medal_list( object groupID, object medalID)
+        static public DataTable group_medal_list(object groupID, object medalID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand("group_medal_list") )
 			{
@@ -4321,7 +4405,7 @@ namespace YAF.Classes.Data
 		/// <param name="hide">Hide medal in user box.</param>
 		/// <param name="onlyRibbon">Show only ribbon bar in user box.</param>
 		/// <param name="sortOrder">Sort order in user box. Overrides medal's default sort order.</param>
-        static public void group_medal_save( 
+        static public void group_medal_save(
 			object groupID, object medalID, object message,
 			object hide, object onlyRibbon, object sortOrder )
 		{
@@ -4350,7 +4434,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="userID">ID of user owning medal.</param>
 		/// <param name="medalID">ID of medal.</param>
-        static public void user_medal_delete( object userID, object medalID)
+        static public void user_medal_delete(object userID, object medalID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_medal_delete" ) )
 			{
@@ -4369,7 +4453,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="userID">ID of user who was given medal.</param>
 		/// <param name="medalID">ID of medal to list.</param>
-        static public DataTable user_medal_list( object userID, object medalID)
+        static public DataTable user_medal_list(object userID, object medalID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_medal_list" ) )
 			{
@@ -4427,7 +4511,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="userID">ID of user.</param>
 		/// <returns>List of medals, ribbon bar only first.</returns>
-        static public DataTable user_listmedals( object userID)
+        static public DataTable user_listmedals(object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_listmedals" ) )
 			{
@@ -4442,7 +4526,7 @@ namespace YAF.Classes.Data
 		#endregion        
         
         #region yaf_NntpForum
-        public static IEnumerable<TypedNntpForum> NntpForumList( int boardId, int? minutes, int? nntpForumID, bool? active)
+        public static IEnumerable<TypedNntpForum> NntpForumList(int boardId, int? minutes, int? nntpForumID, bool? active)
         {
             using (var cmd = MsSqlDbAccess.GetCommand("nntpforum_list"))
             {
@@ -4458,7 +4542,7 @@ namespace YAF.Classes.Data
             }
         }
 
-        static public DataTable nntpforum_list( object boardId, object minutes, object nntpForumID, object active)
+        static public DataTable nntpforum_list(object boardId, object minutes, object nntpForumID, object active)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "nntpforum_list" ) )
 			{
@@ -4476,7 +4560,7 @@ namespace YAF.Classes.Data
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void nntpforum_update( object nntpForumID, object lastMessageNo, object userID)
+        static public void nntpforum_update(object nntpForumID, object lastMessageNo, object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "nntpforum_update" ) )
 			{
@@ -4490,6 +4574,7 @@ namespace YAF.Classes.Data
 			}
 		}
         static public void nntpforum_save(
+            
             object nntpForumID, 
             object nntpServerID, 
             object groupName, 
@@ -4513,7 +4598,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void nntpforum_delete( object nntpForumID)
+        static public void nntpforum_delete(object nntpForumID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "nntpforum_delete" ) )
 			{
@@ -4528,7 +4613,7 @@ namespace YAF.Classes.Data
 		#endregion        
         
         #region yaf_NntpServer
-        static public DataTable nntpserver_list( object boardId, object nntpServerID)
+        static public DataTable nntpserver_list(object boardId, object nntpServerID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "nntpserver_list" ) )
 			{
@@ -4543,7 +4628,7 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void nntpserver_save( object nntpServerID, object boardId, object name, object address, object port, object userName, object userPass)
+        static public void nntpserver_save(object nntpServerID, object boardId, object name, object address, object port, object userName, object userPass)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "nntpserver_save" ) )
 			{
@@ -4564,7 +4649,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void nntpserver_delete( object nntpServerID)
+        static public void nntpserver_delete(object nntpServerID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "nntpserver_delete" ) )
 			{
@@ -4578,7 +4663,7 @@ namespace YAF.Classes.Data
 		#endregion
 
         #region yaf_NntpTopic
-        static public DataTable nntptopic_list( object thread)
+        static public DataTable nntptopic_list(object thread)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "nntptopic_list" ) )
 			{
@@ -4589,7 +4674,7 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void nntptopic_savemessage( object nntpForumID, object topic, object body, object userID, object userName, object ip, object posted, object externalMessageId, object referenceMessageId)
+        static public void nntptopic_savemessage(object nntpForumID, object topic, object body, object userID, object userName, object ip, object posted, object externalMessageId, object referenceMessageId)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "nntptopic_savemessage" ) )
 			{
@@ -4624,7 +4709,7 @@ namespace YAF.Classes.Data
 		/// <param name="fromUserID"></param>
 		/// <param name="pMessageID">The id of the private message</param>
 		/// <returns></returns>
-        static public DataTable pmessage_list( object toUserID, object fromUserID, object userPMessageID)
+        static public DataTable pmessage_list(object toUserID, object fromUserID, object userPMessageID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "pmessage_list" ) )
 			{
@@ -4655,7 +4740,7 @@ namespace YAF.Classes.Data
 		/// <param name="fromUserID"></param>
 		/// <param name="pMessageID">The id of the private message</param>
 		/// <returns></returns>
-        static public DataTable pmessage_list( object userPMessageID)
+        static public DataTable pmessage_list(object userPMessageID)
 		{
 			return pmessage_list( null, null, userPMessageID );
 		}
@@ -4665,7 +4750,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="pMessageID"></param>
 		/// <param name="fromOutbox">If true, removes the message from the outbox.  Otherwise deletes the message completely.</param>
-        static public void pmessage_delete( object userPMessageID, bool fromOutbox)
+        static public void pmessage_delete(object userPMessageID, bool fromOutbox)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "pmessage_delete" ) )
 			{
@@ -4694,7 +4779,7 @@ namespace YAF.Classes.Data
 		/// the message is only deleted from the user's outbox.  Otherwise, it is completely delete from the database.
 		/// </summary>
 		/// <param name="userPMessageID"></param>
-        static public void pmessage_delete( object userPMessageID)
+        static public void pmessage_delete(object userPMessageID)
 		{
 			pmessage_delete( userPMessageID, false );
 		}
@@ -4703,7 +4788,7 @@ namespace YAF.Classes.Data
 		/// Archives the private message of the given id.  Archiving moves the message from the user's inbox to his message archive.
 		/// </summary>
 		/// <param name="pMessageID">The ID of the private message</param>
-        public static void pmessage_archive( object userPMessageID)
+        public static void pmessage_archive(object userPMessageID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "pmessage_archive" ) )
 			{
@@ -4718,7 +4803,7 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public void pmessage_save( object fromUserID, object toUserID, object subject, object body, object Flags)
+        static public void pmessage_save(object fromUserID, object toUserID, object subject, object body, object Flags)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "pmessage_save" ) )
 			{
@@ -4733,7 +4818,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void pmessage_markread( object userPMessageID)
+        static public void pmessage_markread(object userPMessageID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "pmessage_markread" ) )
 			{
@@ -4754,7 +4839,7 @@ namespace YAF.Classes.Data
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void pmessage_prune( object daysRead, object daysUnread)
+        static public void pmessage_prune(object daysRead, object daysUnread)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "pmessage_prune" ) )
 			{
@@ -4778,12 +4863,12 @@ namespace YAF.Classes.Data
         /// </param>
         /// <returns>
         /// </returns>
-        public static DataTable pollgroup_stats( int? pollGroupId)
+        public static DataTable pollgroup_stats(int? pollGroupId)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("pollgroup_stats"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("PollGroupID", MySqlDbType.Int32).Value = pollGroupId;
+                cmd.Parameters.Add("i_PollGroupID", MySqlDbType.Int32).Value = pollGroupId;
                 return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
@@ -4796,7 +4881,7 @@ namespace YAF.Classes.Data
         /// </param>
         /// <returns>
         /// </returns>
-        public static int pollgroup_attach( int? pollGroupId, int? topicId, int? forumId, int? categoryId, int? boardId)
+        public static int pollgroup_attach(int? pollGroupId, int? topicId, int? forumId, int? categoryId, int? boardId)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("pollgroup_attach"))
             {
@@ -4811,7 +4896,7 @@ namespace YAF.Classes.Data
         }
 
 
-        static public DataTable poll_stats( int? pollID)
+        static public DataTable poll_stats(int? pollID)
 		{ 
             /*Workaround for /pages/posts.ascx.cs (int)row["Stats"]*/
             using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "poll_stats" ) )
@@ -5163,7 +5248,7 @@ namespace YAF.Classes.Data
             
         }
 
-        static public void poll_update( object pollID, object question, object closes, object isBounded, bool isClosedBounded, bool allowMultipleChoices, bool showVoters, bool allowSkipVote, object questionPath, object questionMime)
+        static public void poll_update(object pollID, object question, object closes, object isBounded, bool isClosedBounded, bool allowMultipleChoices, bool showVoters, bool allowSkipVote, object questionPath, object questionMime)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "poll_update" ) )
 			{
@@ -5205,7 +5290,7 @@ namespace YAF.Classes.Data
         /// <param name="removeEverywhere">
         /// The remove everywhere.
         /// </param>
-        static public void poll_remove( object pollGroupId, object pollId, object boardId, bool removeCompletely, bool removeEverywhere)
+        static public void poll_remove(object pollGroupId, object pollId, object boardId, bool removeCompletely, bool removeEverywhere)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "poll_remove" ) )
 			{
@@ -5235,7 +5320,7 @@ namespace YAF.Classes.Data
         /// </param>
         /// <returns>
         /// </returns>
-        public static IEnumerable<TypedPollGroup> PollGroupList( int userID, int? forumId, int boardId)
+        public static IEnumerable<TypedPollGroup> PollGroupList(int userID, int? forumId, int boardId)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("pollgroup_list"))
             {
@@ -5268,7 +5353,7 @@ namespace YAF.Classes.Data
         /// </param>
         /// <param name="forumId"></param>
         /// <param name="removeEverywhere"></param>
-        public static void pollgroup_remove( object pollGroupId, object topicId, object forumId, object categoryId, object boardId, bool removeCompletely, bool removeEverywhere)
+        public static void pollgroup_remove(object pollGroupId, object topicId, object forumId, object categoryId, object boardId, bool removeCompletely, bool removeEverywhere)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("pollgroup_remove"))
             {
@@ -5284,7 +5369,7 @@ namespace YAF.Classes.Data
             }
         }
 
-        static public void choice_delete( object choiceID)
+        static public void choice_delete(object choiceID)
 		{
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("choice_delete"))
 			{
@@ -5295,7 +5380,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void choice_update( object choiceID, object choice, object path, object mime)
+        static public void choice_update(object choiceID, object choice, object path, object mime)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "choice_update") )
 			{
@@ -5309,7 +5394,7 @@ namespace YAF.Classes.Data
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void choice_add( object pollID, object choice, object path, object mime)
+        static public void choice_add(object pollID, object choice, object path, object mime)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "choice_add" ) )
             {
@@ -5331,7 +5416,7 @@ namespace YAF.Classes.Data
 		#endregion
 
         #region yaf_Rank
-        static public DataTable rank_list( object boardId, object rankID)
+        static public DataTable rank_list(object boardId, object rankID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "rank_list" ) )
 			{
@@ -5379,7 +5464,7 @@ namespace YAF.Classes.Data
         /// <param name="sortOrder">
         /// The sort order.
         /// </param>
-        static public void rank_save( object rankID, object boardId, object name, 
+        static public void rank_save(object rankID, object boardId, object name, 
             object isStart, object isLadder, object minPosts, object rankImage,
             object pmlimit, object style, object sortOrder,
             object description,
@@ -5417,7 +5502,7 @@ namespace YAF.Classes.Data
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void rank_delete( object rankID)
+        static public void rank_delete(object rankID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "rank_delete" ) )
 			{
@@ -5430,7 +5515,7 @@ namespace YAF.Classes.Data
 
         #region yaf_Smiley
         [NotNull]
-        public static IEnumerable<TypedSmileyList> SmileyList( int boardId, int? smileyID)
+        public static IEnumerable<TypedSmileyList> SmileyList(int boardId, int? smileyID)
         {
             using (var cmd = MsSqlDbAccess.GetCommand("smiley_list"))
             {
@@ -5442,7 +5527,7 @@ namespace YAF.Classes.Data
             }
         }
 
-        static public DataTable smiley_list( object boardId, object smileyID)
+        static public DataTable smiley_list(object boardId, object smileyID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "smiley_list" ) )
 			{
@@ -5458,7 +5543,7 @@ namespace YAF.Classes.Data
 		}
 
 
-        static public DataTable smiley_listunique( object boardId)
+        static public DataTable smiley_listunique(object boardId)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "smiley_listunique" ) )
 			{
@@ -5469,7 +5554,7 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void smiley_delete( object smileyID)
+        static public void smiley_delete(object smileyID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "smiley_delete" ) )
 			{
@@ -5482,7 +5567,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void smiley_save( object smileyID, object boardId, object code, object icon, object emoticon, object sortOrder, object replace)
+        static public void smiley_save(object smileyID, object boardId, object code, object icon, object emoticon, object sortOrder, object replace)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "smiley_save" ) )
 			{
@@ -5502,7 +5587,7 @@ namespace YAF.Classes.Data
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void smiley_resort( object boardId, object smileyID, int move)
+        static public void smiley_resort(object boardId, object smileyID, int move)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "smiley_resort" ) )
 			{
@@ -5518,7 +5603,7 @@ namespace YAF.Classes.Data
 		#endregion
 
         #region yaf_BBCode
-        static public DataTable bbcode_list( object boardId, object bbcodeID)
+        static public DataTable bbcode_list(object boardId, object bbcodeID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "bbcode_list" ) )
 			{
@@ -5544,12 +5629,12 @@ namespace YAF.Classes.Data
         /// <returns>
         /// </returns>
         [NotNull]
-        public static IEnumerable<TypedBBCode> BBCodeList( int boardID, int? bbcodeID)
+        public static IEnumerable<TypedBBCode> BBCodeList(int boardID, int? bbcodeID)
         {
             return bbcode_list(boardID, bbcodeID).AsEnumerable().Select(o => new TypedBBCode(o));
         }
 
-        static public void bbcode_delete( object bbcodeID)
+        static public void bbcode_delete(object bbcodeID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "bbcode_delete" ) )
 			{
@@ -5561,7 +5646,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void bbcode_save( object bbcodeID, object boardId, object name, object description, object onclickjs, object displayjs, object editjs, object displaycss, object searchregex, object replaceregex, object variables, object usemodule, object moduleclass, object execorder)
+        static public void bbcode_save(object bbcodeID, object boardId, object name, object description, object onclickjs, object displayjs, object editjs, object displaycss, object searchregex, object replaceregex, object variables, object usemodule, object moduleclass, object execorder)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "bbcode_save" ) )
 			{
@@ -5606,7 +5691,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="Name">Use to specify return of specific entry only. Setting this to null returns all entries.</param>
 		/// <returns>DataTable filled will registry entries</returns>
-        static public DataTable registry_list( object name, object boardId)
+        static public DataTable registry_list(object name, object boardId)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "registry_list" ) )
 			{
@@ -5627,24 +5712,26 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="Name">Use to specify return of specific entry only. Setting this to null returns all entries.</param>
 		/// <returns>DataTable filled will registry entries</returns>
-        static public DataTable registry_list( object name)
+        static public DataTable registry_list()
 		{
-			return registry_list( name, null );
+			return registry_list(null );
 		}
-		/// <summary>
-		/// Retrieves all the entries in the board settings registry
-		/// </summary>
-		/// <returns>DataTable filled will all registry entries</returns>
-		static public DataTable registry_list()
-		{
-			return registry_list( null, null );
-		}
+        /// <summary>
+        /// Retrieves entries in the board settings registry
+        /// </summary>
+        /// <param name="Name">Use to specify return of specific entry only. Setting this to null returns all entries.</param>
+        /// <returns>DataTable filled will registry entries</returns>
+        static public DataTable registry_list(object name)
+        {
+            return registry_list(name, null);
+        }
+
 		/// <summary>
 		/// Saves a single registry entry pair to the database.
 		/// </summary>
 		/// <param name="Name">Unique name associated with this entry</param>
 		/// <param name="Value">Value associated with this entry which can be null</param>
-        static public void registry_save( object name, object value)
+        static public void registry_save(object name, object value)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand(  "registry_save" ) )
 			{
@@ -5666,7 +5753,7 @@ namespace YAF.Classes.Data
 		/// <param name="Name">Unique name associated with this entry</param>
 		/// <param name="Value">Value associated with this entry which can be null</param>
 		/// <param name="BoardID">The BoardID for this entry</param>
-        static public void registry_save( object name, object value, object boardId)
+        static public void registry_save(object name, object value, object boardId)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "registry_save" ) )
 			{
@@ -5702,7 +5789,7 @@ namespace YAF.Classes.Data
 
         #region yaf_Topic
 
-        public static void topic_updatetopic( int topicId, string topic)
+        public static void topic_updatetopic(int topicId, string topic)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_updatetopic"))
             {
@@ -5715,7 +5802,7 @@ namespace YAF.Classes.Data
 
 		
         //TODO: Overloaded method for 1.9.3 FINAL comatability should be deleted beginning with v.2373
-        static public int topic_prune( object forumID, object days)
+        static public int topic_prune(object forumID, object days)
 		{
             int boardId = 0;
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand(String.Format("SELECT c.BoardID FROM {0} f INNER JOIN {1} c ON f.CategoryID=c.CategoryID  WHERE ForumID = @i_ForumID;", MsSqlDbAccess.GetObjectName("Forum"), MsSqlDbAccess.GetObjectName("Category")), true))
@@ -5729,7 +5816,7 @@ namespace YAF.Classes.Data
             return topic_prune( boardId, forumID, days, 1 );
 				
 		}
-        static public int topic_prune( object boardId, object forumID, object days, object permDelete)
+        static public int topic_prune(object boardId, object forumID, object days, object permDelete)
         {
             
             using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "topic_prune" ) )
@@ -5743,38 +5830,196 @@ namespace YAF.Classes.Data
             }
         }
 
-        static public DataTable topic_list( object forumID, object userId, object announcement, object date, object offset, object count, object useStyledNicks, object showMoved, object findLastRead)
+        static public DataTable announcements_list(
+          
+          object forumID,
+          [NotNull] object userId,
+          [NotNull] object sinceDate,
+          [NotNull] object toDate,
+          [NotNull] object pageIndex,
+          [NotNull] object pageSize,
+          [NotNull] object useStyledNicks,
+          [NotNull] object showMoved,
+          [CanBeNull]bool findLastRead)
 		{       
 
-			using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_list"))
-			{
-                if ( userId == null ) { userId = DBNull.Value; }
-                if ( date == null ) { date = DBNull.Value; }                
 
-				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add("i_ForumID", MySqlDbType.Int32).Value = forumID;
-				cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userId;
-                cmd.Parameters.Add("i_Announcement", MySqlDbType.Int32).Value = announcement;
-                cmd.Parameters.Add("i_Date", MySqlDbType.DateTime).Value = date;
-                cmd.Parameters.Add("i_Offset", MySqlDbType.Int32).Value = offset;
-				cmd.Parameters.Add("i_Count", MySqlDbType.Int32).Value = count;
+
+            DataTable dtt;
+            int rowNumber = 0;
+            using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("announcements_list"))
+            {
+
+                if (userId == null) { userId = DBNull.Value; }
+                if (sinceDate == null) { sinceDate = DBNull.Value; }     
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("i_ForumID", MySqlDbType.Int32).Value = forumID;
+                cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userId;
+                cmd.Parameters.Add("i_SinceDate", MySqlDbType.DateTime).Value = sinceDate;
+                cmd.Parameters.Add("i_ToDate", MySqlDbType.DateTime).Value = toDate;
+                cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = pageIndex;
+                cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
                 cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
                 cmd.Parameters.Add("i_ShowMoved", MySqlDbType.Byte).Value = showMoved;
                 cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = findLastRead;
-		
-               //Transaction
-                DataTable dt = MsSqlDbAccess.Current.GetData(cmd,true);
-                return dt;
-               // return DBAccess.GetDataTableFromReader( cmd );
-			}
+
+                dtt = MsSqlDbAccess.Current.GetData(cmd);
+                cmd.Parameters.Clear();
+            }
+
+            if (dtt != null && dtt.Columns.Count > 1)
+            {
+                if (dtt.Rows.Count > 0)
+                {
+                    rowNumber = 0;
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("announcements_list_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+
+                        cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userId;
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                        cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = findLastRead;
+                        cmd.Parameters.Add("i_post_totalrowsnumber", MySqlDbType.Int32).Value =
+                            dtt.Rows[rowNumber]["TopicTotalRowsNumber"];
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = dtt.Rows[rowNumber]["PageIndex"];
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_ForumID", MySqlDbType.Int32).Value = forumID;
+                        cmd.Parameters.Add("i_FirstSelectLastPosted", MySqlDbType.DateTime).Value =
+                            dtt.Rows[rowNumber]["FirstSelectLastPosted"];
+                        cmd.Parameters.Add("i_ShowMoved", MySqlDbType.Byte).Value = showMoved;
+
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
+                }
+                else
+                {
+                    rowNumber = 0;
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("announcements_list_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+
+                        cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userId;
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                        cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = findLastRead;
+                        cmd.Parameters.Add("i_post_totalrowsnumber", MySqlDbType.Int32).Value =
+                            1;
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = (int)pageIndex + 1;
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_ForumID", MySqlDbType.Int32).Value = forumID;
+                        cmd.Parameters.Add("i_FirstSelectLastPosted", MySqlDbType.DateTime).Value =
+                           DateTime.UtcNow;
+                        cmd.Parameters.Add("i_ShowMoved", MySqlDbType.Byte).Value = showMoved;
+
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
+                }
+            }
+            return null;
 		}
+
+        static public DataTable topic_list(
+        
+        object forumID,
+        [NotNull] object userId,
+        [NotNull] object sinceDate,
+        [NotNull] object toDate,
+        [NotNull] object pageIndex,
+        [NotNull] object pageSize,
+        [NotNull] object useStyledNicks,
+        [NotNull] object showMoved,
+        [CanBeNull]bool findLastRead)
+        {
+
+
+
+            DataTable dtt;
+            int rowNumber = 0;
+            using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_list"))
+            {
+
+                if (userId == null) { userId = DBNull.Value; }
+                if (sinceDate == null) { sinceDate = DBNull.Value; }
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("i_ForumID", MySqlDbType.Int32).Value = forumID;
+                cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userId;
+                cmd.Parameters.Add("i_SinceDate", MySqlDbType.DateTime).Value = sinceDate;
+                cmd.Parameters.Add("i_ToDate", MySqlDbType.DateTime).Value = toDate;
+                cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = pageIndex;
+                cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                cmd.Parameters.Add("i_ShowMoved", MySqlDbType.Byte).Value = showMoved;
+                cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = findLastRead;
+
+                dtt = MsSqlDbAccess.Current.GetData(cmd);
+                cmd.Parameters.Clear();
+            }
+
+            if (dtt != null && dtt.Columns.Count > 1)
+            {
+                if (dtt.Rows.Count > 0)
+                {
+                    rowNumber = 0;
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_list_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+
+                        cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userId;
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                        cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = findLastRead;
+                        cmd.Parameters.Add("i_post_totalrowsnumber", MySqlDbType.Int32).Value =
+                            dtt.Rows[rowNumber]["TopicTotalRowsNumber"];
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = dtt.Rows[rowNumber]["PageIndex"];
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_ForumID", MySqlDbType.Int32).Value = forumID;
+                        cmd.Parameters.Add("i_shiftsticky", MySqlDbType.Int32).Value =
+                            dtt.Rows[rowNumber]["ShiftSticky"];
+                        cmd.Parameters.Add("i_FirstSelectLastPosted", MySqlDbType.DateTime).Value =
+                            dtt.Rows[rowNumber]["FirstSelectLastPosted"];
+                        cmd.Parameters.Add("i_ShowMoved", MySqlDbType.Byte).Value = showMoved;
+
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
+                }
+                else
+                {
+                    rowNumber = 0;
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_list_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+
+                        cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userId;
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                        cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = findLastRead;
+                        cmd.Parameters.Add("i_post_totalrowsnumber", MySqlDbType.Int32).Value =
+                            1;
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = (int)pageIndex+1;
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_ForumID", MySqlDbType.Int32).Value = forumID;
+                        cmd.Parameters.Add("i_shiftsticky", MySqlDbType.Int32).Value =
+                            0;
+                        cmd.Parameters.Add("i_FirstSelectLastPosted", MySqlDbType.DateTime).Value =
+                           DateTime.UtcNow;
+                        cmd.Parameters.Add("i_ShowMoved", MySqlDbType.Byte).Value = showMoved;
+
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
+                }
+            }
+            return null;
+        }
+
+
 		/// <summary>
 		/// Lists topics very simply (for URL rewriting)
 		/// </summary>
 		/// <param name="StartID"></param>
 		/// <param name="Limit"></param>
 		/// <returns></returns>
-        static public DataTable topic_simplelist( int StartID, int Limit)
+        static public DataTable topic_simplelist(int StartID, int Limit)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "topic_simplelist" ) )
 			{
@@ -5788,7 +6033,7 @@ namespace YAF.Classes.Data
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void topic_move( object topicID, object forumID, object showMoved)
+        static public void topic_move(object topicID, object forumID, object showMoved)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "topic_move" ) )
 			{
@@ -5802,7 +6047,7 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public DataTable topic_announcements( object boardId, object numOfPostsToRetrieve, object pageUserID)
+        static public DataTable topic_announcements(object boardId, object numOfPostsToRetrieve, object pageUserID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "topic_announcements" ) )
 			{
@@ -5881,14 +6126,14 @@ namespace YAF.Classes.Data
             
         } */
 
-        static public DataTable topic_latest(object boardId, object numOfPostsToRetrieve, object pageUserId, bool useStyledNicks, bool showNoCountPosts, bool findLastRead)
+        static public DataTable topic_latest(object boardID, object numOfPostsToRetrieve, object pageUserId, bool useStyledNicks, bool showNoCountPosts, bool findLastRead)
 		{
 
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "topic_latest" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
-				cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+				cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardID;
                 cmd.Parameters.Add("i_NumPosts", MySqlDbType.Int32).Value = numOfPostsToRetrieve;
 				cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
                 cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
@@ -5896,7 +6141,9 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = findLastRead;
              
                 return MsSqlDbAccess.Current.GetData(cmd, false);              
-			}     
+			} 
+    
+
 
 		}
         /// <summary>
@@ -5916,7 +6163,7 @@ namespace YAF.Classes.Data
         /// </param>
         /// <returns>
         /// </returns>
-        public static DataTable rss_topic_latest( object boardId, object numOfPostsToRetrieve, object pageUserId, bool useStyledNicks, bool showNoCountPosts)
+        public static DataTable rss_topic_latest(object boardId, object numOfPostsToRetrieve, object pageUserId, bool useStyledNicks, bool showNoCountPosts)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("rss_topic_latest"))
             {
@@ -5929,27 +6176,155 @@ namespace YAF.Classes.Data
             }
         }
 
-        static public DataTable topic_active( object boardId, object pageUserId, object since, object categoryID, object useStyledNicks, object findLastRead)
-		{
-			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "topic_active" ) )
-			{
-                if ( categoryID == null ) { categoryID = DBNull.Value; }                
+        public static DataTable topic_active([NotNull] object boardId, [CanBeNull] object categoryId, [NotNull] object pageUserId, [NotNull] object sinceDate, [NotNull] object toDate, [NotNull] object pageIndex, [NotNull] object pageSize, [NotNull] object useStyledNicks, [CanBeNull]bool findLastRead)
+        {
 
-				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_BoardID", MySqlDbType.Int32 ).Value = boardId;
-				cmd.Parameters.Add( "i_PageUserID", MySqlDbType.Int32 ).Value = pageUserId;
-                cmd.Parameters.Add( "i_Since", MySqlDbType.DateTime ).Value = since;
-                cmd.Parameters.Add( "i_CategoryID", MySqlDbType.Int32 ).Value = categoryID;
-                cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
-                cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = findLastRead;
-                //DataTable dt = MsSqlDbAccess.Current.GetData(cmd);
-               // return dt;
-               return MsSqlDbAccess.Current.GetData(cmd);                
-			}
-		}
+            DataTable dtt;
+            int rowNumber = 0;
+            using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_active"))
+            {
+
+                if (pageUserId == null) { pageUserId = DBNull.Value; }
+                if (sinceDate == null) { sinceDate = DBNull.Value; }
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                cmd.Parameters.Add("i_SinceDate", MySqlDbType.Timestamp).Value = sinceDate;
+                cmd.Parameters.Add("i_ToDate", MySqlDbType.Timestamp).Value = toDate;
+                cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = pageIndex;
+                cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+
+                dtt = MsSqlDbAccess.Current.GetData(cmd);
+                cmd.Parameters.Clear();
+            }
+
+            if (dtt != null && dtt.Columns.Count > 1)
+            {
+                if (dtt.Rows.Count > 0)
+                {
+                    rowNumber = 0;
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_active_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                        cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                        cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = dtt.Rows[rowNumber]["PageIndex"];
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_TopicTotalRowsNumber", MySqlDbType.Int32).Value =
+                            dtt.Rows[rowNumber]["i_TopicTotalRowsNumber"];
+                        cmd.Parameters.Add("i_FirstSelectLastPosted", MySqlDbType.DateTime).Value =
+                            dtt.Rows[rowNumber]["i_FirstSelectLastPosted"];
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                        cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = findLastRead;
+
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
+                }
+                else
+                {
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_active_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                        cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                        cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = (int)pageIndex + 1;
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_TopicTotalRowsNumber", MySqlDbType.Int32).Value = 1;
+                        cmd.Parameters.Add("i_FirstSelectLastPosted", MySqlDbType.DateTime).Value =
+                            DateTime.UtcNow;
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = false;
+                        cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = false;
+
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        public static DataTable topic_unread([NotNull] object boardId, [CanBeNull] object categoryId, [NotNull] object pageUserId, [NotNull] object sinceDate, [NotNull] object toDate, [NotNull] object pageIndex, [NotNull] object pageSize, [NotNull] object useStyledNicks, [CanBeNull]bool findLastRead)
+        {
+            DataTable dtt;
+            int rowNumber = 0;
+            using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_unread"))
+            {
+
+                if (pageUserId == null) { pageUserId = DBNull.Value; }
+                if (sinceDate == null) { sinceDate = DBNull.Value; }
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                cmd.Parameters.Add("i_SinceDate", MySqlDbType.Timestamp).Value = sinceDate;
+                cmd.Parameters.Add("i_ToDate", MySqlDbType.Timestamp).Value = toDate;
+                cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = pageIndex;
+                cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+
+                dtt = MsSqlDbAccess.Current.GetData(cmd);
+                cmd.Parameters.Clear();
+            }
+
+            if (dtt != null && dtt.Columns.Count > 1)
+            {
+                if (dtt.Rows.Count > 0)
+                {
+                    rowNumber = 0;
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_unread_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                        cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                        cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = dtt.Rows[rowNumber]["PageIndex"];
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_TopicTotalRowsNumber", MySqlDbType.Int32).Value =
+                            dtt.Rows[rowNumber]["i_TopicTotalRowsNumber"];
+                        cmd.Parameters.Add("i_FirstSelectLastPosted", MySqlDbType.DateTime).Value =
+                            dtt.Rows[rowNumber]["i_FirstSelectLastPosted"];
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                        cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = findLastRead;
+
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
+                }
+                else
+                {
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_unread_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                        cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                        cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = (int)pageIndex + 1;
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_TopicTotalRowsNumber", MySqlDbType.Int32).Value = 1;
+                        cmd.Parameters.Add("i_FirstSelectLastPosted", MySqlDbType.DateTime).Value =
+                            DateTime.UtcNow;
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = false;
+                        cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = false;
+
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
+                }
+            }
+
+            return null;
+        }
+
         /// <summary>
-        /// Gets all topics where the pageUserid has posted
+        /// The topic_unanswered
         /// </summary>
+        /// <param name="connectionString">
+        /// The connection string.
+        ///  </param>
         /// <param name="boardID">
         /// The board id.
         /// </param>
@@ -5969,25 +6344,254 @@ namespace YAF.Classes.Data
         /// Indicates if the Table should Countain the last Access Date
         /// </param>
         /// <returns>
+        /// Returns the List with the Active Topics
+        /// </returns>
+        public static DataTable topic_unanswered([NotNull] object boardId, [CanBeNull] object categoryId, [NotNull] object pageUserId, [NotNull] object sinceDate, [NotNull] object toDate, [NotNull] object pageIndex, [NotNull] object pageSize, [NotNull] object useStyledNicks, [CanBeNull]bool findLastRead)
+        {
+            DataTable dtt;
+            int rowNumber = 0;
+            using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_unanswered"))
+            {
+
+                if (pageUserId == null) { pageUserId = DBNull.Value; }
+                if (sinceDate == null) { sinceDate = DBNull.Value; }
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                cmd.Parameters.Add("i_SinceDate", MySqlDbType.Timestamp).Value = sinceDate;
+                cmd.Parameters.Add("i_ToDate", MySqlDbType.Timestamp).Value = toDate;
+                cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = pageIndex;
+                cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+
+                dtt = MsSqlDbAccess.Current.GetData(cmd);
+                cmd.Parameters.Clear();
+            }
+
+            if (dtt != null && dtt.Columns.Count > 1)
+            {
+                if (dtt.Rows.Count > 0)
+                {
+                    rowNumber = 0;
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_unanswered_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                        cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                        cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = dtt.Rows[rowNumber]["PageIndex"];
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_TopicTotalRowsNumber", MySqlDbType.Int32).Value =
+                            dtt.Rows[rowNumber]["i_TopicTotalRowsNumber"];
+                        cmd.Parameters.Add("i_FirstSelectLastPosted", MySqlDbType.DateTime).Value =
+                            dtt.Rows[rowNumber]["i_FirstSelectLastPosted"];
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                        cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = findLastRead;
+
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
+                }
+                else
+                {
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_unanswered_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                        cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                        cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = (int)pageIndex + 1;
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_TopicTotalRowsNumber", MySqlDbType.Int32).Value = 1;
+                        cmd.Parameters.Add("i_FirstSelectLastPosted", MySqlDbType.DateTime).Value =
+                            DateTime.UtcNow;
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = false;
+                        cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = false;
+
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
+                }
+            }
+
+            return null;
+        }
+        /// <summary>
+        /// Gets all topics where the pageUserid has posted
+        /// </summary>
+        /// <param name="boardId">
+        /// The board id.
+        /// </param>
+        /// <param name="pageUserId">
+        /// The page user id.
+        /// </param>
+        /// <param name="sinceDate">
+        /// The since.
+        /// </param>
+        /// <param name="categoryId">
+        /// The category id.
+        /// </param>
+        /// <param name="useStyledNicks">
+        /// Set to true to get color nicks for last user and topic starter.
+        /// </param>
+        /// <param name="findLastRead">
+        /// Indicates if the Table should Countain the last Access Date
+        /// </param>
+        /// <returns>
         /// Returns the List with the User Topics
         /// </returns>
-        public static DataTable Topics_ByUser( [NotNull] object boardID, [NotNull] object pageUserId, [NotNull] object since, [NotNull] object categoryID, [NotNull] object useStyledNicks, [CanBeNull]bool findLastRead)
+        public static DataTable Topics_ByUser([NotNull] object boardId, [CanBeNull] object categoryId, [NotNull] object pageUserId, [NotNull] object sinceDate, [NotNull] object toDate, [NotNull] object pageIndex, [NotNull] object pageSize, [NotNull] object useStyledNicks, [CanBeNull]bool findLastRead)
         {
-            using (var cmd = MsSqlDbAccess.GetCommand("topics_byuser"))
+            DataTable dtt;
+            int rowNumber = 0;
+            using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topics_byuser"))
             {
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("BoardID",  MySqlDbType.Int32).Value = boardID;
-                cmd.Parameters.Add("PageUserID", MySqlDbType.Int32).Value = pageUserId;
-                cmd.Parameters.Add("Since",  MySqlDbType.Timestamp).Value = since;
-                cmd.Parameters.AddWithValue("CategoryID", MySqlDbType.Int32).Value = categoryID;
-                cmd.Parameters.AddWithValue("StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
-                cmd.Parameters.AddWithValue("FindLastRead", MySqlDbType.Byte).Value = findLastRead;
 
-                return MsSqlDbAccess.Current.GetData(cmd);
+                if (pageUserId == null) { pageUserId = DBNull.Value; }
+                if (sinceDate == null) { sinceDate = DBNull.Value; }
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                cmd.Parameters.Add("i_SinceDate", MySqlDbType.Timestamp).Value = sinceDate;
+                cmd.Parameters.Add("i_ToDate", MySqlDbType.Timestamp).Value = toDate;
+                cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = pageIndex;
+                cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+
+                dtt = MsSqlDbAccess.Current.GetData(cmd);
+                cmd.Parameters.Clear();
+            }
+
+            if (dtt != null && dtt.Columns.Count > 1)
+            {
+                if (dtt.Rows.Count > 0)
+                {
+                    rowNumber = 0;
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topics_byuser_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                        cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                        cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = dtt.Rows[rowNumber]["PageIndex"];
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_TopicTotalRowsNumber", MySqlDbType.Int32).Value =
+                            dtt.Rows[rowNumber]["i_TopicTotalRowsNumber"];
+                        cmd.Parameters.Add("i_FirstSelectLastPosted", MySqlDbType.DateTime).Value =
+                            dtt.Rows[rowNumber]["i_FirstSelectLastPosted"];
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                        cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = findLastRead;
+
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
+                }
+                else
+                {
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topics_byuser_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                        cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                        cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = (int)pageIndex + 1;
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_TopicTotalRowsNumber", MySqlDbType.Int32).Value = 1;
+                        cmd.Parameters.Add("i_FirstSelectLastPosted", MySqlDbType.DateTime).Value =
+                            DateTime.UtcNow;
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = false;
+                        cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = false;
+
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
+                }
+            }
+
+            return null;
+        }
+        /// <summary>
+        /// Delete a topic status.
+        /// </summary>
+        /// <param name="topicStatusID">The topic status ID.</param>
+        public static void TopicStatus_Delete([NotNull] object topicStatusID)
+        {
+            try
+            {
+                using (var cmd = MsSqlDbAccess.GetCommand("TopicStatus_Delete"))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("i_TopicStatusID", MySqlDbType.Int32).Value = topicStatusID;
+                    MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+                }
+            }
+            catch
+            {
+                // Ignore any errors in this method
             }
         }
+
+        /// <summary>
+        /// Get a Topic Status by topicStatusID
+        /// </summary>
+        /// <param name="topicStatusID">The topic status ID.</param>
+        /// <returns></returns>
+        public static DataTable TopicStatus_Edit([NotNull] object topicStatusID)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("TopicStatus_Edit"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+               cmd.Parameters.Add("i_TopicStatusID",MySqlDbType.Int32).Value = topicStatusID;
+               return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
+       /// <summary>
+        /// List all Topics of the Current Board
+        /// </summary>
+        /// <param name="boardID">The board ID.</param>
+        /// <returns></returns>
+        public static DataTable TopicStatus_List([NotNull] object boardID)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("TopicStatus_List"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardID;
+                return MsSqlDbAccess.Current.GetData(cmd);
+           }
+        }
+
+        /// <summary>
+        /// Saves a topic status
+        /// </summary>
+        /// <param name="topicStatusID">The topic status ID.</param>
+        /// <param name="boardID">The board ID.</param>
+        /// <param name="topicStatusName">Name of the topic status.</param>
+        /// <param name="defaultDescription">The default description.</param>
+        public static void TopicStatus_Save([NotNull] object topicStatusID, [NotNull] object boardID, [NotNull] object topicStatusName, [NotNull] object defaultDescription)
+        {
+            try
+            {
+                using (var cmd = MsSqlDbAccess.GetCommand("TopicStatus_Save"))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    cmd.Parameters.Add("i_TopicStatusID", MySqlDbType.Int32).Value = topicStatusID;
+                    cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardID;
+                    cmd.Parameters.Add("i_TopicStatusName", MySqlDbType.VarChar).Value = topicStatusName;
+                    cmd.Parameters.Add("i_DefaultDescription", MySqlDbType.VarChar).Value = defaultDescription;
+                   
+                    MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+                }
+            }
+            catch
+            {
+                // Ignore any errors in this method
+            }
+        }
+
 		//ABOT NEW 16.04.04:Delete all topic's messages
-        static private void topic_deleteAttachments( object topicID)
+        static private void topic_deleteAttachments(object topicID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "topic_listmessages" ) )
 			{
@@ -6005,11 +6609,11 @@ namespace YAF.Classes.Data
 			}
 		}
 		// Ederon : 12/9/2007
-        static public void topic_delete( object topicID)
+        static public void topic_delete(object topicID)
 		{
 			topic_delete(topicID, false );
 		}
-        static public void topic_delete( object topicID, object eraseTopic)
+        static public void topic_delete(object topicID, object eraseTopic)
 		{
 			//ABOT CHANGE 16.04.04
 			topic_deleteAttachments( topicID );
@@ -6027,7 +6631,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public DataTable topic_findprev( object topicID)
+        static public DataTable topic_findprev(object topicID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "topic_findprev" ) )
 			{
@@ -6036,7 +6640,7 @@ namespace YAF.Classes.Data
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public DataTable topic_findnext( object topicID)
+        static public DataTable topic_findnext(object topicID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "topic_findnext" ) )
 			{
@@ -6046,7 +6650,7 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public void topic_lock( object topicID, object locked)
+        static public void topic_lock(object topicID, object locked)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "topic_lock" ) )
 			{
@@ -6056,10 +6660,11 @@ namespace YAF.Classes.Data
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public long topic_save( 
+        static public long topic_save(
             object forumID, 
             object subject,
-            object status,  
+            object status, 
+            object styles,
             object description,
             object message,
             object userID, 
@@ -6078,6 +6683,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add( "i_ForumID", MySqlDbType.Int32 ).Value = forumID;
                 cmd.Parameters.Add( "i_Subject", MySqlDbType.VarChar ).Value = subject;
                 cmd.Parameters.Add("i_status", MySqlDbType.VarChar).Value = status;
+                cmd.Parameters.Add("i_Styles", MySqlDbType.VarChar).Value = styles;
                 cmd.Parameters.Add("i_Description", MySqlDbType.VarChar).Value = description;
 				cmd.Parameters.Add( "i_UserID", MySqlDbType.Int32 ).Value = userID;
                 cmd.Parameters.Add( "i_Message", MySqlDbType.Text ).Value = message;
@@ -6093,7 +6699,7 @@ namespace YAF.Classes.Data
 				return long.Parse( dt.Rows [0] ["TopicID"].ToString() );
 			}
 		}
-        static public DataRow topic_info( object topicID)
+        static public DataRow topic_info(object topicID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "topic_info" ) )
 			{                
@@ -6112,12 +6718,12 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        public static int topic_findduplicate( object topicName)
+        public static int topic_findduplicate(object topicName)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_findduplicate"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("TopicName", MySqlDbType.VarChar).Value = topicName;
+                cmd.Parameters.Add("i_TopicName", MySqlDbType.VarChar).Value = topicName;
                 return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
 
             }
@@ -6143,26 +6749,78 @@ namespace YAF.Classes.Data
         /// <returns>
         /// a Data Table containing the current user's favorite topics with details.
         /// </returns>
-        public static DataTable topic_favorite_details( object boardID, object pageUserId, object since, object categoryID, object useStyledNicks)
+
+        public static DataTable topic_favorite_details([NotNull] object boardId, [CanBeNull] object categoryId, [NotNull] object pageUserId, [NotNull] object sinceDate, [NotNull] object toDate, [NotNull] object pageIndex, [NotNull] object pageSize, [NotNull] object useStyledNicks, [CanBeNull]bool findLastRead)
         {
+            DataTable dtt;
+            int rowNumber = 0;
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_favorite_details"))
             {
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add(new MySqlParameter("i_BoardID", MySqlDbType.Int32)).Value = boardID;
-                cmd.Parameters.Add(new MySqlParameter("i_PageUserID", MySqlDbType.Int32)).Value = pageUserId;
-                cmd.Parameters.Add(new MySqlParameter("i_Since",MySqlDbType.DateTime)).Value = since;
-                cmd.Parameters.Add(new MySqlParameter("i_CategoryID", MySqlDbType.Int32)).Value = categoryID;
-                cmd.Parameters.Add(new MySqlParameter("i_StyledNicks", MySqlDbType.Byte)).Value = useStyledNicks;
-                DataTable dt =  MsSqlDbAccess.Current.GetData(cmd);
-                foreach (DataRow dr in dt.Rows)
-                {
-                    if (Convert.ToInt32(dr["ReadAccess"]) == 0) dr.Delete();
-                }
-                dt.AcceptChanges();
-                return dt;
-            }
-        }
 
+                if (pageUserId == null) { pageUserId = DBNull.Value; }
+                if (sinceDate == null) { sinceDate = DBNull.Value; }
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                cmd.Parameters.Add("i_SinceDate", MySqlDbType.Timestamp).Value = sinceDate;
+                cmd.Parameters.Add("i_ToDate", MySqlDbType.Timestamp).Value = toDate;
+                cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = pageIndex;
+                cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+
+                dtt = MsSqlDbAccess.Current.GetData(cmd);
+                cmd.Parameters.Clear();
+            }
+
+            if (dtt != null && dtt.Columns.Count > 1)
+            {
+                if(dtt.Rows.Count > 0)
+                {
+                    rowNumber = 0;
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_favorite_details_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                        cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                        cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = dtt.Rows[rowNumber]["PageIndex"];
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_TopicTotalRowsNumber", MySqlDbType.Int32).Value = 
+                            dtt.Rows[rowNumber]["i_TopicTotalRowsNumber"];
+                        cmd.Parameters.Add("i_FirstSelectLastPosted", MySqlDbType.DateTime).Value =
+                            dtt.Rows[rowNumber]["i_FirstSelectLastPosted"];
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                        cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = findLastRead;
+                        
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    }
+                }
+                else
+                {
+                    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_favorite_details_result"))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                        cmd.Parameters.Add("i_CategoryID", MySqlDbType.Int32).Value = categoryId;
+                        cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+                        cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = (int)pageIndex + 1;
+                        cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                        cmd.Parameters.Add("i_TopicTotalRowsNumber", MySqlDbType.Int32).Value = 1;
+                        cmd.Parameters.Add("i_FirstSelectLastPosted", MySqlDbType.DateTime).Value =
+                            DateTime.UtcNow;
+                        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = false;
+                        cmd.Parameters.Add("i_FindLastRead", MySqlDbType.Byte).Value = false;
+                        
+                        return MsSqlDbAccess.Current.GetData(cmd);
+                    } 
+                }
+            }
+            
+            return null;
+        }
+       
         /// <summary>
         /// The topic_favorite_list.
         /// </summary>
@@ -6171,7 +6829,7 @@ namespace YAF.Classes.Data
         /// </param>
         /// <returns>
         /// </returns>
-        public static DataTable topic_favorite_list( object userID)
+        public static DataTable topic_favorite_list(object userID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_favorite_list"))
             {
@@ -6190,7 +6848,7 @@ namespace YAF.Classes.Data
         /// <param name="topicID">
         /// The topic id.
         /// </param>
-        public static void topic_favorite_remove( object userID, object topicID)
+        public static void topic_favorite_remove(object userID, object topicID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_favorite_remove"))
             {
@@ -6210,7 +6868,7 @@ namespace YAF.Classes.Data
         /// <param name="topicID">
         /// The topic id.
         /// </param>
-        public static void topic_favorite_add( object userID, object topicID)
+        public static void topic_favorite_add(object userID, object topicID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_favorite_add"))
             {
@@ -6227,7 +6885,7 @@ namespace YAF.Classes.Data
         /// <param name="topicId">
         /// The topic Id.
         /// </param>
-        public static int TopicFavoriteCount( int topicId)
+        public static int TopicFavoriteCount(int topicId)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("topic_favorite_count"))
             {
@@ -6246,7 +6904,7 @@ namespace YAF.Classes.Data
 		/// Gets a list of replace words
 		/// </summary>
 		/// <returns>DataTable with replace words</returns>
-        static public DataTable replace_words_list( object boardId, object id)
+        static public DataTable replace_words_list(object boardId, object id)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "replace_words_list" ) )
 			{
@@ -6264,7 +6922,7 @@ namespace YAF.Classes.Data
 		/// <param name="id">ID of bad/good word</param>
 		/// <param name="badword">bad word</param>
 		/// <param name="goodword">good word</param>
-        static public void replace_words_save( object boardId, object id, object badword, object goodword)
+        static public void replace_words_save(object boardId, object id, object badword, object goodword)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "replace_words_save" ) )
 			{
@@ -6284,7 +6942,7 @@ namespace YAF.Classes.Data
 		/// Deletes a bad/good word
 		/// </summary>
 		/// <param name="ID">ID of bad/good word to delete</param>
-        static public void replace_words_delete( object ID)
+        static public void replace_words_delete(object ID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "replace_words_delete" ) )
 			{
@@ -6299,7 +6957,7 @@ namespace YAF.Classes.Data
 
         #region IgnoreUser
 
-        static public void user_addignoreduser( object userId, object ignoredUserId)
+        static public void user_addignoreduser(object userId, object ignoredUserId)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_addignoreduser" ) )
             {
@@ -6312,7 +6970,7 @@ namespace YAF.Classes.Data
             }
         }
 
-        static public void user_removeignoreduser( object userId, object ignoredUserId)
+        static public void user_removeignoreduser(object userId, object ignoredUserId)
         {
             using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_removeignoreduser" ) )
             {
@@ -6325,7 +6983,7 @@ namespace YAF.Classes.Data
             }
         }
 
-        static public bool user_isuserignored( object userId, object ignoredUserId)
+        static public bool user_isuserignored(object userId, object ignoredUserId)
         {
             using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_isuserignored" ) )
             {
@@ -6337,7 +6995,7 @@ namespace YAF.Classes.Data
                 return Convert.ToBoolean(MsSqlDbAccess.Current.ExecuteScalar(cmd));
             }
         }
-        static public DataTable user_ignoredlist( object userId)
+        static public DataTable user_ignoredlist(object userId)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("user_ignoredlist"))
             {
@@ -6357,7 +7015,7 @@ namespace YAF.Classes.Data
         /// <param name="userID">The UserID. It is always should have a positive > 0 value.</param>
         /// <param name="styledNicks">If styles should be returned.</param>
         /// <returns>A DataRow, it should never return a null value.</returns>
-        public static DataRow user_lazydata( object userID, object boardID, bool showPendingMails, bool showPendingBuddies, bool showUnreadPMs, bool showUserAlbums, bool styledNicks)
+        public static DataRow user_lazydata(object userID, object boardID, bool showPendingMails, bool showPendingBuddies, bool showUnreadPMs, bool showUserAlbums, bool styledNicks)
         {
 
             int nTries = 0;
@@ -6450,6 +7108,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add("I_NumPosts", MySqlDbType.Int32).Value = numPosts ?? 0;
                 cmd.Parameters.Add("I_NumPostsCompare", MySqlDbType.Int32).Value = numPostCompare ?? 0;
                 dt = MsSqlDbAccess.Current.GetData(cmd);
+                cmd.Parameters.Clear();
             }
            
                 using (var cmd = MsSqlDbAccess.GetCommand("user_listmembers_result"))
@@ -6475,20 +7134,20 @@ namespace YAF.Classes.Data
                     cmd.Parameters.Add("I_Exclude", MySqlDbType.Byte).Value = exclude;
                     if (dt != null && dt.Rows.Count > 0)
                     {
-                        cmd.Parameters.Add("ici_firstselectuserid", MySqlDbType.VarChar).Value = dt.Rows[0]["ici_firstselectuserid"];
-		                cmd.Parameters.Add("ici_firstselectlastvisit", MySqlDbType.DateTime).Value = dt.Rows[0]["ici_firstselectlastvisit"];
-                        cmd.Parameters.Add("ici_firstselectjoined", MySqlDbType.DateTime).Value = dt.Rows[0]["ici_firstselectjoined"];
-			            cmd.Parameters.Add("ici_firstselectrankid", MySqlDbType.Int32).Value = dt.Rows[0]["ici_firstselectrankid"];
-                        cmd.Parameters.Add("ici_firstselectposts", MySqlDbType.Int32).Value = dt.Rows[0]["ici_firstselectposts"];
+                        cmd.Parameters.Add("i_firstselectuserid", MySqlDbType.VarChar).Value = dt.Rows[0]["ici_firstselectuserid"];
+		                cmd.Parameters.Add("i_firstselectlastvisit", MySqlDbType.DateTime).Value = dt.Rows[0]["ici_firstselectlastvisit"];
+                        cmd.Parameters.Add("i_firstselectjoined", MySqlDbType.DateTime).Value = dt.Rows[0]["ici_firstselectjoined"];
+			            cmd.Parameters.Add("i_firstselectrankid", MySqlDbType.Int32).Value = dt.Rows[0]["ici_firstselectrankid"];
+                        cmd.Parameters.Add("i_firstselectposts", MySqlDbType.Int32).Value = dt.Rows[0]["ici_firstselectposts"];
                        
                     }
                     else
                     {
-                        cmd.Parameters.Add("ici_firstselectuserid", MySqlDbType.VarChar).Value = DBNull.Value;
-                        cmd.Parameters.Add("ici_firstselectlastvisit", MySqlDbType.DateTime).Value = DBNull.Value;
-                        cmd.Parameters.Add("ici_firstselectjoined", MySqlDbType.DateTime).Value = DBNull.Value;
-                        cmd.Parameters.Add("ici_firstselectrankid", MySqlDbType.Int32).Value = DBNull.Value;
-                        cmd.Parameters.Add("ici_firstselectposts", MySqlDbType.Int32).Value = DBNull.Value; 
+                        cmd.Parameters.Add("i_firstselectuserid", MySqlDbType.VarChar).Value = DBNull.Value;
+                        cmd.Parameters.Add("i_firstselectlastvisit", MySqlDbType.DateTime).Value = DBNull.Value;
+                        cmd.Parameters.Add("i_firstselectjoined", MySqlDbType.DateTime).Value = DBNull.Value;
+                        cmd.Parameters.Add("i_firstselectrankid", MySqlDbType.Int32).Value = DBNull.Value;
+                        cmd.Parameters.Add("i_firstselectposts", MySqlDbType.Int32).Value = DBNull.Value; 
                     }
                     return MsSqlDbAccess.Current.GetData(cmd);
                 }
@@ -6509,7 +7168,7 @@ namespace YAF.Classes.Data
     /// </param>    
     /// <returns>
     /// </returns>
-        public static DataTable user_list( object boardID, object userID, object approved)
+        public static DataTable user_list(object boardID, object userID, object approved)
     {
         return user_list(boardID, userID, approved, null, null, false);
     }
@@ -6531,7 +7190,7 @@ namespace YAF.Classes.Data
     /// </param> 
     /// <returns>
     /// </returns>
-        public static DataTable user_list( object boardID, object userID, object approved, object useStyledNicks)
+        public static DataTable user_list(object boardID, object userID, object approved, object useStyledNicks)
     {
         return user_list(boardID, userID, approved, null, null, useStyledNicks);
     }
@@ -6556,7 +7215,7 @@ namespace YAF.Classes.Data
     /// </param>
     /// <returns>
     /// </returns>
-        public static DataTable user_list( object boardID, object userID, object approved, object groupID, object rankID)
+        public static DataTable user_list(object boardID, object userID, object approved, object groupID, object rankID)
     {
       return user_list( boardID, userID, approved, null, null, false);      
     }
@@ -6583,7 +7242,7 @@ namespace YAF.Classes.Data
     /// </param> 
     /// <returns>
     /// </returns>
-        public static DataTable user_list( object boardId, object userID, object approved, object groupID, object rankID, object useStyledNicks)
+        public static DataTable user_list(object boardId, object userID, object approved, object groupID, object rankID, object useStyledNicks)
     {
     
 			 using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_list" ) )
@@ -6602,14 +7261,415 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add( "i_RankID", MySqlDbType.Int32 ).Value = rankID;
                 cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
              
-				return MsSqlDbAccess.Current.GetData( cmd,false);               
+				return MsSqlDbAccess.Current.GetData( cmd,false );               
            
 			}
             
            
 		}
 
-        public static DataTable admin_list( object boardId, object useStyledNicks)
+        /// <summary>
+        /// The user_ list with todays birthdays.
+        /// </summary>
+        /// <param name="boardID">
+        /// The board id.
+        /// </param>
+        /// <param name="useStyledNicks">
+        /// Return style info.
+        /// </param>
+        /// <returns>
+        /// The user_ list with todays birthdays.
+        /// </returns>
+        public static DataTable User_ListTodaysBirthdays([NotNull] object boardID, [CanBeNull] object useStyledNicks)
+        {
+            // Profile columns cannot yet exist when we first are gettinng data.
+            try
+            {
+                var sqlBuilder = new StringBuilder("SELECT up.Birthday, up.UserID, u.TimeZone, u.Name as UserName,u.DisplayName, (case(@i_StyledNicks) when 1 then  IFNULL(( SELECT f.Style FROM ");
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserGroup"));
+                sqlBuilder.Append(" e join ");
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Group"));
+                sqlBuilder.Append(" f on f.GroupID=e.GroupID WHERE e.UserID=u.UserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), r.Style) else '' end) AS Style ");
+                sqlBuilder.Append(" FROM ");
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserProfile"));
+                sqlBuilder.Append(" up JOIN ");
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("User"));
+                sqlBuilder.Append(" u ON u.UserID = up.UserID JOIN ");
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Rank"));
+                sqlBuilder.Append(" r ON r.RankID = u.RankID where DAY(up.Birthday) = DAY(@i_CurrentDate) AND MONTH(up.Birthday) = MONTH(@i_CurrentDate) ");
+                using (var cmd = MsSqlDbAccess.GetCommand(sqlBuilder.ToString(), true))
+               
+                {
+                    cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                    cmd.Parameters.Add("i_CurrentDate", MySqlDbType.Date).Value = DateTime.UtcNow.Date;
+                    return MsSqlDbAccess.Current.GetData(cmd);
+                }
+            }
+            catch (Exception e)
+            {
+                LegacyDb.eventlog_create(null, e.Source, e.Message, EventLogTypes.Error);
+            }
+
+            return null;
+        }
+        /// <summary>
+        /// The user_ list with todays birthdays.
+        /// </summary>
+        /// <param name="userIdsList">
+        /// The Int array of userIds.
+        /// </param>
+        /// <param name="useStyledNicks">
+        /// Return or not style info.
+        /// </param>
+        /// <returns>
+        /// The user_ list profiles.
+        /// </returns>
+        public static DataTable User_ListProfilesByIdsList([NotNull] int[] userIdsList, [CanBeNull] object useStyledNicks)
+        {
+            string stIds = userIdsList.Aggregate(string.Empty, (current, userId) => current + (',' + userId)).Trim(',');
+            // Profile columns cannot yet exist when we first are gettinng data.
+            try
+            {
+                var sqlBuilder = new StringBuilder("SELECT up.*, u.Name as UserName,u.DisplayName,Style = case(?) when 1 then  ISNULL(( SELECT  f.Style FROM ");
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserGroup"));
+                sqlBuilder.Append(" e join ");
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Group"));
+                sqlBuilder.Append(" f on f.GroupID=e.GroupID WHERE e.UserID=u.UserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), r.Style) else '' end ");
+                sqlBuilder.Append(" FROM ");
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserProfile"));
+                sqlBuilder.Append(" up JOIN ");
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("User"));
+                sqlBuilder.Append(" u ON u.UserID = up.UserID JOIN ");
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Rank"));
+                sqlBuilder.AppendFormat(" r ON r.RankID = u.RankID where UserID IN ({0})  ", stIds);
+                using (var cmd = MsSqlDbAccess.GetCommand(sqlBuilder.ToString(), true))
+                {
+                    cmd.Parameters.AddWithValue("StyledNicks", useStyledNicks);
+                    return MsSqlDbAccess.Current.GetData(cmd);
+                }
+            }
+            catch (Exception e)
+            {
+                LegacyDb.eventlog_create(null, e.Source, e.Message, EventLogTypes.Error);
+            }
+
+            return null;
+        }
+
+        #region ProfileMirror
+
+        /// <summary>
+        /// The set property values.
+        /// </summary>
+        /// <param name="context">
+        /// The context.
+        /// </param>
+        /// <param name="collection">
+        /// The collection.
+        /// </param>
+        public static void SetPropertyValues(int boardId, string appname, int userId, SettingsPropertyValueCollection collection, bool dirtyOnly = true)
+        {
+            if (userId == 0 || collection.Count < 1)
+            {
+                return;
+            }
+            bool itemsToSave = true;
+            if (dirtyOnly)
+            {
+                itemsToSave = collection.Cast<SettingsPropertyValue>().Any(pp => pp.IsDirty);
+            }
+
+            // First make sure we have at least one item to save
+
+            if (!itemsToSave)
+            {
+                return;
+            }
+
+            // load the data for the configuration
+            List<SettingsPropertyColumn> spc = LoadFromPropertyValueCollection( collection);
+
+            if (spc != null && spc.Count > 0)
+            {
+                // start saving...
+                LegacyDb.SetProfileProperties(boardId, appname, userId, collection, spc, dirtyOnly);
+            }
+        }
+        /// <summary>
+        /// The set profile properties.
+        /// </summary>
+        /// <param name="appName">
+        /// The app name.
+        /// </param>
+        /// <param name="userID">
+        /// The user id.
+        /// </param>
+        /// <param name="values">
+        /// The values.
+        /// </param>
+        /// <param name="settingsColumnsList">
+        /// The settings columns list.
+        /// </param>
+        public static void SetProfileProperties([NotNull] int boardId, [NotNull] object appName, [NotNull] int userID, [NotNull] SettingsPropertyValueCollection values, [NotNull] List<SettingsPropertyColumn> settingsColumnsList, bool dirtyOnly)
+        {
+            string userName = string.Empty;
+            var dtu = LegacyDb.UserList(boardId, userID, true, null, null, true);
+            foreach (var typedUserList in dtu)
+            {
+                userName = typedUserList.Name;
+                break;
+
+            }
+            if (userName.IsNotSet())
+            {
+                return;
+            }
+            string sql = @"SELECT 1 FROM {0}  WHERE UserId = @i_UserID AND ApplicationName = @i_ApplicationName LIMIT 1".FormatWith(MsSqlDbAccess.GetObjectName("UserProfile"));
+            bool exists = false;
+            using (var cmd = MsSqlDbAccess.GetCommand(sql, true))
+            {
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userID;
+                cmd.Parameters.Add("i_ApplicationName", MySqlDbType.VarChar).Value = appName;
+                exists =  Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd)) > 0;
+            }
+            using (var conn = new MsSqlDbConnectionManager().OpenDBConnection)
+            {
+                var cmd = new MySqlCommand();
+
+                cmd.Connection = conn;
+
+                string table = MsSqlDbAccess.GetObjectName("UserProfile");
+                StringBuilder sqlCommand = new StringBuilder();
+               
+              //  StringBuilder sqlCommand = new StringBuilder("IF EXISTS (SELECT 1 FROM ").Append(table);
+              //  sqlCommand.Append(" WHERE UserId = @UserID AND ApplicationName = @ApplicationName) ");
+                cmd.Parameters.Add("i_UserID",MySqlDbType.Int32).Value = userID;
+               
+
+                // Build up strings used in the query
+                var columnStr = new StringBuilder();
+                var valueStr = new StringBuilder();
+                var setStr = new StringBuilder();
+                int count = 0;
+
+                foreach (SettingsPropertyColumn column in settingsColumnsList.Where(column => !dirtyOnly || values[column.Settings.Name].IsDirty))
+                {
+                    columnStr.Append(", ");
+                    valueStr.Append(", ");
+                    columnStr.Append(column.Settings.Name);
+                    string valueParam = "@i_Value" + count;
+                    valueStr.Append(valueParam);
+                    cmd.Parameters.AddWithValue(valueParam, values[column.Settings.Name].PropertyValue);
+
+                    if ((column.DataType != MySqlDbType.Timestamp) || column.Settings.Name != "LastUpdatedDate" || column.Settings.Name != "LastActivity")
+                    {
+                        if (count > 0)
+                        {
+                            setStr.Append(",");
+                        }
+
+                        setStr.Append(column.Settings.Name);
+                        setStr.Append("=");
+                        setStr.Append(valueParam);
+                    }
+
+                    count++;
+                }
+
+                columnStr.Append(",LastUpdatedDate ");
+                valueStr.Append(",@i_LastUpdatedDate");
+                setStr.Append(",LastUpdatedDate=@i_LastUpdatedDate");
+                cmd.Parameters.AddWithValue("@i_LastUpdatedDate", DateTime.UtcNow);
+
+                // MembershipUser mu = System.Web.Security.Membership.GetUser(userID);
+
+                columnStr.Append(",LastActivity ");
+                valueStr.Append(",@i_LastActivity");
+                setStr.Append(",LastActivity=@i_LastActivity");
+                cmd.Parameters.AddWithValue("@i_LastActivity", DateTime.UtcNow);
+
+                columnStr.Append(",ApplicationName ");
+                valueStr.Append(",@i_ApplicationName");
+                setStr.Append(",ApplicationName=@i_ApplicationName");
+                cmd.Parameters.Add("i_ApplicationName", MySqlDbType.VarChar).Value = appName;
+
+                columnStr.Append(",IsAnonymous ");
+                valueStr.Append(",@i_IsAnonymous");
+                setStr.Append(",IsAnonymous=@i_IsAnonymous");
+                cmd.Parameters.AddWithValue("@i_IsAnonymous", 0);
+
+                columnStr.Append(",UserName ");
+                valueStr.Append(",@i_UserName");
+                setStr.Append(",UserName=@i_UserName");
+                cmd.Parameters.AddWithValue("@i_UserName", userName);
+                if (exists)
+                {
+                    sqlCommand.Append("UPDATE ").Append(table).Append(" SET ").Append(setStr.ToString());
+                    sqlCommand.Append(" WHERE UserID = @i_UserID").Append("");
+                }
+                else
+                {
+                    sqlCommand.Append("INSERT ").Append(table).Append(" (UserID").Append(columnStr.ToString());
+                    sqlCommand.Append(") VALUES (@i_UserID").Append("").Append(valueStr.ToString()).Append(
+                      ");");
+                }
+
+                cmd.CommandText = sqlCommand.ToString();
+                cmd.CommandType = CommandType.Text;
+
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        /// <summary>
+        /// The get profile structure.
+        /// </summary>
+        /// <returns>
+        /// </returns>
+        public static DataTable GetProfileStructure()
+        {
+            string sql = @"SELECT * FROM {0} LIMIT 1".FormatWith(MsSqlDbAccess.GetObjectName("UserProfile"));
+
+            using (var cmd = MsSqlDbAccess.GetCommand(sql, true))
+            {
+                cmd.CommandType = CommandType.Text;
+                return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
+        /// <summary>
+        /// The add profile column.
+        /// </summary>
+        /// <param name="name">
+        /// The name.
+        /// </param>
+        /// <param name="columnType">
+        /// The column type.
+        /// </param>
+        /// <param name="size">
+        /// The size.
+        /// </param>
+        public static void AddProfileColumn([NotNull] string name, MySqlDbType columnType, int size)
+        {
+            // get column type...
+            string type = columnType.ToString();
+
+            if (size > 0)
+            {
+                type += "(" + size + ")";
+            }
+
+            if (type.IndexOf("Int32") >= 0)
+            { type = "INT"; }
+  
+            string sql = "ALTER TABLE {0} ADD {1} {2}".FormatWith(
+              MsSqlDbAccess.GetObjectName("UserProfile"), name, type);
+
+            using (var cmd = MsSqlDbAccess.GetCommand(sql, true))
+            {
+                cmd.CommandType = CommandType.Text;
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+        /// <summary>
+        /// The get db type and size from string.
+        /// </summary>
+        /// <param name="providerData">
+        /// The provider data.
+        /// </param>
+        /// <param name="dbType">
+        /// The db type.
+        /// </param>
+        /// <param name="size">
+        /// The size.
+        /// </param>
+        /// <returns>
+        /// The get db type and size from string.
+        /// </returns>
+        /// <exception cref="ArgumentException">
+        /// </exception>
+        private static bool GetDbTypeAndSizeFromString(string providerData, out MySqlDbType dbType, out int size)
+        {
+            size = -1;
+            dbType = MySqlDbType.VarChar;
+
+            if (providerData.IsNotSet())
+            {
+                return false;
+            }
+
+            // split the data
+            string[] chunk = providerData.Split(new[] { ';' });
+
+            // first item is the column name...
+            string columnName = chunk[0];
+
+            // vzrus addon convert values from mssql types...
+            if (chunk[1].IndexOf("varchar") >= 0)
+            { chunk[1] = "VarChar"; }
+            if (chunk[1].IndexOf("int") >= 0)
+            { chunk[1] = "Int32"; }
+
+            // get the datatype and ignore case...
+            dbType = (MySqlDbType)Enum.Parse(typeof(MySqlDbType), chunk[1], true);
+
+            if (chunk.Length > 2)
+            {
+                // handle size...
+                if (!Int32.TryParse(chunk[2], out size))
+                {
+                    throw new ArgumentException("Unable to parse as integer: " + chunk[2]);
+                }
+            }
+
+            return true;
+        }
+
+        static List<SettingsPropertyColumn> LoadFromPropertyValueCollection(SettingsPropertyValueCollection collection)
+        {
+            List<SettingsPropertyColumn> settingsColumnsList = new List<SettingsPropertyColumn>();
+            // clear it out just in case something is still in there...
+
+
+            // validiate all the properties and populate the internal settings collection
+            foreach (SettingsPropertyValue value in collection)
+            {
+                MySqlDbType dbType;
+                int size;
+
+                // parse custom provider data...
+                GetDbTypeAndSizeFromString(
+                   value.Property.Attributes["CustomProviderData"].ToString(), out dbType, out size);
+
+                // default the size to 256 if no size is specified
+                if (dbType == MySqlDbType.VarChar && size == -1)
+                {
+                    size = 256;
+                }
+
+                settingsColumnsList.Add(new SettingsPropertyColumn(value.Property, dbType, size));
+            }
+
+            // sync profile table structure with the db...
+            DataTable structure = LegacyDb.GetProfileStructure();
+
+            // verify all the columns are there...
+            foreach (SettingsPropertyColumn column in settingsColumnsList)
+            {
+                // see if this column exists
+                if (!structure.Columns.Contains(column.Settings.Name))
+                {
+                    // if not, create it...
+                    LegacyDb.AddProfileColumn(column.Settings.Name, column.DataType, column.Size);
+                }
+            }
+            return settingsColumnsList;
+        }
+
+        #endregion
+
+        public static DataTable admin_list(object boardId, object useStyledNicks)
     {
         using (var cmd = MsSqlDbAccess.GetCommand("admin_list"))
         {
@@ -6645,7 +7705,7 @@ namespace YAF.Classes.Data
     /// </returns>
     /// 
     [NotNull]
-        public static IEnumerable<TypedUserList> UserList( int boardId, int? userId, bool? approved, int? groupId, int? rankId, bool? useStyledNicks)
+        public static IEnumerable<TypedUserList> UserList(int boardId, int? userId, bool? approved, int? groupId, int? rankId, bool? useStyledNicks)
     {
         using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("user_list"))
         {
@@ -6667,13 +7727,15 @@ namespace YAF.Classes.Data
             return MsSqlDbAccess.Current.GetData(cmd).AsEnumerable().Select(x => new TypedUserList(x));
         }
     }
+
+
 		/// <summary>
 		/// For URL Rewriting
 		/// </summary>
 		/// <param name="startId"></param>
 		/// <param name="limit"></param>
 		/// <returns></returns>
-    static public DataTable user_simplelist( int startId, int limit)
+    static public DataTable user_simplelist(int startId, int limit)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_simplelist" ) )
 			{
@@ -6687,7 +7749,7 @@ namespace YAF.Classes.Data
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-    static public void user_delete( object userID)
+    static public void user_delete(object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_delete" ) )
 			{
@@ -6698,7 +7760,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-    static public void user_setrole( int boardId, object providerUserKey, object role)
+    static public void user_setrole(int boardId, object providerUserKey, object role)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_setrole" ) )
 			{
@@ -6727,7 +7789,7 @@ namespace YAF.Classes.Data
 			}
 		}*/
 
-    static public void user_migrate( object userID, object providerUserKey, object updateProvider)
+    static public void user_migrate(object userID, object providerUserKey, object updateProvider)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_migrate" ) )
 			{
@@ -6744,7 +7806,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-    static public void user_deleteold( object boardId, object days)
+    static public void user_deleteold(object boardId, object days)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_deleteold" ) )
 			{
@@ -6756,7 +7818,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-    static public void user_approve( object userID)
+    static public void user_approve(object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_approve" ) )
 			{
@@ -6767,7 +7829,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-    static public void user_approveall( object boardId)
+    static public void user_approveall(object boardId)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_approveall" ) )
 			{
@@ -6778,7 +7840,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-    static public void user_suspend( object userID, object suspend)
+    static public void user_suspend(object userID, object suspend)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_suspend" ) )
 			{
@@ -6798,13 +7860,13 @@ namespace YAF.Classes.Data
         /// <param name="userID">The userID</param>
         /// <param name="boardID">The boardID</param>
         /// <returns>Data Table</returns>
-    public static DataTable user_getsignaturedata( object userID, object boardID)
+    public static DataTable user_getsignaturedata(object userID, object boardID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("user_getsignaturedata"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("BoardID", MySqlDbType.Int32 ).Value = boardID;
-                cmd.Parameters.Add("UserID", MySqlDbType.Int32 ).Value = userID;
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32 ).Value = boardID;
+                cmd.Parameters.Add("i_UserID", MySqlDbType.Int32 ).Value = userID;
                 return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
@@ -6814,17 +7876,17 @@ namespace YAF.Classes.Data
         /// </summary>
         /// <param name="userID">The userID</param>
         /// <param name="boardID">The boardID</param>  
-    public static DataTable user_getalbumsdata( object userID, object boardID)
+    public static DataTable user_getalbumsdata(object userID, object boardID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("user_getalbumsdata"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add("BoardID", MySqlDbType.Int32 ).Value = boardID;
-                cmd.Parameters.Add("UserID", MySqlDbType.Int32 ).Value = userID;
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32 ).Value = boardID;
+                cmd.Parameters.Add("i_UserID", MySqlDbType.Int32 ).Value = userID;
                 return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
-    static public bool user_changepassword( object userID, object oldPassword, object newPassword)
+    static public bool user_changepassword(object userID, object oldPassword, object newPassword)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_changepassword" ) )
 			{
@@ -6838,7 +7900,7 @@ namespace YAF.Classes.Data
 			}
 		}
 
-    static public DataTable user_pmcount( object userID)
+    static public DataTable user_pmcount(object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_pmcount" ) )
 			{
@@ -6851,6 +7913,7 @@ namespace YAF.Classes.Data
 		}
 
     static public void user_save(
+        
            object userId,
             object boardId,
             object userName,
@@ -6923,6 +7986,7 @@ namespace YAF.Classes.Data
         /// </param>
         /// <param name="pmNotification"></param>
     public static void user_savenotification(
+              
               object userID,
               object pmNotification,
               object autoWatchTopics,
@@ -6944,7 +8008,7 @@ namespace YAF.Classes.Data
         }
 
 		static public void user_adminsave
-            ( object boardId, object userId, object name, object displayName, object email, object flags, object rankID)
+            (object boardId, object userId, object name, object displayName, object email, object flags, object rankID)
 		{
 
 
@@ -6963,7 +8027,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public DataTable user_emails( object boardId, object groupID)
+        static public DataTable user_emails(object boardId, object groupID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_emails" ) )
 			{
@@ -6979,7 +8043,7 @@ namespace YAF.Classes.Data
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public DataTable user_accessmasks( object boardId, object userID)
+        static public DataTable user_accessmasks(object boardId, object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_accessmasks" ) )
 			{
@@ -6992,7 +8056,7 @@ namespace YAF.Classes.Data
 		}
 
 		//adds some convenience while editing group's access rights (indent forums)
-        static private DataTable userforumaccess_sort_list( DataTable listSource, int parentID, int categoryID, int startingIndent)
+        static private DataTable userforumaccess_sort_list(DataTable listSource, int parentID, int categoryID, int startingIndent)
 		{
 
 			DataTable listDestination = new DataTable();
@@ -7014,7 +8078,7 @@ namespace YAF.Classes.Data
 			return listDestination;
 		}
 
-        static private void userforumaccess_sort_list_recursive( DataTable listSource, DataTable listDestination, int parentID, int categoryID, int currentIndent)
+        static private void userforumaccess_sort_list_recursive(DataTable listSource, DataTable listDestination, int parentID, int categoryID, int currentIndent)
 		{
 			DataRow newRow;
 
@@ -7054,7 +8118,7 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public object user_recoverpassword( object boardId, object userName, object email)
+        static public object user_recoverpassword(object boardId, object userName, object email)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_recoverpassword" ) )
 			{
@@ -7067,7 +8131,7 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.ExecuteScalar(cmd);
 			}
 		}
-        static public void user_savepassword( object userID, object password)
+        static public void user_savepassword(object userID, object password)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_savepassword" ) )
 			{
@@ -7077,7 +8141,7 @@ namespace YAF.Classes.Data
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public object user_login( object boardId, object name, object password)
+        static public object user_login(object boardId, object name, object password)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_login" ) )
 			{
@@ -7090,7 +8154,7 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.ExecuteScalar(cmd);
 			}
 		}
-        static public DataTable user_avatarimage( object userID)
+        static public DataTable user_avatarimage(object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_avatarimage" ) )
 			{
@@ -7111,7 +8175,7 @@ namespace YAF.Classes.Data
                     return ( int )MsSqlDbAccess.Current.ExecuteScalar(cmd);
                 }
             }*/
-        static public int user_get( int boardId, object providerUserKey)
+        static public int user_get(int boardId, object providerUserKey)
         {           
            
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("user_get"))
@@ -7146,7 +8210,7 @@ namespace YAF.Classes.Data
         /// <param name="dailyDigest"></param>
         /// <returns>
         /// </returns>
-        public static IEnumerable<TypedUserFind> UserFind( int boardId, bool filter, string userName, string email, string displayName, object notificationType, object dailyDigest)
+        public static IEnumerable<TypedUserFind> UserFind(int boardId, bool filter, string userName, string email, string displayName, object notificationType, object dailyDigest)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("user_find"))
             {
@@ -7165,7 +8229,7 @@ namespace YAF.Classes.Data
             }
         }
 
-        static public string user_getsignature( object userID)
+        static public string user_getsignature(object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_getsignature" ) )
 			{
@@ -7176,7 +8240,7 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.ExecuteScalar(cmd).ToString();
 			}
 		}
-        static public void user_savesignature( object userID, object signature)
+        static public void user_savesignature(object userID, object signature)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_savesignature" ) )
 			{
@@ -7188,7 +8252,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void user_saveavatar( object userID, object avatar, System.IO.Stream stream, object avatarImageType)
+        static public void user_saveavatar(object userID, object avatar, System.IO.Stream stream, object avatarImageType)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_saveavatar" ) )
 			{
@@ -7217,7 +8281,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void user_deleteavatar( object userID)
+        static public void user_deleteavatar(object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_deleteavatar" ) )
 			{
@@ -7270,7 +8334,7 @@ namespace YAF.Classes.Data
 
 			return true;
 		} */
-        static public int user_aspnet( int boardId, string userName, string displayName, string email, object providerUserKey, object isApproved)
+        static public int user_aspnet(int boardId, string userName, string displayName, string email, object providerUserKey, object isApproved)
 		{
 			try
 			{
@@ -7290,11 +8354,11 @@ namespace YAF.Classes.Data
 			}
 			catch ( Exception x )
 			{
-				YAF.Classes.Data.LegacyDb.eventlog_create( null, "user_aspnet in YAF.Classes.Data.DB.cs", x, EventLogTypes.Error );
+				LegacyDb.eventlog_create( null, "user_aspnet in YAF.Classes.Data.DB.cs", x, EventLogTypes.Error );
 				return 0;
 			}
 		}
-        static public int? user_guest( object boardId)
+        static public int? user_guest(object boardId)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_guest" ) )
 			{
@@ -7305,7 +8369,7 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.ExecuteScalar(cmd).ToType<int?>();
 			}
 		}
-        static public DataTable user_activity_rank( object boardId, object startDate, object displayNumber)
+        static public DataTable user_activity_rank(object boardId, object startDate, object displayNumber)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_activity_rank" ) )
 			{
@@ -7318,7 +8382,7 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public int user_nntp( object boardId, object userName, object email, int? timeZone)
+        static public int user_nntp(object boardId, object userName, object email, int? timeZone)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_nntp" ) )
 			{
@@ -7333,7 +8397,7 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public void user_addpoints( object userID, object points)
+        static public void user_addpoints(object userID, object points)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_addpoints" ) )
 			{
@@ -7346,7 +8410,7 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public void user_removepointsByTopicID( object topicID, object points)
+        static public void user_removepointsByTopicID(object topicID, object points)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_removepointsbytopicid" ) )
 			{
@@ -7359,7 +8423,7 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public void user_removepoints( object userID, object points)
+        static public void user_removepoints(object userID, object points)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_removepoints" ) )
 			{
@@ -7372,7 +8436,7 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public void user_setnotdirty( object userID, object points)
+        static public void user_setnotdirty(object userID, object points)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("user_setnotdirty"))
             {
@@ -7384,7 +8448,7 @@ namespace YAF.Classes.Data
             }
         }
 
-        static public void user_setpoints( object userID, object points)
+        static public void user_setpoints(object userID, object points)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_setpoints" ) )
 			{
@@ -7397,7 +8461,7 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public int user_getpoints( object userID)
+        static public int user_getpoints(object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_getpoints" ) )
 			{
@@ -7413,7 +8477,7 @@ namespace YAF.Classes.Data
     /// </summary>
     /// <param name="userID"></param>
     /// <returns></returns>
-        static public int user_getthanks_from( object userID, object pageUserId)
+        static public int user_getthanks_from(object userID, object pageUserId)
         {
 
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("user_getthanks_from"))
@@ -7428,7 +8492,7 @@ namespace YAF.Classes.Data
 
         //<summary> Returns the number of times and posts that other users have thanked the 
         // user with the provided userID.
-        static public int[] user_getthanks_to( object userID, object pageUserId)
+        static public int[] user_getthanks_to(object userID, object pageUserId)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("user_getthanks_to"))
             {
@@ -7467,7 +8531,7 @@ namespace YAF.Classes.Data
         /// </param>
         /// <returns>
         /// </returns>
-        public static DataTable user_viewallthanks( object userID, object pageUserId)
+        public static DataTable user_viewallthanks(object userID, object pageUserId)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("user_viewallthanks"))
             {
@@ -7477,11 +8541,34 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
+        /// <summary>
+        /// Update the single Sign on Status
+        /// </summary>
+        /// <param name="userID">
+        /// The user id.
+        /// </param>
+        /// <param name="isFacebookUser">
+        /// The is Facebook User
+        /// </param>
+        /// <param name="isTwitterUser">
+        /// The is Twitter User.
+        /// </param>
+        public static void user_update_single_sign_on_status([NotNull] object userID, [NotNull] object isFacebookUser, [NotNull] object isTwitterUser)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("user_update_single_sign_on_status"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userID;
+                cmd.Parameters.Add("i_IsFacebookUser", MySqlDbType.Byte).Value = isFacebookUser;
+                cmd.Parameters.Add("i_IsTwitterUser", MySqlDbType.Byte).Value = isTwitterUser;
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
 
 		#endregion
 
         #region yaf_UserForum
-        static public DataTable userforum_list( object userID, object forumID)
+        static public DataTable userforum_list(object userID, object forumID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "userforum_list" ) )
 			{
@@ -7496,7 +8583,7 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void userforum_delete( object userID, object forumID)
+        static public void userforum_delete(object userID, object forumID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "userforum_delete" ) )
 			{
@@ -7506,7 +8593,7 @@ namespace YAF.Classes.Data
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void userforum_save( object userID, object forumID, object accessMaskID)
+        static public void userforum_save(object userID, object forumID, object accessMaskID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "userforum_save" ) )
 			{
@@ -7522,7 +8609,7 @@ namespace YAF.Classes.Data
 		#endregion
 
         #region yaf_UserGroup
-		static public DataTable usergroup_list( object userID )
+		static public DataTable usergroup_list(object userID )
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "usergroup_list" ) )
 			{
@@ -7531,7 +8618,7 @@ namespace YAF.Classes.Data
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void usergroup_save( object userID, object groupID, object member)
+        static public void usergroup_save(object userID, object groupID, object member)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "usergroup_save" ) )
 			{
@@ -7545,7 +8632,7 @@ namespace YAF.Classes.Data
 		#endregion
 
         #region yaf_WatchForum
-        static public void watchforum_add( object userID, object forumID)
+        static public void watchforum_add(object userID, object forumID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "watchforum_add" ) )
 			{
@@ -7557,7 +8644,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public DataTable watchforum_list( object userID)
+        static public DataTable watchforum_list(object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "watchforum_list" ) )
 			{
@@ -7568,7 +8655,7 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public DataTable watchforum_check( object userID, object forumID)
+        static public DataTable watchforum_check(object userID, object forumID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "watchforum_check" ) )
 			{
@@ -7580,7 +8667,7 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void watchforum_delete( object watchForumID)
+        static public void watchforum_delete(object watchForumID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "watchforum_delete" ) )
 			{
@@ -7594,7 +8681,7 @@ namespace YAF.Classes.Data
 		#endregion       
         
         #region yaf_WatchTopic
-        static public DataTable watchtopic_list( object userID)
+        static public DataTable watchtopic_list(object userID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "watchtopic_list" ) )
 			{
@@ -7603,7 +8690,7 @@ namespace YAF.Classes.Data
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public DataTable watchtopic_check( object userID, object topicID)
+        static public DataTable watchtopic_check(object userID, object topicID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "watchtopic_check" ) )
 			{
@@ -7615,7 +8702,7 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void watchtopic_delete( object watchTopicID)
+        static public void watchtopic_delete(object watchTopicID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "watchtopic_delete" ) )
 			{
@@ -7626,7 +8713,7 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void watchtopic_add( object userID, object topicID)
+        static public void watchtopic_add(object userID, object topicID)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "watchtopic_add" ) )
 			{
@@ -7687,7 +8774,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// Returns the Global Last Read DateTime
         /// </returns>
-        public static DateTime User_LastRead([NotNull] object userID, [NotNull] DateTime lastVisitDate)
+        public static DateTime? User_LastRead([NotNull] object userID)
         {
             using (var cmd = MsSqlDbAccess.GetCommand("user_lastread"))
             {
@@ -7696,7 +8783,7 @@ namespace YAF.Classes.Data
 
                 var tableLastRead = MsSqlDbAccess.Current.ExecuteScalar(cmd);
 
-                return tableLastRead != null ? (DateTime)tableLastRead : lastVisitDate;
+                return tableLastRead.ToType<DateTime?>();
             }
         }
 
@@ -7712,7 +8799,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// Returns the Last Read DateTime
         /// </returns>
-        public static DateTime Readtopic_lastread([NotNull] object userID, [NotNull] object topicID)
+        public static DateTime? Readtopic_lastread([NotNull] object userID, [NotNull] object topicID)
         {
             using (var cmd = MsSqlDbAccess.GetCommand("readtopic_lastread"))
             {
@@ -7722,9 +8809,7 @@ namespace YAF.Classes.Data
 
                 var tableLastRead = MsSqlDbAccess.Current.ExecuteScalar(cmd);
 
-                return tableLastRead != null && tableLastRead != DBNull.Value
-                           ? (DateTime)tableLastRead
-                           : DateTime.MinValue.AddYears(1902);
+                return tableLastRead.ToType<DateTime?>();
             }
         }
 
@@ -7795,11 +8880,11 @@ namespace YAF.Classes.Data
 		#endregion
 
         # region VZ-Team additions
-        static public DataTable rsstopic_list( int forumId)
+        static public DataTable rsstopic_list(int forumId)
         {
           return  rsstopic_list(forumId,0,100);
         }
-        static public DataTable rsstopic_list( int forumId, int start, int count)
+        static public DataTable rsstopic_list(int forumId, int start, int count)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("rsstopic_list"))
              {
@@ -7810,8 +8895,21 @@ namespace YAF.Classes.Data
                  cmd.Parameters.Add(new MySqlParameter("i_Limit", MySqlDbType.Int32)).Value = count; 
                
                 return MsSqlDbAccess.Current.GetData(cmd, false);
-             }
+             }}
+        static public void db_getstats()
+        {
+           
+            using ( MySqlCommand cmd = new MySqlCommand( String.Format( "ANALYZE TABLE {0}.{1}user;", Config.SchemaName, Config.DatabaseObjectQualifier ) ) )
+            {
+                cmd.CommandType = CommandType.Text;
+                // up the command timeout...
+                cmd.CommandTimeout = int.Parse(Config.SqlCommandTimeout);
+      
+                // run it...
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd, false);
+            }
         }
+
         private static string getStatsMessage;
         /// <summary>
         /// The db_getstats_new.
@@ -7828,7 +8926,7 @@ namespace YAF.Classes.Data
                             new MySqlCommand(String.Format("ANALYZE TABLE {0}.{1}user;", Config.SchemaName,
                                                            Config.DatabaseObjectQualifier)))
                     {
-                       
+
                         cmd.CommandType = CommandType.Text;
                         // up the command timeout...
                         cmd.CommandTimeout = int.Parse(Config.SqlCommandTimeout);
@@ -7859,19 +8957,6 @@ namespace YAF.Classes.Data
         private static void getStats_InfoMessage([NotNull] object sender, [NotNull] YafDBConnInfoMessageEventArgs e)
         {
             getStatsMessage += "\r\n{0}".FormatWith(e.Message);
-        }
-        static public void db_getstats()
-        {
-           
-            using ( MySqlCommand cmd = new MySqlCommand( String.Format( "ANALYZE TABLE {0}.{1}user;", Config.SchemaName, Config.DatabaseObjectQualifier ) ) )
-            {
-                cmd.CommandType = CommandType.Text;
-                // up the command timeout...
-                cmd.CommandTimeout = int.Parse(Config.SqlCommandTimeout);
-      
-                // run it...
-                MsSqlDbAccess.Current.ExecuteNonQuery(cmd, false);
-            }
         }
         static public DataTable db_getstats_table()
         {
@@ -7906,10 +8991,10 @@ namespace YAF.Classes.Data
 
         static public string db_getstats_tablex()
         {
-          /*  int offset = 15;
+            int offset = 15;
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
             sb.Append("___________________________________________________________________________________      ");
-            DataTable tables = LegacyDb.db_getstats_alltables(connectionString);
+            DataTable tables = LegacyDb.db_getstats_alltables();
             foreach ( DataRow drtables in tables.Rows )
                 {
                     using ( MySqlCommand cmd = new MySqlCommand(String.Format("ANALYZE TABLE {0}.{1};", Config.SchemaName,drtables[0] ) ) )
@@ -7961,8 +9046,7 @@ namespace YAF.Classes.Data
                     }                
               
             }
-            return sb.ToString();*/
-            return string.Empty;
+            return sb.ToString();
         }
 
             public static bool btnReindexVisible
@@ -8092,7 +9176,7 @@ namespace YAF.Classes.Data
             return dtt;
         }
         private static string my_messageRunSql;
-        public static string db_runsql_new( string sql, bool useTransaction)
+        public static string db_runsql_new(string sql, bool useTransaction)
         {
             try
             {
@@ -8226,7 +9310,7 @@ namespace YAF.Classes.Data
             return results.ToString();
         }
 
-        public static bool forumpage_initdb( out string errorStr, bool debugging )
+        public static bool forumpage_initdb(out string errorStr, bool debugging )
         {
             errorStr = "";
 
@@ -8254,7 +9338,7 @@ namespace YAF.Classes.Data
             return true;
         }
 
-        public static string forumpage_validateversion( int appVersion )
+        public static string forumpage_validateversion(int appVersion )
         {
             string redirect = "";
             try
@@ -8264,7 +9348,7 @@ namespace YAF.Classes.Data
                 if ( ( registry.Rows.Count == 0 ) || ( Convert.ToInt32(registry.Rows[0]["Value"] ) < appVersion ) )
                 {
                     // needs upgrading...
-                    redirect = "install/default.aspx?upgrade=" + Convert.ToInt32(registry.Rows[0]["Value"]);
+                    redirect = "install/default.aspx?upgrade={0}".FormatWith(registry.Rows.Count != 0 ? Convert.ToInt32(registry.Rows[0]["Value"]) : 0);
                 }
             }
             catch ( MySql.Data.MySqlClient.MySqlException )
@@ -8275,7 +9359,7 @@ namespace YAF.Classes.Data
             return redirect;
         }
 
-        public static void system_deleteinstallobjects(string connectionString )
+        public static void system_deleteinstallobjects( )
         {
             string tSQL = "DROP PROCEDURE" + MsSqlDbAccess.GetObjectName( "system_initialize" );
             using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( tSQL, true ) )
@@ -8285,7 +9369,7 @@ namespace YAF.Classes.Data
             }
         }
 
-        public static string system_initialize_replace_entries( string script)
+        public static string system_initialize_replace_entries(string script)
         {
             bool conEncoding = false;
             string[] options = null;
@@ -8427,7 +9511,7 @@ namespace YAF.Classes.Data
            
 
       
-        public static void system_initialize_executescripts( string script, string scriptFile, bool useTransactions)
+        public static void system_initialize_executescripts(string script, string scriptFile, bool useTransactions)
         {
 
             script = system_initialize_replace_entries( script);                    
@@ -8589,6 +9673,7 @@ namespace YAF.Classes.Data
 
         }
         public static void system_initialize(
+            
             string forumName, 
             string timeZone, 
             string culture, 
@@ -8636,7 +9721,7 @@ namespace YAF.Classes.Data
         /// Used in GroupRankStyles cache.
         /// Usage: LegendID = 1 - Select Groups, LegendID = 2 - select Ranks by Name 
         /// </summary>
-        public static DataTable group_rank_style( object boardID)
+        public static DataTable group_rank_style(object boardID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("group_rank_style"))
             {
@@ -8660,7 +9745,7 @@ namespace YAF.Classes.Data
         /// </param>
         /// <returns>
         /// </returns>
-        public static DataTable shoutbox_getmessages( int boardId, int numberOfMessages, object useStyledNicks)
+        public static DataTable shoutbox_getmessages(int boardId, int numberOfMessages, object useStyledNicks)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("shoutbox_getmessages"))
             {
@@ -8672,7 +9757,7 @@ namespace YAF.Classes.Data
             }
         }
 
-        public static bool shoutbox_savemessage( int boardId, string message, string userName, int userID, object ip)
+        public static bool shoutbox_savemessage(int boardId, string message, string userName, int userID, object ip)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("shoutbox_savemessage"))
             {
@@ -8688,7 +9773,7 @@ namespace YAF.Classes.Data
             }
         }
 
-        public static Boolean shoutbox_clearmessages( int boardId)
+        public static Boolean shoutbox_clearmessages(int boardId)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("shoutbox_clearmessages"))
             {
@@ -8708,7 +9793,7 @@ namespace YAF.Classes.Data
             return "";
         }
 
-        public static string db_shrink()
+        public static string db_shrink_new()
         {
          /*   String ShrinkSql = "DBCC SHRINKDATABASE(N'" + DBName.DBConnection.Database + "')";
             SqlConnection ShrinkConn = new SqlConnection(YAF.Classes.Config.ConnectionString);
@@ -8730,7 +9815,7 @@ namespace YAF.Classes.Data
             return "";
         }
 
-        public static string db_recovery_mode_new( string dbRecoveryMode)
+        public static string db_recovery_mode_new(string dbRecoveryMode)
         {
           /*  String RecoveryMode = "ALTER DATABASE " + DBName.DBConnection.Database + " SET RECOVERY " + dbRecoveryMode;
             SqlConnection RecoveryModeConn = new SqlConnection(YAF.Classes.Config.ConnectionString);
@@ -8762,7 +9847,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// The name of the second user + Whether this request is approved or not.
         /// </returns>
-        public static string[] buddy_addrequest( object FromUserID, object ToUserID)
+        public static string[] buddy_addrequest(object FromUserID, object ToUserID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("buddy_addrequest"))
             {
@@ -8792,7 +9877,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// the name of the second user.
         /// </returns>
-        public static string buddy_approveRequest( object FromUserID, object ToUserID, object Mutual)
+        public static string buddy_approveRequest(object FromUserID, object ToUserID, object Mutual)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("buddy_approverequest"))
             {
@@ -8820,7 +9905,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// the name of the second user.
         /// </returns>
-        public static string buddy_denyRequest( object FromUserID, object ToUserID)
+        public static string buddy_denyRequest(object FromUserID, object ToUserID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("buddy_denyrequest"))
             {
@@ -8847,7 +9932,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// The name of the second user.
         /// </returns>
-        public static string buddy_remove( object FromUserID, object ToUserID)
+        public static string buddy_remove(object FromUserID, object ToUserID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("buddy_remove"))
             {
@@ -8873,7 +9958,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// a Datatable containing the buddy list.
         /// </returns>
-        public static DataTable buddy_list( object FromUserID)
+        public static DataTable buddy_list(object FromUserID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("buddy_list"))
             {
@@ -8900,7 +9985,7 @@ namespace YAF.Classes.Data
         /// <param name="CoverImageID">
         /// New Cover image id.
         /// </param>
-        public static int album_save( object AlbumID, object UserID, object Title, object CoverImageID)
+        public static int album_save(object AlbumID, object UserID, object Title, object CoverImageID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("album_save"))
             {
@@ -8928,7 +10013,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// a Datatable containing the albums.
         /// </returns>
-        public static DataTable album_list( object UserID, object AlbumID)
+        public static DataTable album_list(object UserID, object AlbumID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("album_list"))
             {
@@ -8945,7 +10030,7 @@ namespace YAF.Classes.Data
         /// <param name="AlbumID">
         /// the album id.
         /// </param>
-        public static void album_delete( object AlbumID)
+        public static void album_delete(object AlbumID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("album_delete"))
             {
@@ -8961,7 +10046,7 @@ namespace YAF.Classes.Data
         /// <param name="AlbumID">
         /// the album id.
         /// </param>
-        public static string album_gettitle( object AlbumID)
+        public static string album_gettitle(object AlbumID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("album_gettitle"))
             {
@@ -8984,7 +10069,7 @@ namespace YAF.Classes.Data
         /// the album id.
         /// </param>
         /// <returns></returns>
-        public static int[] album_getstats( object UserID, object AlbumID)
+        public static int[] album_getstats(object UserID, object AlbumID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("album_getstats"))
             {
@@ -9023,7 +10108,7 @@ namespace YAF.Classes.Data
         /// <param name="ContentType">
         /// the content type.
         /// </param>
-        public static void album_image_save( object ImageID, object AlbumID, object Caption, object FileName, object Bytes, object ContentType)
+        public static void album_image_save(object ImageID, object AlbumID, object Caption, object FileName, object Bytes, object ContentType)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("album_image_save"))
             {
@@ -9051,7 +10136,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// a Datatable containing the image(s).
         /// </returns>
-        public static DataTable album_image_list( object AlbumID, object ImageID)
+        public static DataTable album_image_list(object AlbumID, object ImageID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("album_image_list"))
             {
@@ -9068,7 +10153,7 @@ namespace YAF.Classes.Data
         /// <param name="ImageID">
         /// the image id.
         /// </param>
-        public static void album_image_delete( object ImageID)
+        public static void album_image_delete(object ImageID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("album_image_delete"))
             {
@@ -9084,7 +10169,7 @@ namespace YAF.Classes.Data
         /// <param name="ImageID">
         /// the image id.
         /// </param>
-        public static void album_image_download( object ImageID)
+        public static void album_image_download(object ImageID)
         {
             using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("album_image_download"))
             {
@@ -9093,9 +10178,25 @@ namespace YAF.Classes.Data
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
             }
         }
+
+        /// <summary>
+        /// Album images by users the specified user ID.
+        /// </summary>
+        /// <param name="userID">The user ID.</param>
+        /// <returns>All Albbum Images of the User</returns>
+        public static DataTable album_images_by_user([NotNull] object userID)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("album_images_by_user"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("I_UserID", MySqlDbType.Int32).Value = userID;
+                return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
         #endregion
 
-        public static void unencode_all_topics_subjects( Func<string, string> decodeTopicFunc)
+        public static void unencode_all_topics_subjects(Func<string, string> decodeTopicFunc)
         {
             var topics = LegacyDb.topic_simplelist(0, 99999999).SelectTypedList(r => new TypedTopicSimpleList(r)).ToList();
 
@@ -9127,7 +10228,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// Returns the Thank Count.
         /// </returns>
-        public static int user_ThankFromCount( [NotNull] object userId)
+        public static int user_ThankFromCount([NotNull] object userId)
         {
             using (var cmd = MsSqlDbAccess.GetCommand("user_thankfromcount"))
             {
@@ -9155,7 +10256,7 @@ namespace YAF.Classes.Data
         /// <returns>
         /// Returns if true or not
         /// </returns>
-        public static bool user_RepliedTopic( [NotNull] object messageId, [NotNull] object userId)
+        public static bool user_RepliedTopic([NotNull] object messageId, [NotNull] object userId)
         {
             using (var cmd = MsSqlDbAccess.GetCommand("user_repliedtopic"))
             {

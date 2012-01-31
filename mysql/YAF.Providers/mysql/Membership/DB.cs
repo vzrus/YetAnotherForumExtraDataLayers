@@ -77,13 +77,13 @@ namespace YAF.Providers.Membership
 			using ( MySqlCommand cmd = new MySqlCommand( MsSqlDbAccess.GetObjectName( "prov_changepassword" ) ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
+				cmd.Parameters.Add("i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
 				// Nonstandard args
-				cmd.Parameters.Add( "i_UserName", MySqlDbType.VarChar ).Value = userName;               
-				cmd.Parameters.Add( "i_Password", MySqlDbType.VarChar ).Value = newPassword;
-                cmd.Parameters.Add( "i_PasswordSalt", MySqlDbType.VarChar ).Value = newSalt;
-                cmd.Parameters.Add( "i_PasswordFormat", MySqlDbType.VarChar ).Value = passwordFormat.ToString();
-                cmd.Parameters.Add( "i_PasswordAnswer", MySqlDbType.VarChar ).Value = newPasswordAnswer;
+				cmd.Parameters.Add("i_UserName", MySqlDbType.VarChar ).Value = userName;               
+				cmd.Parameters.Add("i_Password", MySqlDbType.VarChar ).Value = newPassword;
+                cmd.Parameters.Add("i_PasswordSalt", MySqlDbType.VarChar ).Value = newSalt;
+                cmd.Parameters.Add("i_PasswordFormat", MySqlDbType.VarChar ).Value = passwordFormat.ToString();
+                cmd.Parameters.Add("i_PasswordAnswer", MySqlDbType.VarChar ).Value = newPasswordAnswer;
                 
 				_msSqlDbAccess.ExecuteNonQuery(cmd) ;
 			}
@@ -94,11 +94,11 @@ namespace YAF.Providers.Membership
 			using ( MySqlCommand cmd = new MySqlCommand( MsSqlDbAccess.GetObjectName( "prov_changepasswordquestionandanswer" ) ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
+				cmd.Parameters.Add("i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
 				// Nonstandard args
-				cmd.Parameters.Add( "i_UserName", MySqlDbType.VarChar ).Value = userName;
-                cmd.Parameters.Add( "i_PasswordQuestion", MySqlDbType.VarChar ).Value = passwordQuestion;
-                cmd.Parameters.Add( "i_PasswordAnswer", MySqlDbType.VarChar ).Value = passwordAnswer;
+				cmd.Parameters.Add("i_UserName", MySqlDbType.VarChar ).Value = userName;
+                cmd.Parameters.Add("i_PasswordQuestion", MySqlDbType.VarChar ).Value = passwordQuestion;
+                cmd.Parameters.Add("i_PasswordAnswer", MySqlDbType.VarChar ).Value = passwordAnswer;
 				_msSqlDbAccess.ExecuteNonQuery( cmd) ;
 			}
 		}
@@ -108,16 +108,16 @@ namespace YAF.Providers.Membership
 			using ( MySqlCommand cmd = new MySqlCommand( MsSqlDbAccess.GetObjectName( "prov_createuser" ) ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
+				cmd.Parameters.Add("i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
 				// Input Parameters
-				cmd.Parameters.Add( "i_UserName", MySqlDbType.VarChar ).Value = userName;
-                cmd.Parameters.Add( "i_Password", MySqlDbType.VarChar ).Value = password;
-                cmd.Parameters.Add( "i_PasswordSalt", MySqlDbType.VarChar ).Value = passwordSalt;
-                cmd.Parameters.Add( "i_PasswordFormat", MySqlDbType.VarChar ).Value = passwordFormat.ToString();
-                cmd.Parameters.Add( "i_Email", MySqlDbType.VarChar ).Value = email;
-				cmd.Parameters.Add( "i_PasswordQuestion", MySqlDbType.VarChar ).Value = passwordQuestion;
-                cmd.Parameters.Add( "i_PasswordAnswer", MySqlDbType.VarChar ).Value = passwordAnswer;
-                cmd.Parameters.Add( "i_IsApproved", MySqlDbType.Byte ).Value = isApproved;
+				cmd.Parameters.Add("i_UserName", MySqlDbType.VarChar ).Value = userName;
+                cmd.Parameters.Add("i_Password", MySqlDbType.VarChar ).Value = password;
+                cmd.Parameters.Add("i_PasswordSalt", MySqlDbType.VarChar ).Value = passwordSalt;
+                cmd.Parameters.Add("i_PasswordFormat", MySqlDbType.VarChar ).Value = passwordFormat.ToString();
+                cmd.Parameters.Add("i_Email", MySqlDbType.VarChar ).Value = email;
+				cmd.Parameters.Add("i_PasswordQuestion", MySqlDbType.VarChar ).Value = passwordQuestion;
+                cmd.Parameters.Add("i_PasswordAnswer", MySqlDbType.VarChar ).Value = passwordAnswer;
+                cmd.Parameters.Add("i_IsApproved", MySqlDbType.Byte ).Value = isApproved;
 				// Input Output Parameters
 				MySqlParameter paramUserKey = new MySqlParameter( "i_UserKey", MySqlDbType.VarChar);
 				paramUserKey.Direction = ParameterDirection.InputOutput;
@@ -137,10 +137,10 @@ namespace YAF.Providers.Membership
 			using ( MySqlCommand cmd = new MySqlCommand( MsSqlDbAccess.GetObjectName( "prov_deleteuser" ) ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
+				cmd.Parameters.Add("i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
 				// Nonstandard args
-				cmd.Parameters.Add( "i_UserName", MySqlDbType.VarChar ).Value = userName;
-                cmd.Parameters.Add( "i_DeleteAllRelated", MySqlDbType.Byte ).Value = deleteAllRelatedData;
+				cmd.Parameters.Add("i_UserName", MySqlDbType.VarChar ).Value = userName;
+                cmd.Parameters.Add("i_DeleteAllRelated", MySqlDbType.Byte ).Value = deleteAllRelatedData;
 				_msSqlDbAccess.ExecuteNonQuery(cmd) ;
 			}
 		}
@@ -150,11 +150,11 @@ namespace YAF.Providers.Membership
 			using ( MySqlCommand cmd = new MySqlCommand( MsSqlDbAccess.GetObjectName( "prov_findusersbyemail" ) ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_ApplicationName",  MySqlDbType.VarChar ).Value = appName;
+				cmd.Parameters.Add("i_ApplicationName",  MySqlDbType.VarChar ).Value = appName;
 				// Nonstandard args
-                cmd.Parameters.Add( "i_EmailAddress", MySqlDbType.VarChar ).Value = emailToMatch;
-				cmd.Parameters.Add( "i_PageIndex", MySqlDbType.Int32 ).Value =  pageIndex;
-                cmd.Parameters.Add( "i_PageSize", MySqlDbType.Int32 ).Value = pageSize;
+                cmd.Parameters.Add("i_EmailAddress", MySqlDbType.VarChar ).Value = emailToMatch;
+				cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32 ).Value =  pageIndex;
+                cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32 ).Value = pageSize;
                 MySqlParameter trecords = new MySqlParameter( "i_TotalRecords", MySqlDbType.Int32 );
                 trecords.Direction = ParameterDirection.Output;
                 trecords.Value = 0;
@@ -168,11 +168,11 @@ namespace YAF.Providers.Membership
 			using ( MySqlCommand cmd = new MySqlCommand( MsSqlDbAccess.GetObjectName( "prov_findusersbyname" ) ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_ApplicationName",  MySqlDbType.VarChar ).Value = appName;
+				cmd.Parameters.Add("i_ApplicationName",  MySqlDbType.VarChar ).Value = appName;
 				// Nonstandard args
-				cmd.Parameters.Add( "i_UserName", MySqlDbType.VarChar ).Value = usernameToMatch;
-				cmd.Parameters.Add( "i_PageIndex", MySqlDbType.Int32 ).Value = pageIndex;
-                cmd.Parameters.Add( "i_PageSize", MySqlDbType.Int32 ).Value = pageSize;
+				cmd.Parameters.Add("i_UserName", MySqlDbType.VarChar ).Value = usernameToMatch;
+				cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32 ).Value = pageIndex;
+                cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32 ).Value = pageSize;
 
                 MySqlParameter trecords = new MySqlParameter( "i_TotalRecords", MySqlDbType.Int32 );
                 trecords.Direction = ParameterDirection.Output;
@@ -187,10 +187,10 @@ namespace YAF.Providers.Membership
 			using ( MySqlCommand cmd = new MySqlCommand( MsSqlDbAccess.GetObjectName( "prov_getallusers" ) ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
+				cmd.Parameters.Add("i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
 				// Nonstandard args
-                cmd.Parameters.Add( "i_PageIndex", MySqlDbType.Int32 ).Value = pageIndex;
-                cmd.Parameters.Add( "i_PageSize", MySqlDbType.Int32 ).Value = pageSize;
+                cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32 ).Value = pageIndex;
+                cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32 ).Value = pageSize;
                 MySqlParameter trecords = new MySqlParameter( "i_TotalRecords", MySqlDbType.Int32 );
                 trecords.Direction = ParameterDirection.Output;
                 cmd.Parameters.Add( trecords );
@@ -203,10 +203,10 @@ namespace YAF.Providers.Membership
 			using ( MySqlCommand cmd = new MySqlCommand( MsSqlDbAccess.GetObjectName( "prov_getnumberofusersonline" ) ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_ApplicationName",  MySqlDbType.VarChar ).Value = appName;
+				cmd.Parameters.Add("i_ApplicationName",  MySqlDbType.VarChar ).Value = appName;
 				// Nonstandard args
-				cmd.Parameters.Add( "i_TimeWindow", MySqlDbType.Timestamp ).Value =  TimeWindow;
-				cmd.Parameters.Add( "i_CurrentTimeUtc", MySqlDbType.Timestamp ).Value = DateTime.UtcNow;
+				cmd.Parameters.Add("i_TimeWindow", MySqlDbType.Timestamp ).Value =  TimeWindow;
+				cmd.Parameters.Add("i_CurrentTimeUtc", MySqlDbType.Timestamp ).Value = DateTime.UtcNow;
 				MySqlParameter p = new MySqlParameter( "i_ReturnValue", MySqlDbType.Int32 );
 				p.Direction = ParameterDirection.ReturnValue;
 				cmd.Parameters.Add( p );
@@ -227,11 +227,11 @@ namespace YAF.Providers.Membership
                 }
 
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
+				cmd.Parameters.Add("i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
 				// Nonstandard args
-				cmd.Parameters.Add( "i_UserName", MySqlDbType.VarChar ).Value = userName;               
-                cmd.Parameters.Add( "i_UserKey", MySqlDbType.String ).Value = providerUserKey;
-				cmd.Parameters.Add( "i_UserIsOnline", MySqlDbType.Byte ).Value = userIsOnline;
+				cmd.Parameters.Add("i_UserName", MySqlDbType.VarChar ).Value = userName;               
+                cmd.Parameters.Add("i_UserKey", MySqlDbType.String ).Value = providerUserKey;
+				cmd.Parameters.Add("i_UserIsOnline", MySqlDbType.Byte ).Value = userIsOnline;
 				using ( DataTable dt = _msSqlDbAccess.GetData( cmd)  )
 				{
 					if ( dt.Rows.Count > 0 )
@@ -249,11 +249,11 @@ namespace YAF.Providers.Membership
 			using ( MySqlCommand cmd = new MySqlCommand( MsSqlDbAccess.GetObjectName( "prov_getuser" ) ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
+				cmd.Parameters.Add("i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
 				// Nonstandard args
-				cmd.Parameters.Add( "i_UserName", MySqlDbType.VarChar ).Value = userName;
-                cmd.Parameters.Add( "i_UserKey", MySqlDbType.String ).Value = DBNull.Value;
-                cmd.Parameters.Add( "i_UserIsOnline", MySqlDbType.Byte ).Value = updateUser;
+				cmd.Parameters.Add("i_UserName", MySqlDbType.VarChar ).Value = userName;
+                cmd.Parameters.Add("i_UserKey", MySqlDbType.String ).Value = DBNull.Value;
+                cmd.Parameters.Add("i_UserIsOnline", MySqlDbType.Byte ).Value = updateUser;
 				return _msSqlDbAccess.GetData( cmd) ;
 			}
 
@@ -264,9 +264,9 @@ namespace YAF.Providers.Membership
 			using ( MySqlCommand cmd = new MySqlCommand( MsSqlDbAccess.GetObjectName( "prov_getusernamebyemail" ) ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_ApplicationName",  MySqlDbType.VarChar ).Value = appName;
+				cmd.Parameters.Add("i_ApplicationName",  MySqlDbType.VarChar ).Value = appName;
 				// Nonstandard args
-				cmd.Parameters.Add( "i_Email", MySqlDbType.VarChar ).Value = email ;
+				cmd.Parameters.Add("i_Email", MySqlDbType.VarChar ).Value = email ;
 				return _msSqlDbAccess.GetData( cmd) ;
 			}
 		}
@@ -276,15 +276,15 @@ namespace YAF.Providers.Membership
 			using ( MySqlCommand cmd = new MySqlCommand( MsSqlDbAccess.GetObjectName( "prov_resetpassword" ) ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
+				cmd.Parameters.Add("i_ApplicationName",  MySqlDbType.VarChar ).Value= appName;
 				// Nonstandard args
-				cmd.Parameters.Add( "i_UserName", MySqlDbType.VarChar ).Value = userName;
-				cmd.Parameters.Add( "i_Password", MySqlDbType.VarChar ).Value = password ;
-                cmd.Parameters.Add( "i_PasswordSalt", MySqlDbType.VarChar ).Value = passwordSalt;
-                cmd.Parameters.Add( "i_PasswordFormat", MySqlDbType.VarChar ).Value = passwordFormat.ToString();
-                cmd.Parameters.Add( "i_MaxInvalidAttempts", MySqlDbType.Int32 ).Value = maxInvalidPasswordAttempts;
-                cmd.Parameters.Add( "i_PasswordAttemptWindow", MySqlDbType.Int32 ).Value = passwordAttemptWindow;
-                cmd.Parameters.Add( "i_CurrentTimeUtc", MySqlDbType.Timestamp ).Value = DateTime.UtcNow;
+				cmd.Parameters.Add("i_UserName", MySqlDbType.VarChar ).Value = userName;
+				cmd.Parameters.Add("i_Password", MySqlDbType.VarChar ).Value = password ;
+                cmd.Parameters.Add("i_PasswordSalt", MySqlDbType.VarChar ).Value = passwordSalt;
+                cmd.Parameters.Add("i_PasswordFormat", MySqlDbType.VarChar ).Value = passwordFormat.ToString();
+                cmd.Parameters.Add("i_MaxInvalidAttempts", MySqlDbType.Int32 ).Value = maxInvalidPasswordAttempts;
+                cmd.Parameters.Add("i_PasswordAttemptWindow", MySqlDbType.Int32 ).Value = passwordAttemptWindow;
+                cmd.Parameters.Add("i_CurrentTimeUtc", MySqlDbType.Timestamp ).Value = DateTime.UtcNow;
 
 				_msSqlDbAccess.ExecuteNonQuery( cmd) ;
 			}
@@ -296,9 +296,9 @@ namespace YAF.Providers.Membership
 			using ( MySqlCommand cmd = new MySqlCommand( MsSqlDbAccess.GetObjectName( "prov_unlockuser" ) ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_ApplicationName",  MySqlDbType.VarChar ).Value= appName ;
+				cmd.Parameters.Add("i_ApplicationName",  MySqlDbType.VarChar ).Value= appName ;
 				// Nonstandard args
-				cmd.Parameters.Add( "i_UserName", MySqlDbType.VarChar ).Value = userName ;
+				cmd.Parameters.Add("i_UserName", MySqlDbType.VarChar ).Value = userName ;
 				_msSqlDbAccess.ExecuteNonQuery( cmd) ;
 			}
 		}
@@ -314,16 +314,16 @@ namespace YAF.Providers.Membership
                 }
 
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add( "i_ApplicationName", MySqlDbType.VarChar ).Value = appName;
+				cmd.Parameters.Add("i_ApplicationName", MySqlDbType.VarChar ).Value = appName;
 				// Nonstandard args
                 cmd.Parameters.Add("i_UserKey", MySqlDbType.String).Value = providerUserKey;
-                cmd.Parameters.Add( "i_UserName", MySqlDbType.VarChar ).Value = user.UserName;
-                cmd.Parameters.Add( "i_Email", MySqlDbType.VarChar ).Value = user.Email;
-                cmd.Parameters.Add( "i_Comment", MySqlDbType.VarChar ).Value = user.Comment;
-                cmd.Parameters.Add( "i_IsApproved", MySqlDbType.Byte ).Value = user.IsApproved;
-                cmd.Parameters.Add( "i_LastLogin", MySqlDbType.Timestamp ).Value = user.LastLoginDate;
-				cmd.Parameters.Add( "i_LastActivity", MySqlDbType.Timestamp ).Value = user.LastActivityDate.ToUniversalTime();
-                cmd.Parameters.Add( "i_UniqueEmail", MySqlDbType.Byte ).Value = requiresUniqueEmail;
+                cmd.Parameters.Add("i_UserName", MySqlDbType.VarChar ).Value = user.UserName;
+                cmd.Parameters.Add("i_Email", MySqlDbType.VarChar ).Value = user.Email;
+                cmd.Parameters.Add("i_Comment", MySqlDbType.VarChar ).Value = user.Comment;
+                cmd.Parameters.Add("i_IsApproved", MySqlDbType.Byte ).Value = user.IsApproved;
+                cmd.Parameters.Add("i_LastLogin", MySqlDbType.Timestamp ).Value = user.LastLoginDate;
+				cmd.Parameters.Add("i_LastActivity", MySqlDbType.Timestamp ).Value = user.LastActivityDate.ToUniversalTime();
+                cmd.Parameters.Add("i_UniqueEmail", MySqlDbType.Byte ).Value = requiresUniqueEmail;
 				
                 return (int) _msSqlDbAccess.ExecuteScalar(cmd); // Execute Scalar
 			
@@ -340,8 +340,8 @@ namespace YAF.Providers.Membership
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 // Nonstandard args
-                cmd.Parameters.Add( "i_PreviousVersion", MySqlDbType.Int32 ).Value = previousVersion;
-                cmd.Parameters.Add( "i_NewVersion", MySqlDbType.Int32 ).Value = newVersion;
+                cmd.Parameters.Add("i_PreviousVersion", MySqlDbType.Int32 ).Value = previousVersion;
+                cmd.Parameters.Add("i_NewVersion", MySqlDbType.Int32 ).Value = newVersion;
                 _msSqlDbAccess.ExecuteNonQuery( cmd) ;
             }
 

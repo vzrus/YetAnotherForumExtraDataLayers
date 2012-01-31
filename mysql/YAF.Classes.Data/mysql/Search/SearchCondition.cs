@@ -1,7 +1,7 @@
 ﻿/* Yet Another Forum.NET
- * Copyright (C) 2006-2011 Jaben Cargman
+ * Copyright (C) 2006-2012 Jaben Cargman
  * http://www.yetanotherforum.net/
- * 
+ * Adopted for MySQL by vzrus https://github.com/vzrus 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2

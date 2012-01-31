@@ -6,12 +6,12 @@ using System.Security;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("YAF Providers")]
-[assembly: AssemblyDescription("My SQL data layer for  YetAnotherForum")]
+[assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("https://github.com/vzrus")]
+[assembly: AssemblyCompany("vzrus https://github.com/vzrus")]
 [assembly: AssemblyProduct("YAF Providers")]
-[assembly: AssemblyCopyright("Copyright © 2006-2011 Vladimir Zakharov")]
-[assembly: AssemblyTrademark("vzrus")]
+[assembly: AssemblyCopyright("Copyright © 2006-2012 Vladimir Zakharov")]
+[assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 

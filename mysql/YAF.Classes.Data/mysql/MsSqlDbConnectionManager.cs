@@ -1,9 +1,10 @@
 ﻿/* Yet Another Forum.NET MySQL data layer by vzrus
- * Copyright (C) 2006-2011 Vladimir Zakharov
- * https://github.com/vzrus
+ * Copyright (C) 2009-2010 vzrus
  * http://sourceforge.net/projects/yaf-datalayers/
  * General class structure is based on MS SQL Server code,
  * created by YAF developers
+ * Copyright (C) 2003-2005 Bjшrnar Henden
+ * Copyright (C) 2006-2009 Jaben Cargman
  * http://www.yetanotherforum.net/
  * 
  * This program is free software; you can redistribute it and/or
@@ -19,9 +20,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ *
+ * 
  */
 
-
+using MySql.Data.MySqlClient;
 
 namespace YAF.Classes.Data
 {
@@ -32,7 +35,6 @@ namespace YAF.Classes.Data
   using YAF.Types;
   using YAF.Types.Handlers;
   using YAF.Types.Interfaces;
-  using MySql.Data.MySqlClient;
 
   #endregion
 
