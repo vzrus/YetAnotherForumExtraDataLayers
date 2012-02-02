@@ -847,7 +847,7 @@ namespace YAF.Classes.Data
 						if (int.TryParse(toSearchFromWho, out userId))
 						{
 							searchSql +=
-							  string.Format(" (c.userid IN ({0}))", userId);
+							  string.Format(" OR (c.userid IN ({0}))", userId);
 						}
 						else
 						{
@@ -855,7 +855,7 @@ namespace YAF.Classes.Data
 							if (searchDisplayName)
 							{
 								searchSql += string.Format(
-														  " ((c.username IS NULL AND b.displayname = '{0}') OR (c.username = '{0}'))", toSearchFromWho);
+														  " OR ((c.username IS NULL AND b.displayname = '{0}') OR (c.username = '{0}'))", toSearchFromWho);
 							}
 							else
 							{
