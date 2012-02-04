@@ -10,33 +10,33 @@ CREATE TYPE databaseSchema.objectQualifier_user_table_type AS
 (
   "UserID" integer,
   "BoardID" integer,
-  "ProviderUserKey" character varying(36),
-  "Name" character varying(128),
-  "Password" character varying(32),
-  "Email" character varying(128),
-  "Joined" timestamp with time zone,
-  "LastVisit" timestamp with time zone,
-  "IP" character varying(39),
+  "ProviderUserKey" varchar(36),
+  "Name" varchar(128),
+  "Password" varchar(32),
+  "Email" varchar(128),
+  "Joined" timestampTZ,
+  "LastVisit" timestampTZ,
+  "IP" varchar(39),
   "NumPosts" integer,
   "TimeZone" integer,
-  "Avatar" character varying(255),
+  "Avatar" varchar(255),
   "Signature" text,
   "AvatarImage" bytea,
-  "AvatarImageType" character varying(128),
+  "AvatarImageType" varchar(128),
   "RankID" integer,  
-  "Suspended" timestamp with time zone,
-  "LanguageFile" character varying(128),
-  "ThemeFile" character varying(128),
+  "Suspended" timestampTZ,
+  "LanguageFile" varchar(128),
+  "ThemeFile" varchar(128),
   "OverrideDefaultThemes" boolean,
   "PMNotification" boolean,
   "Flags" integer,
   "Points" integer,
   "AutoWatchTopics" boolean,
-  "DisplayName" character varying(128),
-  "CultureUser" character varying(10),  
+  "DisplayName" varchar(128),
+  "CultureUser" varchar(10),  
   "DailyDigest" boolean,
   "NotificationType" integer,
-  "TextEditor" character varying(50),
+  "TextEditor" varchar(50),
   "UseSingleSignOn" boolean 
 );
 --GO
@@ -49,7 +49,7 @@ CREATE TYPE databaseSchema.objectQualifier_accessmask_list_return_type AS
 (
 "AccessMaskID" integer,
 "BoardID" integer,
-"Name" character varying,
+"Name" varchar,
 "Flags" integer,
 "SortOrder" smallint
 );
@@ -60,25 +60,25 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_active_list_return_type AS
 (
 "UserID" integer,
-"UserName" character varying(128),
-"IP" character varying(39),
-"SessionID" character varying(32),
+"UserName" varchar(128),
+"IP" varchar(39),
+"SessionID" varchar(32),
 "ForumID" integer,
 "TopicID" integer,
-"ForumName" character varying(128),
-"TopicName" character varying(128), 
+"ForumName" varchar(128),
+"TopicName" varchar(128), 
 "IsGuest" boolean,
 "IsCrawler" boolean,
 "IsHidden" boolean,
-"Style" character varying(255), 
+"Style" varchar(255), 
 "UserCount" integer,
-"Login" timestamp with time zone,
-"LastActive" timestamp with time zone,
-"Location" character varying(255),
+"Login" timestampTZ,
+"LastActive" timestampTZ,
+"Location" varchar(255),
 "Active"  integer,
-"Browser" character varying(128),
-"Platform" character varying(128),
-"ForumPage"  character varying(255),
+"Browser" varchar(128),
+"Platform" varchar(128),
+"ForumPage"  varchar(255),
 "ActiveSpan" integer
 );
 --GO
@@ -88,26 +88,26 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_active_list_user_return_type AS
 (
 "UserID" integer,
-"UserName" character varying(128),
-"IP" character varying(39),
-"SessionID" character varying(32),
+"UserName" varchar(128),
+"IP" varchar(39),
+"SessionID" varchar(32),
 "ForumID" integer,
 "HasForumAccess" integer,
 "TopicID" integer,
-"ForumName" character varying(128),
-"TopicName" character varying(128), 
+"ForumName" varchar(128),
+"TopicName" varchar(128), 
 "IsGuest" boolean,
 "IsCrawler" boolean,
 "IsHidden" boolean,
-"Style" character varying(255), 
+"Style" varchar(255), 
 "UserCount" integer,
-"Login" timestamp with time zone,
-"LastActive" timestamp with time zone,
-"Location" character varying(255),
+"Login" timestampTZ,
+"LastActive" timestampTZ,
+"Location" varchar(255),
 "Active"  integer,
-"Browser" character varying(128),
-"Platform" character varying(128),
-"ForumPage"  character varying(255),
+"Browser" varchar(128),
+"Platform" varchar(128),
+"ForumPage"  varchar(255),
 "ActiveSpan" integer
 );
 --GO
@@ -117,12 +117,12 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_active_listforum_return_type AS
 (
 "UserID" integer,
-"UserName" character varying(128),
+"UserName" varchar(128),
 "IsCrawler" boolean,
 "IsHidden" boolean,
-"Style" character varying(255), 
+"Style" varchar(255), 
 "UserCount" integer,
-"Browser" character varying(128)
+"Browser" varchar(128)
 );
 
 --GO
@@ -132,12 +132,12 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_active_listtopic_return_type AS
 (
 "UserID" integer,
-"UserName" character varying(128),
+"UserName" varchar(128),
 "IsCrawler" boolean,
 "IsHidden" boolean,
-"Style" character varying(255), 
+"Style" varchar(255), 
 "UserCount" integer,
-"Browser" character varying(128) 
+"Browser" varchar(128) 
 );
 --GO
 
@@ -159,18 +159,18 @@ CREATE TYPE databaseSchema.objectQualifier_attachment_list_return_type AS
 (
 "AttachmentID" integer,
 "MessageID" integer,
-"FileName" character varying(255),
+"FileName" varchar(255),
 "Bytes" integer,
 "FileID" integer,
-"ContentType" character varying(128),
+"ContentType" varchar(128),
 "Downloads" integer,
 "FileData" bytea,
 "BoardID" integer,
-"Posted" timestamp with time zone,
+"Posted" timestampTZ,
 "ForumID" integer,
-"ForumName" character varying(128),
+"ForumName" varchar(128),
 "TopicID" integer, 
-"TopicName"  character varying(128)
+"TopicName"  varchar(128)
 );
 --GO
 
@@ -180,9 +180,9 @@ CREATE TYPE databaseSchema.objectQualifier_bannedip_list_return_type AS
 (
 "ID" integer,
 "BoardID" integer,
-"Mask" character varying(57),
-"Since" timestamp with time zone,
-"Reason" character varying(128),
+"Mask" varchar(57),
+"Since" timestampTZ,
+"Reason" varchar(128),
 "UserID" integer
 );
 
@@ -194,17 +194,17 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
  (
  "BBCodeID" integer,
  "BoardID" integer, 
- "Name" character varying(255),
- "Description" character varying(4000),
- "OnClickJS" character varying(1000),
+ "Name" varchar(255),
+ "Description" varchar(4000),
+ "OnClickJS" varchar(1000),
  "DisplayJS" text,
  "EditJS" text,
  "DisplayCSS" text,
  "SearchRegex" text,
  "ReplaceRegex" text,
- "Variables" character varying(1000),
+ "Variables" varchar(1000),
  "UseModule" boolean,
- "ModuleClass" character varying(255),
+ "ModuleClass" varchar(255),
  "ExecOrder" integer
  );
  
@@ -215,11 +215,11 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_board_list_return_type AS
 (
     "BoardID" integer,
-    "Name" character varying(128),
+    "Name" varchar(128),
     "AllowThreaded" boolean,
-    "MembershipAppName" character varying(255),
-    "RolesAppName" character varying(255),
-    "SQLVersion" character varying(512)
+    "MembershipAppName" varchar(255),
+    "RolesAppName" varchar(255),
+    "SQLVersion" varchar(512)
 );
 
 --GO
@@ -232,10 +232,10 @@ CREATE TYPE databaseSchema.objectQualifier_board_poststats_return_type AS
 "Topics" integer,
 "Forums" integer,
 "LastPostInfoID" integer,
-"LastPost" timestamp with time zone,
+"LastPost" timestampTZ,
 "LastUserID" integer,
-"LastUser" character varying(128),
-"LastUserStyle"  character varying(255)
+"LastUser" varchar(128),
+"LastUserStyle"  varchar(255)
 );
 
 --GO
@@ -246,10 +246,10 @@ CREATE TYPE databaseSchema.objectQualifier_board_userstats_return_type AS
 (
 "Members" integer,
 "MaxUsers" integer,
-"MaxUsersWhen" timestamp with time zone,
+"MaxUsersWhen" timestampTZ,
 "LastMemberInfoID" integer,
 "LastMemberID" integer,
-"LastMember" character varying(128)
+"LastMember" varchar(128)
 );
 
 --GO
@@ -262,7 +262,7 @@ CREATE TYPE databaseSchema.objectQualifier_board_stats_return_type AS
 "NumPosts" integer,
 "NumTopics" integer,
 "NumUsers" integer,
-"BoardStart" timestamp with time zone
+"BoardStart" timestampTZ 
 );
 
 --GO
@@ -273,8 +273,8 @@ CREATE TYPE databaseSchema.objectQualifier_category_list_return_type AS
 (
 "CategoryID" integer,
 "BoardID" integer,
-"Name" character varying(128),
-"CategoryImage" character varying(255),
+"Name" varchar(128),
+"CategoryImage" varchar(255),
 "SortOrder" smallint
 );
 
@@ -285,8 +285,8 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_category_listread_return_type AS
 (
 "CategoryID" integer,
-"Name" character varying(128),
-"CategoryImage" character varying(255),
+"Name" varchar(128),
+"CategoryImage" varchar(255),
 "ForumID" integer,
 "Flags"  integer
 );
@@ -297,7 +297,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_category_simplelist_return_type AS
 (
 "CategoryID" integer,
-"Name" character varying(128)
+"Name" varchar(128)
 );
 --GO
 
@@ -314,17 +314,17 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_checkemail_list_return_type AS (
     "CheckEmailID" integer,
     "UserID" integer,
-    "Email" character varying(128),
-    "Created" timestamp with time zone,
-    "Hash" character varying(32)
+    "Email" varchar(128),
+    "Created" timestampTZ,
+    "Hash" varchar(32)
 );
 --GO
 
 SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_checkemail_update_return_type');
 --GO
 CREATE TYPE databaseSchema.objectQualifier_checkemail_update_return_type AS (
-    "ProviderUserKey" character varying(64),    
-    "Email" character varying(128)   
+    "ProviderUserKey" varchar(64),    
+    "Email" varchar(128)   
 );
 --GO
 
@@ -334,7 +334,7 @@ CREATE TYPE databaseSchema.objectQualifier_extension_return_type AS
 (
 "ExtensionID" integer,
 "BoardID" integer,
-"Extension" character varying(10)
+"Extension" varchar(10)
 );
 --GO
 
@@ -343,12 +343,12 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE  databaseSchema.objectQualifier_eventlog_list_return_type AS
 (
 "EventLogID" integer,
-"EventTime" timestamp with time zone,
+"EventTime" timestampTZ,
 "UserID" integer,
-"Source" character varying(128),
+"Source" varchar(128),
 "Description" text,
 "Type" integer,
-"Name" character varying(255)
+"Name" varchar(255)
 );
 --GO
 
@@ -359,21 +359,21 @@ CREATE TYPE databaseSchema.objectQualifier_forum_list_return_type AS
 "ForumID" integer,
 "CategoryID" integer,
 "ParentID" integer,
-"Name" character varying(128),
-"Description" character varying(255),
+"Name" varchar(128),
+"Description" varchar(255),
 "SortOrder" smallint,
-"LastPosted" timestamp with time zone,
+"LastPosted" timestampTZ,
 "LastTopicID" integer,
 "LastMessageID" integer,
 "LastUserID" integer,
-"LastUserName" character varying(128),
+"LastUserName" varchar(128),
 "NumTopics" integer,
 "NumPosts" integer,
-"RemoteURL" character varying(100),
+"RemoteURL" varchar(100),
 "Flags" integer,
-"ThemeURL" character varying(100),
-"ImageURL" character varying(128),
-"Styles" character varying(255)
+"ThemeURL" varchar(100),
+"ImageURL" varchar(128),
+"Styles" varchar(255)
 );
 
 --GO
@@ -383,9 +383,9 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_forum_listall_return_type AS
 (
 "CategoryID" integer,
-"Category" character varying(100),
+"Category" varchar(100),
 "ForumID" integer,
-"Forum" character varying(100),
+"Forum" varchar(100),
 "Indent" integer,
 "ParentID" integer,
 "Flags" integer,
@@ -398,9 +398,9 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_forum_listall_fromcat_return_type AS
 (
 "CategoryID" integer,
-"Category" character varying(255),
+"Category" varchar(255),
 "ForumID" integer,
-"Forum" character varying(100),
+"Forum" varchar(100),
 "ParentID" integer,
 "PollGroupID" integer
 );
@@ -411,9 +411,9 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_forum_listallmymoderated_return_type AS
 (
 "CategoryID" integer,
-"Category" character varying(255),
+"Category" varchar(255),
 "ForumID" integer,
-"Forum" character varying(100),
+"Forum" varchar(100),
 "Indent" integer
 );
 --GO
@@ -423,7 +423,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_forum_listpath_return_type AS
 (
 "ForumID" integer,
-"Name" character varying(255)
+"Name" varchar(255)
 );
 
 SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_forumid_return_type');
@@ -438,13 +438,13 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_forum_listread_helper_return_type AS
 (
-"LastPosted" timestamp with time zone,
+"LastPosted" timestampTZ,
 "LastMessageID" integer,
 "LastMessageFlags" integer,
 "LastUserID" integer,
 "LastTopicID" integer,
 "TopicMovedID" integer,
-"LastTopicName" character varying(255)
+"LastTopicName" varchar(255)
 );
 --GO
  
@@ -453,34 +453,34 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_forum_listread_return_type AS
 (
 "CategoryID" integer,
-"Category" character varying(128),
+"Category" varchar(128),
 "ForumID" integer,
 "ParentID" integer,
-"Forum" character varying(128),
-"Description" character varying(255),
-"ImageUrl"  character varying(128),
+"Forum" varchar(128),
+"Description" varchar(255),
+"ImageUrl"  varchar(128),
 "PollGroupID" integer,
 /*"LastTopicID" integer,*/
 "Topics" integer,
 "Posts" integer,
 /* "Subforums" integer, */
 "LastTopicID" integer,
-"LastTopicStatus" character varying(255),
-"LastTopicStyles" character varying(255),
+"LastTopicStatus" varchar(255),
+"LastTopicStyles" varchar(255),
 "TopicMovedID" integer,
-"LastPosted" timestamp with time zone,
+"LastPosted" timestampTZ,
 "LastMessageID" integer,
 "LastMessageFlags" integer,
 "LastUserID" integer,
-"LastTopicName"  character varying(128),
-"LastUser"  character varying(128),
+"LastTopicName"  varchar(128),
+"LastUser"  varchar(128),
 "Flags" integer,
-"Style"  character varying(255),
+"Style"  varchar(255),
 "Viewing" integer,
-"RemoteURL" character varying(255),
+"RemoteURL" varchar(255),
 "ReadAccess" integer,
-"LastForumAccess"  timestamp with time zone,
-"LastTopicAccess"  timestamp with time zone
+"LastForumAccess"  timestampTZ,
+"LastTopicAccess"  timestampTZ 
 );
 --GO
 
@@ -491,23 +491,23 @@ CREATE TYPE databaseSchema.objectQualifier_forum_listtopics_return_type AS
     "TopicID" integer,
     "ForumID" integer,
     "UserID" integer,
-    "UserName" character varying(128),
-    "Posted" timestamp with time zone,
-    "Topic" character varying(128),
+    "UserName" varchar(128),
+    "Posted" timestampTZ,
+    "Topic" varchar(128),
     "Views" integer,
     "Priority" smallint,
     "PollID" integer,
     "TopicMovedID" integer,
-    "LastPosted" timestamp with time zone,
+    "LastPosted" timestampTZ,
     "LastMessageID" integer,    
     "LastUserID" integer,
-    "LastUserName" character varying(128),
+    "LastUserName" varchar(128),
     "NumPosts" integer,
     "Flags" integer,
 	"AnswerMessageID" integer,
 	"LastMessageFlags" integer,
-	"Description" character varying(255),
-	"Status" character varying(255),
+	"Description" varchar(255),
+	"Status" varchar(255),
     "IsDeleted" boolean,
 	"IsQuestion" boolean
 );
@@ -521,21 +521,21 @@ CREATE TYPE databaseSchema.objectQualifier_forum_moderatelist_return_type AS
 "ForumID" integer,
 "CategoryID" integer,
 "ParentID" integer,
-"Name" character varying(128),
-"Description" character varying(255),
+"Name" varchar(128),
+"Description" varchar(255),
 "SortOrder" smallint,
-"LastPosted" timestamp with time zone,
+"LastPosted" timestampTZ,
 "LastTopicID" integer,
 "LastMessageID" integer,
 "LastUserID" integer,
-"LastUserName" character varying(128),
+"LastUserName" varchar(128),
 "NumTopics" integer,
 "NumPosts" integer,
-"RemoteURL" character varying(128),
+"RemoteURL" varchar(128),
 "Flags" integer,
-"ThemeURL" character varying(128),
-"ImageURL" character varying(128),
-"Styles" character varying(128),
+"ThemeURL" varchar(128),
+"ImageURL" varchar(128),
+"Styles" varchar(128),
 "PollGroupID" integer,
 "MessageCount" integer,
 "ReportedCount" integer,
@@ -549,8 +549,8 @@ CREATE TYPE databaseSchema.objectQualifier_forum_moderators_return_type AS
 (
 "ForumID" integer,
 "ModeratorID" integer,
-"ModeratorName" character varying(128),
-"Style" character varying(255),
+"ModeratorName" varchar(128),
+"Style" varchar(255),
 "IsGroup" boolean
 /* ,
 "ModeratorAccess" integer,
@@ -564,7 +564,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_forum_simplelist_return_type AS
 (
 "ForumID" integer,
-"Name" character varying(128)
+"Name" varchar(128)
 );
 --GO
 
@@ -575,11 +575,11 @@ CREATE TYPE databaseSchema.objectQualifier_forumaccess_group_return_type AS
 "GroupID" integer,
 "ForumID" integer,
 "AccessMaskID" integer,
-"ForumName"  character varying(128),
-"CategoryName" character varying(128),
+"ForumName"  varchar(128),
+"CategoryName" varchar(128),
 "CategoryID" integer,
 "ParentID" integer,
-"BoardName"  character varying(128)
+"BoardName"  varchar(128)
 );
 --GO
 
@@ -590,7 +590,7 @@ CREATE TYPE databaseSchema.objectQualifier_forumaccess_list_return_type AS
 "GroupID" integer,
 "ForumID" integer,
 "AccessMaskID" integer,
-"GroupName"  character varying(128)
+"GroupName"  varchar(128)
 );
 --GO
 
@@ -600,15 +600,15 @@ CREATE TYPE databaseSchema.objectQualifier_group_list_return_type AS
 (
 "GroupID" integer,
 "BoardID" integer,
-"Name" character varying(128),
+"Name" varchar(128),
 "Flags" integer,
 "PMLimit" integer,
-"Style" character varying(256),
+"Style" varchar(256),
 "SortOrder" integer,
-"Description" character varying(128),
+"Description" varchar(128),
 "UsrSigChars" integer,
-"UsrSigBBCodes" character varying(255),
-"UsrSigHTMLTags"  character varying(255),
+"UsrSigBBCodes" varchar(255),
+"UsrSigHTMLTags"  varchar(255),
 "UsrAlbums" integer,
 "UsrAlbumImages" integer
 
@@ -621,18 +621,18 @@ CREATE TYPE databaseSchema.objectQualifier_group_medal_list_return_type AS
 (
 "MedalID" integer,
 "BoardID" integer,
-"Name" character varying(128),
-"MedalURL" character varying(255),
-"RibbonURL" character varying(255),
-"SmallMedalURL" character varying(255),
-"SmallRibbonURL" character varying(255),
+"Name" varchar(128),
+"MedalURL" varchar(255),
+"RibbonURL" varchar(255),
+"SmallMedalURL" varchar(255),
+"SmallRibbonURL" varchar(255),
 "SmallMedalWidth" integer,
 "SmallMedalHeight" integer,
 "SmallRibbonWidth" integer,
 "SmallRibbonHeight" integer,
 "SortOrder" smallint,
 "Flags" integer,
-"GroupName" character varying(128),
+"GroupName" varchar(128),
 "GroupID" integer,
 "Message" text,
 "MessageEx" text,
@@ -647,7 +647,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_group_member_return_type AS
 (
 "GroupID" integer,
-"Name" character varying(128),
+"Name" varchar(128),
 "Member" integer
 );
 --GO
@@ -664,16 +664,16 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_mail_list_return_type AS (
 "MailID" integer,
-"FromUser" character varying(128),
-"FromUserName" character varying(128),
-"ToUser" character varying(128),
-"ToUserName" character varying(128),
-"Created" timestamp with time zone,
-"Subject" character varying(128),
+"FromUser" varchar(128),
+"FromUserName" varchar(128),
+"ToUser" varchar(128),
+"ToUserName" varchar(128),
+"Created" timestampTZ,
+"Subject" varchar(128),
 "Body" text,
 "BodyHtml" text,
 "SendTries" integer,
-"SendAttempt" timestamp with time zone,
+"SendAttempt" timestampTZ,
 "ProcessID" integer
 );
 --GO
@@ -684,14 +684,14 @@ CREATE TYPE databaseSchema.objectQualifier_medal_list_return_type AS
 (
 "MedalID" integer,
 "BoardID" integer,
-"Name" character varying(128),
+"Name" varchar(128),
 "Description" text,
-"Message" character varying(128),
-"Category" character varying(128),
-"MedalURL" character varying(250),
-"RibbonURL" character varying(250),
-"SmallMedalURL" character varying(250),
-"SmallRibbonURL" character varying(250),
+"Message" varchar(128),
+"Category" varchar(128),
+"MedalURL" varchar(250),
+"RibbonURL" varchar(250),
+"SmallMedalURL" varchar(250),
+"SmallRibbonURL" varchar(250),
 "SmallMedalWidth" smallint,
 "SmallMedalHeight" smallint,
 "SmallRibbonWidth" smallint,
@@ -706,7 +706,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_medal_listusers_return_type AS 
 (
 "UserID" integer,
-"Name" character varying(128)
+"Name" varchar(128)
 );
 --GO
 
@@ -734,30 +734,30 @@ CREATE TYPE databaseSchema.objectQualifier_message_list_return_type AS
 (
 "MessageID" integer,
 "UserID" integer,
-"UserName" character varying(255),
+"UserName" varchar(255),
 "Message" text,
 "TopicID" integer,
 "ForumID" integer,
-"Topic"  character varying(255),
-"Status"  character varying(255),
-"Styles"  character varying(255),
+"Topic"  varchar(255),
+"Status"  varchar(255),
+"Styles"  varchar(255),
 "Priority"  smallint,
-"Description"  character varying(255),
+"Description"  varchar(255),
 "Flags" integer,
 "TopicOwnerID"  integer,
-"Edited" timestamp with time zone,
+"Edited" timestampTZ,
 "TopicFlags"  integer,
 "ForumFlags"  integer,
-"EditReason" character varying(100),
+"EditReason" varchar(100),
 "Position"  integer,
 "IsModeratorChanged" boolean,
-"DeleteReason" character varying(100),
-"BlogPostID"   character varying(100),
+"DeleteReason" varchar(100),
+"BlogPostID"   varchar(100),
 "PollID"   integer,
-"IP" character varying(39),
+"IP" varchar(39),
 "ReplyTo" integer,
-"ExternalMessageId" character varying(255),
-"ReferenceMessageId" character varying(255)
+"ExternalMessageId" varchar(255),
+"ReferenceMessageId" varchar(255)
 );
 --GO
 
@@ -769,15 +769,15 @@ CREATE TYPE databaseSchema.objectQualifier_message_listreported_return_type AS
 "Message" text,
 "Resolved" boolean,
 "ResolvedBy" integer,
-"ResolvedDate" timestamp with time zone,
+"ResolvedDate" timestampTZ,
 "OriginalMessage" text,
 "Flags" integer,
 "IsModeratorChanged" boolean,
-"UserName" character varying(128),
+"UserName" varchar(128),
 "UserID" integer,
-"Posted" timestamp with time zone,
+"Posted" timestampTZ,
 "TopicID" integer,
-"Topic" character varying(128), 
+"Topic" varchar(128), 
 "NumberOfReports" integer
 );
 --GO
@@ -788,12 +788,12 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_message_reply_list_return_type AS 
 (
 "MessageID" integer,
-"Posted" timestamp with time zone,
-"Subject" character varying(128),
+"Posted" timestampTZ,
+"Subject" varchar(128),
 "Message" text,
 "UserID" integer,
 "Flags" integer,
-"UserName" character varying(128),
+"UserName" varchar(128),
 "Signature" text);
 --GO
 
@@ -812,10 +812,10 @@ CREATE TYPE databaseSchema.objectQualifier_message_unapproved_return_type AS
 (
 "MessageID" integer,
 "UserID" integer, 
-"UserName" character varying(128),
-"Posted" timestamp with time zone,
+"UserName" varchar(128),
+"Posted" timestampTZ,
 "TopicID" integer, 
-"Topic" character varying(128),
+"Topic" varchar(128),
 "Message" text,
 "Flags" integer,
 "IsModeratorChanged" boolean
@@ -826,20 +826,20 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_nntpforum_list_return_type AS 
 (
-"Name" character varying(128),
-"Address" character varying(100),
+"Name" varchar(128),
+"Address" varchar(100),
 "Port" integer,
-"UserName" character varying(128),
-"UserPass" character varying(128),
+"UserName" varchar(128),
+"UserPass" varchar(128),
 "NntpServerID" integer,
 "NntpForumID" integer,
-"GroupName" character varying(128),
+"GroupName" varchar(128),
 "ForumID" integer,
 "LastMessageNo" integer,
-"LastUpdate" timestamp with time zone,
+"LastUpdate" timestampTZ,
 "Active" boolean,
-"DateCutOff"  timestamp with time zone,
-"ForumName" character varying(128) 
+"DateCutOff"  timestampTZ,
+"ForumName" varchar(128) 
 );
 --GO
 
@@ -849,11 +849,11 @@ CREATE TYPE databaseSchema.objectQualifier_nntpserver_list_return_type AS
 (
 "NntpServerID" integer,
 "BoardID" integer,
-"Name" character varying(128),
-"Address" character varying(128),
+"Name" varchar(128),
+"Address" varchar(128),
 "Port" integer,
-"UserName" character varying(128),
-"UserPass" character varying(128)
+"UserName" varchar(128),
+"UserPass" varchar(128)
 );
 --GO
 
@@ -885,11 +885,11 @@ CREATE TYPE databaseSchema.objectQualifier_pmessage_list_return_type AS
 "PMessageID" integer,
 "UserPMessageID" integer,
 "FromUserID" integer,
-"FromUser" character varying(128),
+"FromUser" varchar(128),
 "ToUserID" integer,
-"ToUser" character varying(128),
-"Created" timestamp with time zone,
-"Subject" character varying(128),
+"ToUser" varchar(128),
+"Created" timestampTZ,
+"Subject" varchar(128),
 "Body" text,
 "Flags" integer,
 "IsRead" boolean,
@@ -911,15 +911,15 @@ select databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_poll_stats_return_type AS
 (
 "PollID" integer,
-"Question" character varying(128),
+"Question" varchar(128),
 "Closes" timestamp,
 "UserID" integer,
-"ObjectPath"  character varying(255),
-"MimeType"  character varying(50),
-"QuestionObjectPath"  character varying(255),
-"QuestionMimeType"  character varying(50),
+"ObjectPath"  varchar(255),
+"MimeType"  varchar(50),
+"QuestionObjectPath"  varchar(255),
+"QuestionMimeType"  varchar(50),
 "ChoiceID" integer,
-"Choice" character varying(128),
+"Choice" varchar(128),
 "Votes" integer,
 "IsBound" boolean,
 "IsClosedBound" boolean,
@@ -938,15 +938,15 @@ CREATE TYPE databaseSchema.objectQualifier_pollgroup_stats_return_type AS
 "GroupUserID" integer,
 "PollID" integer,
 "PollGroupID" integer,
-"Question" character varying(128),
+"Question" varchar(128),
 "Closes" timestamp,
 "ChoiceID" integer,
-"Choice"   character varying(255),
+"Choice"   varchar(255),
 "Votes" integer,
-"ObjectPath"  character varying(255),
-"MimeType"  character varying(50),
-"QuestionObjectPath"  character varying(255),
-"QuestionMimeType"  character varying(50),
+"ObjectPath"  varchar(255),
+"MimeType"  varchar(50),
+"QuestionObjectPath"  varchar(255),
+"QuestionMimeType"  varchar(50),
 "IsBound" boolean,
 "IsClosedBound" boolean,
 "AllowMultipleChoices"  boolean,
@@ -963,7 +963,7 @@ CREATE TYPE databaseSchema.objectQualifier_pollgroup_votecheck_return_type AS
 (
 "PollID" integer,
 "ChoiceID" integer,
-"UserName"  character varying(255)
+"UserName"  varchar(255)
 );
 --GO
 
@@ -980,14 +980,14 @@ select databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_post_alluser_type AS
 (
-"Posted" timestamp with time zone,
-"Subject" character varying(128),
+"Posted" timestampTZ,
+"Subject" varchar(128),
 "MessageID" integer,
 "Message" text,
-"IP" character varying(39),
+"IP" varchar(39),
 "UserID" integer,
 "Flags" integer,
-"UserName" character varying(128),
+"UserName" varchar(128),
 "Signature" text,
 "TopicID" integer,
 "ForumID" integer
@@ -999,45 +999,45 @@ select databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_post_list_type AS
 (
  		"TopicID" integer,
-		"Topic"  character varying(255),
+		"Topic"  varchar(255),
 		"Priority" integer,
-		"Description"  character varying(255),
-		"Status"  character varying(255),
-		"Styles"  character varying(255),
+		"Description"  varchar(255),
+		"Status"  varchar(255),
+		"Styles"  varchar(255),
 		"PollID" integer,
 		"TopicOwnerID" integer,
  		"TopicFlags" integer,
  		"ForumFlags" integer,
  		"MessageID" integer,
- 		"Posted" timestamp with time zone, 		
+ 		"Posted" timestampTZ, 		
  		"Message" text,
  		"UserID" integer,
  		"Position" integer,
  		"Indent" integer,
- 		"IP" character varying(39),
+ 		"IP" varchar(39),
  		"Flags" integer,
- 		"EditReason" character varying(255) ,
+ 		"EditReason" varchar(255) ,
  		"IsModeratorChanged" boolean,
  		"IsDeleted" boolean,
- 		"DeleteReason" character varying(255),
-		"BlogPostID" character varying(255),
-		"ExternalMessageId" character varying(255),
-		"ReferenceMessageId" character varying(255),
- 		"UserName" character varying(255),
-		"DisplayName" character varying(255),
-		"Suspended" timestamp with time zone,
- 		"Joined" timestamp with time zone,
- 		"Avatar" character varying(100),
+ 		"DeleteReason" varchar(255),
+		"BlogPostID" varchar(255),
+		"ExternalMessageId" varchar(255),
+		"ReferenceMessageId" varchar(255),
+ 		"UserName" varchar(255),
+		"DisplayName" varchar(255),
+		"Suspended" timestampTZ,
+ 		"Joined" timestampTZ,
+ 		"Avatar" varchar(100),
  		"Signature" text,
  		"Posts" integer,
  		"Points" integer,
 		"IsGuest" bool,
  		"Views" integer,
  		"ForumID" integer,
- 		"RankName" character varying(128),
- 		"RankImage" character varying(100),
-       	"Style"  character varying(255),
- 		"Edited" timestamp with time zone,
+ 		"RankName" varchar(128),
+ 		"RankImage" varchar(100),
+       	"Style"  varchar(255),
+ 		"Edited" timestampTZ,
  		"HasAttachments" integer,
 		"HasAvatarImage" integer,
 		"TotalRows" integer,
@@ -1050,12 +1050,12 @@ select databaseSchema.objectQualifier_drop_type('databaseSchema','post_list_reve
 --GO
 CREATE TYPE databaseSchema.post_list_reverse10_return_type AS
 (
-"Posted" timestamp with time zone,
-"Subject" character varying(128),
+"Posted" timestampTZ,
+"Subject" varchar(128),
 "Message" text,
 "UserID" integer,
 "Flags" integer,
-"UserName" character varying(128),
+"UserName" varchar(128),
 "Signature" text
 );
 --GO
@@ -1066,17 +1066,17 @@ CREATE TYPE databaseSchema.rank_list_return_type AS
 (
   "RankID" integer,
   "BoardID" integer,
-  "Name" character varying(128),
+  "Name" varchar(128),
   "MinPosts" integer,
-  "RankImage" character varying(128),
+  "RankImage" varchar(128),
   "Flags" integer,
   "PMLimit" integer,
-  "Style" character varying(256),
+  "Style" varchar(256),
   "SortOrder" integer,
-  "Description" character varying(128),
+  "Description" varchar(128),
   "UsrSigChars" integer,
-  "UsrSigBBCodes" character varying(255),
-  "UsrSigHTMLTags"  character varying(255),
+  "UsrSigBBCodes" varchar(255),
+  "UsrSigHTMLTags"  varchar(255),
   "UsrAlbums" integer,
   "UsrAlbumImages" integer
 );
@@ -1086,7 +1086,7 @@ select databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_registry_return_type AS (
     "RegistryID" integer,
-    "Name" character varying(128),
+    "Name" varchar(128),
     "Value" text,
     "BoardID" integer
 );
@@ -1097,8 +1097,8 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_replace_words_list_select  AS (
     "ID" integer,
     "BoardID" integer ,
-    "BadWord" character varying(255),
-    "GoodWord" character varying(255)
+    "BadWord" varchar(255),
+    "GoodWord" varchar(255)
 );
 --GO
 
@@ -1107,9 +1107,9 @@ select databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_smiley_list_selecttype AS (
     "SmileyID" integer,
     "BoardID" integer,
-    "Code" character varying(10),
-    "Icon" character varying(128),
-    "Emoticon" character varying(128),
+    "Code" varchar(10),
+    "Icon" varchar(128),
+    "Emoticon" varchar(128),
     "SortOrder" int
 );
 --GO
@@ -1117,9 +1117,9 @@ CREATE TYPE databaseSchema.objectQualifier_smiley_list_selecttype AS (
 select databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_smiley_listunique_selecttype');
 --GO
 CREATE TYPE databaseSchema.objectQualifier_smiley_listunique_selecttype AS (
-"Icon" character varying(128), 
-"Emoticon" character varying(128),
-"Code" character varying(10),
+"Icon" varchar(128), 
+"Emoticon" varchar(128),
+"Code" varchar(10),
 "SortOrder" smallint);
 --GO
 
@@ -1132,18 +1132,18 @@ CREATE TYPE databaseSchema.objectQualifier_topic_active_return_type AS
 "TopicMovedID" integer,
 "Posted" timestamp,
 "LinkTopicID" integer,
-"Subject" character varying(128),
-"Status" character varying(255),
-"Styles" character varying(255),
-"Description" character varying(255),
+"Subject" varchar(128),
+"Status" varchar(255),
+"Styles" varchar(255),
+"Description" varchar(255),
 "UserID" integer,
-"Starter" character varying(128),
+"Starter" varchar(128),
 "NumPostsDeleted" integer,
 "Replies" integer,
 "Views" integer,
 "LastPosted" timestamp,
 "LastUserID" integer,
-"LastUserName" character varying(128),
+"LastUserName" varchar(128),
 "LastMessageID" integer,
 "LastMessageFlags" integer,
 "LastTopicID" integer,
@@ -1151,13 +1151,13 @@ CREATE TYPE databaseSchema.objectQualifier_topic_active_return_type AS
 "FavoriteCount" integer,
 "Priority" smallint,
 "PollID" integer,
-"ForumName" character varying(128),
+"ForumName" varchar(128),
 "ForumFlags" integer,
-"FirstMessage" character varying(12000),
-"StarterStyle"  character varying(255),
-"LastUserStyle"  character varying(255),
-"LastForumAccess"  timestamp with time zone,
-"LastTopicAccess"  timestamp with time zone,
+"FirstMessage" varchar(12000),
+"StarterStyle"  varchar(255),
+"LastUserStyle"  varchar(255),
+"LastForumAccess"  timestampTZ,
+"LastTopicAccess"  timestampTZ,
 "TotalRows" integer,
 "PageIndex" integer	  	     
 );
@@ -1172,18 +1172,18 @@ CREATE TYPE databaseSchema.objectQualifier_topic_unread_return_type AS
 "TopicMovedID" integer,
 "Posted" timestamp,
 "LinkTopicID" integer,
-"Subject" character varying(128),
-"Status" character varying(255),
-"Styles" character varying(255),
-"Description" character varying(255),
+"Subject" varchar(128),
+"Status" varchar(255),
+"Styles" varchar(255),
+"Description" varchar(255),
 "UserID" integer,
-"Starter" character varying(128),
+"Starter" varchar(128),
 "NumPostsDeleted" integer,
 "Replies" integer,
 "Views" integer,
 "LastPosted" timestamp,
 "LastUserID" integer,
-"LastUserName" character varying(128),
+"LastUserName" varchar(128),
 "LastMessageID" integer,
 "LastMessageFlags" integer,
 "LastTopicID" integer,
@@ -1191,13 +1191,13 @@ CREATE TYPE databaseSchema.objectQualifier_topic_unread_return_type AS
 "FavoriteCount" integer,
 "Priority" smallint,
 "PollID" integer,
-"ForumName" character varying(128),
+"ForumName" varchar(128),
 "ForumFlags" integer,
-"FirstMessage" character varying(12000),
-"StarterStyle"  character varying(255),
-"LastUserStyle"  character varying(255),
-"LastForumAccess"  timestamp with time zone,
-"LastTopicAccess"  timestamp with time zone,
+"FirstMessage" varchar(12000),
+"StarterStyle"  varchar(255),
+"LastUserStyle"  varchar(255),
+"LastForumAccess"  timestampTZ,
+"LastTopicAccess"  timestampTZ,
 "TotalRows" integer,
 "PageIndex" integer	  	     
 );
@@ -1207,9 +1207,9 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_topic_announcements_return_type AS
 (
-"Topic" character varying(128),
-"LastPosted" timestamp with time zone,
-"Posted" timestamp with time zone, 
+"Topic" varchar(128),
+"LastPosted" timestampTZ,
+"Posted" timestampTZ, 
 "TopicID" integer,
 "LastMessageID" integer,
 "LastMessageFlags" integer,
@@ -1230,7 +1230,7 @@ select databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_pollgroup_list_return_type AS
 (
-"Question"  character varying(255),
+"Question"  varchar(255),
 "PollGroupID" integer
 );
 --GO
@@ -1249,25 +1249,27 @@ CREATE TYPE databaseSchema.objectQualifier_topic_info_return_type AS (
     "TopicID" integer,
     "ForumID" integer,
     "UserID" integer,
-    "UserName" character varying(128),
-    "Posted" timestamp with time zone,
-    "Topic" character varying(128),
+    "UserName" varchar(128),
+    "Posted" timestampTZ,
+    "Topic" varchar(128),
     "Views" integer,
     "Priority" smallint,
     "PollID" integer,
     "TopicMovedID" integer,
-    "LastPosted" timestamp with time zone,
+    "LastPosted" timestampTZ,
     "LastMessageID" integer,    
     "LastUserID" integer,
-    "LastUserName" character varying(128),
+    "LastUserName" varchar(128),
     "NumPosts" integer,
     "Flags" integer,
 	"AnswerMessageID" integer,
 	"LastMessageFlags" integer,
-	"Description" character varying(255),
-	"Status" character varying(255),
-	"Styles" character varying(255),
+	"Description" varchar(255),
+	"Status" varchar(255),
+	"Styles" varchar(255),
+	"IsLocked" boolean,
     "IsDeleted" boolean,
+	"IsPersistent" boolean,
 	"IsQuestion" boolean
 );
 --GO
@@ -1276,25 +1278,25 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_topic_latest_return_type AS
 (
-"LastPosted" timestamp with time zone,
+"LastPosted" timestampTZ,
 "ForumID" integer,
-"Forum" character varying(100),
-"Topic" character varying(128),
-"Status" character varying(255),
-"Styles" character varying(255),
+"Forum" varchar(100),
+"Topic" varchar(128),
+"Status" varchar(255),
+"Styles" varchar(255),
 "TopicID" integer,
 "TopicMovedID" integer,
 "UserID" integer,
-"UserName" character varying(255),
+"UserName" varchar(255),
 "LastMessageID" integer,
 "LastMessageFlags" integer,
 "LastUserID" integer,
 "NumPosts" integer,
-"Posted"  timestamp with time zone,
-"LastUserName" character varying(128),
-"LastUserStyle"  character varying(255),
-"LastForumAccess" character varying(255),
-"LastTopicAccess"  character varying(255)
+"Posted"  timestampTZ,
+"LastUserName" varchar(128),
+"LastUserStyle"  varchar(255),
+"LastForumAccess" varchar(255),
+"LastTopicAccess"  varchar(255)
 );
 --GO
 
@@ -1303,21 +1305,21 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_rss_topic_latest_return_type AS
 (
 "LastMessage" text, 
-"LastPosted" timestamp with time zone,
+"LastPosted" timestampTZ,
 "ForumID" integer,
-"Forum" character varying(128),
-"Topic" character varying(128),
+"Forum" varchar(128),
+"Topic" varchar(128),
 "TopicID" integer,
 "TopicMovedID" integer,
 "UserID" integer,
-"UserName" character varying(255),
+"UserName" varchar(255),
 "LastMessageID" integer,
 "LastMessageFlags" integer,
 "LastUserID" integer,
-"Posted" timestamp with time zone,
-"LastUserName" character varying(255),
-"LastForumAccess"  timestamp with time zone,
-"LastTopicAccess"  timestamp with time zone
+"Posted" timestampTZ,
+"LastUserName" varchar(255),
+"LastForumAccess"  timestampTZ,
+"LastTopicAccess"  timestampTZ 
 );
 --GO
 
@@ -1326,33 +1328,33 @@ select databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_topic_list_return_type AS (   
     "ForumID" integer,
     "TopicID" integer,
-    "Posted" timestamp with time zone,
+    "Posted" timestampTZ,
     "LinkTopicID" integer,
     "TopicMovedID" integer,
 	"FavoriteCount" integer,
-    "Subject" character varying(255),
-	"Description" character varying(255),
-	"Status" character varying(255),
-	"Styles" character varying(255),
+    "Subject" varchar(255),
+	"Description" varchar(255),
+	"Status" varchar(255),
+	"Styles" varchar(255),
     "UserID" integer,    
-    "Starter" character varying(128),
+    "Starter" varchar(128),
     "Replies" integer,
     "NumPostsDeleted" integer,  
     "Views" integer,
-    "LastPosted" timestamp with time zone,   
+    "LastPosted" timestampTZ,   
     "LastUserID" integer,
-    "LastUserName" character varying(128),
+    "LastUserName" varchar(128),
     "LastMessageID" integer,
     "LastTopicID" integer,
     "TopicFlags" integer,
     "Priority" smallint,
     "PollID" integer,
     "ForumFlags" integer,
-    "FirstMessage"   character varying(4000),	
-    "StarterStyle"  character varying(255), 
-    "LastUserStyle"  character varying(255),
-    "LastForumAccess"  timestamp with time zone,
-    "LastTopicAccess"  timestamp with time zone,
+    "FirstMessage"   varchar(4000),	
+    "StarterStyle"  varchar(255), 
+    "LastUserStyle"  varchar(255),
+    "LastForumAccess"  timestampTZ,
+    "LastTopicAccess"  timestampTZ,
 	"TotalRows" integer,
 	"PageIndex" integer
 );
@@ -1364,20 +1366,20 @@ CREATE TYPE databaseSchema.objectQualifier_topics_byuser_return_type AS (
     "ForumID" integer,
     "TopicID" integer,
 	"TopicMovedID" integer,
-    "Posted" timestamp with time zone,
+    "Posted" timestampTZ,
     "LinkTopicID" integer,	
-    "Subject" character varying(100),
-	"Description" character varying(255),
-	"Status"  character varying(255),
-	"Styles"  character varying(255),
+    "Subject" varchar(100),
+	"Description" varchar(255),
+	"Status"  varchar(255),
+	"Styles"  varchar(255),
     "UserID" integer,    
-    "Starter" character varying(255),
+    "Starter" varchar(255),
 	"NumPostsDeleted" integer,  
     "Replies" integer,   
     "Views" integer,
-    "LastPosted" timestamp with time zone,   
+    "LastPosted" timestampTZ,   
     "LastUserID" integer,
-    "LastUserName" character varying(255),
+    "LastUserName" varchar(255),
     "LastMessageID" integer,
 	"LastMessageFlags" integer,
     "LastTopicID" integer,
@@ -1385,13 +1387,13 @@ CREATE TYPE databaseSchema.objectQualifier_topics_byuser_return_type AS (
 	"FavoriteCount" integer,
     "Priority" smallint,
     "PollID" integer,
-    "ForumName" character varying(255),	
+    "ForumName" varchar(255),	
 	"ForumFlags" integer,
-	"FirstMessage"  character varying(4000),
-	"StarterStyle" character varying(255),
-	"LastUserStyle" character varying(255),
-	"LastForumAccess"  timestamp with time zone,
-	"LastTopicAccess"   timestamp with time zone,
+	"FirstMessage"  varchar(4000),
+	"StarterStyle" varchar(255),
+	"LastUserStyle" varchar(255),
+	"LastForumAccess"  timestampTZ,
+	"LastTopicAccess"   timestampTZ,
 	"TotalRows" integer,
 	"PageIndex" integer	  	     
 );
@@ -1403,20 +1405,20 @@ CREATE TYPE databaseSchema.objectQualifier_topic_unanswered_rt AS (
     "ForumID" integer,
     "TopicID" integer,
 	"TopicMovedID" integer,
-    "Posted" timestamp with time zone,
+    "Posted" timestampTZ,
     "LinkTopicID" integer,	
-    "Subject" character varying(100),
-	"Description" character varying(255),
-	"Status"  character varying(255),
-	"Styles"  character varying(255),
+    "Subject" varchar(100),
+	"Description" varchar(255),
+	"Status"  varchar(255),
+	"Styles"  varchar(255),
     "UserID" integer,    
-    "Starter" character varying(255),
+    "Starter" varchar(255),
 	"NumPostsDeleted" integer,  
     "Replies" integer,   
     "Views" integer,
-    "LastPosted" timestamp with time zone,   
+    "LastPosted" timestampTZ,   
     "LastUserID" integer,
-    "LastUserName" character varying(255),
+    "LastUserName" varchar(255),
     "LastMessageID" integer,
 	"LastMessageFlags" integer,
     "LastTopicID" integer,
@@ -1424,13 +1426,13 @@ CREATE TYPE databaseSchema.objectQualifier_topic_unanswered_rt AS (
 	"FavoriteCount" integer,
     "Priority" smallint,
     "PollID" integer,
-    "ForumName" character varying(255),	
+    "ForumName" varchar(255),	
 	"ForumFlags" integer,
-	"FirstMessage"  character varying(4000),
-	"StarterStyle" character varying(255),
-	"LastUserStyle" character varying(255),
-	"LastForumAccess"  timestamp with time zone,
-	"LastTopicAccess"   timestamp with time zone,
+	"FirstMessage"  varchar(4000),
+	"StarterStyle" varchar(255),
+	"LastUserStyle" varchar(255),
+	"LastForumAccess"  timestampTZ,
+	"LastTopicAccess"   timestampTZ,
     "TotalRows" integer,
     "PageIndex" integer	  	     
 );
@@ -1454,18 +1456,18 @@ CREATE TYPE databaseSchema.objectQualifier_topic_listmessages_return_type AS (
     "Position" integer,
     "Indent" integer,
     "UserID" integer,
-    "UserName" character varying(128),
-    "Posted" timestamp with time zone,
+    "UserName" varchar(128),
+    "Posted" timestampTZ,
     "Message" text,
-    "IP" character varying(39),
-    "Edited" timestamp with time zone,
+    "IP" varchar(39),
+    "Edited" timestampTZ,
     "Flags" integer,
-    "EditReason" character varying(100),
+    "EditReason" varchar(100),
     "IsModeratorChanged" boolean,
-    "DeleteReason" character varying(100),
+    "DeleteReason" varchar(100),
     "IsDeleted" boolean,
     "IsApproved" boolean,
-    "BlogPostID" character varying(128)
+    "BlogPostID" varchar(128)
 );
 --GO
 
@@ -1489,7 +1491,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_topic_simplelist_return_type AS
 (
 "TopicID" integer,
-"Topic" character varying(128)
+"Topic" varchar(128)
 );
 --GO
 
@@ -1498,9 +1500,9 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE  databaseSchema.objectQualifier_user_accessmasks_return_type AS
 (
 "AccessMaskID" integer,
-"AccessMaskName" character varying(128),
+"AccessMaskName" varchar(128),
 "ForumID" integer,
-"ForumName" character varying(128),
+"ForumName" varchar(128),
 "CategoryID" integer,
 "ParentID" integer
 );
@@ -1511,7 +1513,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_user_activity_rank_return_type AS
 (
 "ID" integer,
-"Name" character varying(128),
+"Name" varchar(128),
 "NumOfPosts" integer
 );
 --GO
@@ -1538,7 +1540,7 @@ CREATE TYPE databaseSchema.objectQualifier_user_avatarimage_return_type AS
 (
 "UserID" integer,
 "AvatarImage" bytea,
-"AvatarImageType" character varying(128)
+"AvatarImageType" varchar(128)
 );
 --GO
 
@@ -1554,7 +1556,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_user_emails_return_type AS
 (
-"Email" character varying(128)
+"Email" varchar(128)
 );
 --GO
 
@@ -1565,34 +1567,34 @@ CREATE TYPE databaseSchema.objectQualifier_user_find_return_type AS
   -- databaseSchema.objectQualifier_user_table_type
   "UserID" integer,
   "BoardID" integer,
-  "ProviderUserKey" character varying(36),
-  "Name" character varying(128),
-  "Password" character varying(32),
-  "Email" character varying(128),
-  "Joined" timestamp with time zone,
-  "LastVisit" timestamp with time zone,
-  "IP" character varying(39),
+  "ProviderUserKey" varchar(36),
+  "Name" varchar(128),
+  "Password" varchar(32),
+  "Email" varchar(128),
+  "Joined" timestampTZ,
+  "LastVisit" timestampTZ,
+  "IP" varchar(39),
   "NumPosts" integer,
   "TimeZone" integer,
-  "Avatar" character varying(255),
+  "Avatar" varchar(255),
   "Signature" text,
   "AvatarImage" bytea,
-  "AvatarImageType" character varying(128),
+  "AvatarImageType" varchar(128),
   "RankID" integer,  
-  "Suspended" timestamp with time zone,
-  "LanguageFile" character varying(128),
-  "ThemeFile" character varying(128),
+  "Suspended" timestampTZ,
+  "LanguageFile" varchar(128),
+  "ThemeFile" varchar(128),
   "OverrideDefaultThemes" boolean,
   "PMNotification" boolean,
   "Flags" integer,
   "Points" integer,
   "AutoWatchTopics" boolean,
-  "DisplayName" character varying(128),
-  "Culture" character varying(10), 
-  "CultureUser" character varying(10),  
+  "DisplayName" varchar(128),
+  "Culture" varchar(10), 
+  "CultureUser" varchar(10),  
   "DailyDigest" boolean,
   "NotificationType" integer,
-  "TextEditor" character varying(50),
+  "TextEditor" varchar(50),
   "UseSingleSignOn" boolean,
   "IsApproved" boolean,
   "IsActiveExcluded" boolean, 
@@ -1632,41 +1634,41 @@ CREATE TYPE databaseSchema.objectQualifier_user_list_return_type AS
   -- databaseSchema.objectQualifier_user_table_type 
   "UserID" integer,
   "BoardID" integer,
-  "ProviderUserKey" character varying(36),
-  "Name" character varying(128),
-  "Password" character varying(32),
-  "Email" character varying(128),
-  "Joined" timestamp with time zone,
-  "LastVisit" timestamp with time zone,
-  "IP" character varying(39),
+  "ProviderUserKey" varchar(36),
+  "Name" varchar(128),
+  "Password" varchar(32),
+  "Email" varchar(128),
+  "Joined" timestampTZ,
+  "LastVisit" timestampTZ,
+  "IP" varchar(39),
   "NumPosts" integer,
   "TimeZone" integer,
-  "Avatar" character varying(255),
+  "Avatar" varchar(255),
   "Signature" text,
   "AvatarImage" bytea,
-  "AvatarImageType" character varying(128),
+  "AvatarImageType" varchar(128),
   "RankID" integer,  
-  "Suspended" timestamp with time zone,
-  "LanguageFile" character varying(128),
-  "ThemeFile" character varying(128),
+  "Suspended" timestampTZ,
+  "LanguageFile" varchar(128),
+  "ThemeFile" varchar(128),
   "OverrideDefaultThemes" boolean,
   "PMNotification" boolean,
   "Flags" integer,
   "Points" integer,
   "AutoWatchTopics" boolean,
-  "DisplayName" character varying(128),
-  "CultureUser" character varying(10), 
-  "Culture" character varying(10), 
+  "DisplayName" varchar(128),
+  "CultureUser" varchar(10), 
+  "Culture" varchar(10), 
   "DailyDigest" boolean,
   "NotificationType" integer,
   "IsFacebookUser" boolean,
   "IsTwitterUser" boolean, 
-  "TextEditor" character varying(50),
+  "TextEditor" varchar(50),
   "UseSingleSignOn" boolean,
   "IsApproved" boolean,
   "IsActiveExcluded" boolean, 
-  "RankName" character varying(128),
-  "Style"  character varying(255),
+  "RankName" varchar(128),
+  "Style"  varchar(255),
   "NumDays" integer,
   "NumPostsForum" integer,
   "HasAvatarImage" int2,  
@@ -1685,37 +1687,37 @@ CREATE TYPE databaseSchema.objectQualifier_admin_list_rt AS
   	"UserID" integer,
   "BoardID" integer,
   "ProviderUserKey" uuid,
-  "Name" character varying(128),
-  "Password" character varying(32),
-  "Email" character varying(128),
-  "Joined" timestamp with time zone,
-  "LastVisit" timestamp with time zone,
-  "IP" character varying(39),
+  "Name" varchar(128),
+  "Password" varchar(32),
+  "Email" varchar(128),
+  "Joined" timestampTZ,
+  "LastVisit" timestampTZ,
+  "IP" varchar(39),
   "NumPosts" integer,
   "TimeZone" integer,
-  "Avatar" character varying(255),
+  "Avatar" varchar(255),
   "Signature" text,
   "AvatarImage" bytea,
-  "AvatarImageType" character varying(128),
+  "AvatarImageType" varchar(128),
   "RankID" integer,  
-  "Suspended" timestamp with time zone,
-  "LanguageFile" character varying(128),
-  "ThemeFile" character varying(128),
+  "Suspended" timestampTZ,
+  "LanguageFile" varchar(128),
+  "ThemeFile" varchar(128),
   "OverrideDefaultThemes" boolean,
   "PMNotification" boolean,
   "Flags" integer,
   "Points" integer,
   "AutoWatchTopics" boolean,
-  "DisplayName" character varying(128),
-  "CultureUser" character varying(10),  
+  "DisplayName" varchar(128),
+  "CultureUser" varchar(10),  
   "DailyDigest" boolean,
   "NotificationType" integer,
   "IsFacebookUser" boolean,
   "IsTwitterUser" boolean,
-  "TextEditor" character varying(50),
+  "TextEditor" varchar(50),
   "UseSingleSignOn" boolean,
-  "RankName"  character varying(50),
-  "Style"  character varying(255),
+  "RankName"  varchar(50),
+  "Style"  varchar(255),
   "NumDays" integer,
   "NumPostsForum" integer,
   "HasAvatarImage" int2,  
@@ -1734,37 +1736,37 @@ CREATE TYPE databaseSchema.objectQualifier_user_listmembers_return_type AS
  "UserID" integer,
   "BoardID" integer,
   "ProviderUserKey" uuid,
-  "Name" character varying(128),
-  "Password" character varying(32),
-  "Email" character varying(128),
-  "Joined" timestamp with time zone,
-  "LastVisit" timestamp with time zone,
-  "IP" character varying(39),
+  "Name" varchar(128),
+  "Password" varchar(32),
+  "Email" varchar(128),
+  "Joined" timestampTZ,
+  "LastVisit" timestampTZ,
+  "IP" varchar(39),
   "NumPosts" integer,
   "TimeZone" integer,
-  "Avatar" character varying(255),
+  "Avatar" varchar(255),
   "Signature" text,
   "AvatarImage" bytea,
-  "AvatarImageType" character varying(128),
+  "AvatarImageType" varchar(128),
   "RankID" integer,  
-  "Suspended" timestamp with time zone,
-  "LanguageFile" character varying(128),
-  "ThemeFile" character varying(128),
+  "Suspended" timestampTZ,
+  "LanguageFile" varchar(128),
+  "ThemeFile" varchar(128),
   "OverrideDefaultThemes" boolean,
   "PMNotification" boolean,
   "Flags" integer,
   "Points" integer,
   "AutoWatchTopics" boolean,
-  "DisplayName" character varying(128),
-  "CultureUser" character varying(10),  
+  "DisplayName" varchar(128),
+  "CultureUser" varchar(10),  
   "DailyDigest" boolean,
   "NotificationType" integer,
-  "TextEditor" character varying(50),
+  "TextEditor" varchar(50),
   "UseSingleSignOn" boolean,
   "IsApproved" boolean,
   "IsActiveExcluded" boolean,
-  "RankName" character varying(128),
-  "Style"  character varying(255),
+  "RankName" varchar(128),
+  "Style"  varchar(255),
   "TotalCount" integer
 );
 --GO
@@ -1774,12 +1776,12 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_user_listmedals_return_type AS
 (
 "MedalID" integer,
-"Name" character varying(128),
+"Name" varchar(128),
 "Message" text,
-"MedalURL" character varying(250),
-"RibbonURL" character varying(250),
-"SmallMedalURL" character varying(250),
-"SmallRibbonURL" character varying(250),
+"MedalURL" varchar(250),
+"RibbonURL" varchar(250),
+"SmallMedalURL" varchar(250),
+"SmallRibbonURL" varchar(250),
 "SmallMedalWidth" integer,
 "SmallMedalHeight" integer,
 "SmallRibbonWidth" integer,
@@ -1788,7 +1790,7 @@ CREATE TYPE databaseSchema.objectQualifier_user_listmedals_return_type AS
 "Hide" boolean,
 "OnlyRibbon" boolean,
 "Flags" integer,
-"DateAwarded" timestamp with time zone
+"DateAwarded" timestampTZ 
 );
 --GO    
 
@@ -1805,26 +1807,26 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_user_medal_list_return_type AS
 (
 "MedalID" integer,
-"Name" character varying(128),
-"MedalURL" character varying(250),
-"RibbonURL" character varying(250),
-"SmallMedalURL" character varying(250),
-"SmallRibbonURL" character varying(250),
+"Name" varchar(128),
+"MedalURL" varchar(250),
+"RibbonURL" varchar(250),
+"SmallMedalURL" varchar(250),
+"SmallRibbonURL" varchar(250),
 "SmallMedalWidth" integer,
 "SmallMedalHeight" integer,
 "SmallRibbonWidth" integer,
 "SmallRibbonHeight" integer,
 "SortOrder" integer,
 "Flags" integer,
-"UserName" character varying(128),
-"DisplayName" character varying(128),
+"UserName" varchar(128),
+"DisplayName" varchar(128),
 "UserID" integer,
 "Message" text,
 "MessageEx" text,
 "Hide" boolean,
 "OnlyRibbon" boolean,
 "CurrentSortOrder" smallint,
-"DateAwarded" timestamp with time zone
+"DateAwarded" timestampTZ 
 );
 --GO
 
@@ -1853,7 +1855,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_user_simplelist_return_type AS
 (
 "UserID" integer,
-"Name"  character varying(128)
+"Name"  varchar(128)
 );
 --GO
 
@@ -1865,38 +1867,38 @@ CREATE TYPE databaseSchema.objectQualifier_userforum_list_return_type AS
   "UserID" integer,
   "BoardID" integer,
   "ProviderUserKey" uuid,
-  "Name" character varying(128),
-  "Password" character varying(32),
-  "Email" character varying(128),
-  "Joined" timestamp with time zone,
-  "LastVisit" timestamp with time zone,
-  "IP" character varying(39),
+  "Name" varchar(128),
+  "Password" varchar(32),
+  "Email" varchar(128),
+  "Joined" timestampTZ,
+  "LastVisit" timestampTZ,
+  "IP" varchar(39),
   "NumPosts" integer,
   "TimeZone" integer,
-  "Avatar" character varying(255),
+  "Avatar" varchar(255),
   "Signature" text,
   "AvatarImage" bytea,
-  "AvatarImageType" character varying(128),
+  "AvatarImageType" varchar(128),
   "RankID" integer,  
-  "Suspended" timestamp with time zone,
-  "LanguageFile" character varying(128),
-  "ThemeFile" character varying(128),
+  "Suspended" timestampTZ,
+  "LanguageFile" varchar(128),
+  "ThemeFile" varchar(128),
   "OverrideDefaultThemes" boolean,
   "PMNotification" boolean,
   "Flags" integer,
   "Points" integer,
   "AutoWatchTopics" boolean,
-  "DisplayName" character varying(128),
-  "CultureUser" character varying(10),  
+  "DisplayName" varchar(128),
+  "CultureUser" varchar(10),  
   "DailyDigest" boolean,
   "NotificationType" integer,
-  "TextEditor" character varying(50),
+  "TextEditor" varchar(50),
   "UseSingleSignOn" boolean,
   "IsApproved" boolean,
   "IsActiveExcluded" boolean,
   "AccessMaskID" integer,  
   "Accepted" boolean,
-  "Access" character varying(128)
+  "Access" varchar(128)
 );
 --GO
 
@@ -1905,8 +1907,8 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_usergroup_list_return_type AS
 (
 "GroupID" integer,
-"Name" character varying(128),
-"Style"  character varying(255)
+"Name" varchar(128),
+"Style"  varchar(255)
 );
 --GO
 
@@ -1916,13 +1918,13 @@ CREATE TYPE databaseSchema.objectQualifier_userpmessage_list_return_type AS
 (
 "PMessageID" integer,
 "FromUserID" integer,
-"Created" timestamp with time zone,
-"Subject" character varying(100),
+"Created" timestampTZ,
+"Subject" varchar(100),
 "Body" text,
 "Flags" integer,
-"FromUser" character varying(128),
+"FromUser" varchar(128),
 "ToUserID" integer,
-"ToUser" character varying(128),
+"ToUser" varchar(128),
 "IsRead" boolean,
 "UserPMessageID" integer
 );
@@ -1943,16 +1945,16 @@ CREATE TYPE databaseSchema.objectQualifier_watchforum_list_return_type AS
 "WatchForumID" integer,
 "ForumID" integer,
 "UserID" integer,
-"Created" timestamp with time zone,
-"LastMail" timestamp with time zone,
-"ForumName" character varying(128),
+"Created" timestampTZ,
+"LastMail" timestampTZ,
+"ForumName" varchar(128),
 "Messages" integer,
 "Topics" integer,
-"LastPosted" timestamp with time zone,
+"LastPosted" timestampTZ,
 "LastMessageID"  integer,
 "LastTopicID" integer,
 "LastUserID" integer,
-"LastUserName" character varying(128)
+"LastUserName" varchar(128)
 );
 --GO
 
@@ -1971,15 +1973,15 @@ CREATE TYPE databaseSchema.objectQualifier_watchtopic_list_return_type AS
 "WatchTopicID" integer,
 "TopicID" integer,
 "UserID" integer,
-"Created" timestamp with time zone,
-"LastMail" timestamp with time zone,
-"TopicName" character varying(128),
+"Created" timestampTZ,
+"LastMail" timestampTZ,
+"TopicName" varchar(128),
 "Replies" integer,
 "Views" integer,
-"LastPosted" timestamp with time zone,
+"LastPosted" timestampTZ,
 "LastMessageID" integer,
 "LastUserID" integer,
-"LastUserName" character varying(128)
+"LastUserName" varchar(128)
 );
 --GO
 
@@ -1988,14 +1990,14 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_pageload_return_type AS 
 (
 "ActiveUpdate" bool,
-"PreviousVisit" timestamp with time zone,
+"PreviousVisit" timestampTZ,
 "UserID" integer,
 "ForumID" integer,
 "IsAdmin" boolean,
 "IsForumModerator" boolean,
 "IsModerator"  boolean,
 "IsGuestX"  boolean,
-"LastActive" timestamp with time zone,
+"LastActive" timestampTZ,
 "ReadAccess" integer,			
 "PostAccess" integer,
 "ReplyAccess" integer,
@@ -2010,11 +2012,11 @@ CREATE TYPE databaseSchema.objectQualifier_pageload_return_type AS
 "IsCrawler" boolean,
 "IsMobileDevice" boolean,		
 "CategoryID" integer,
-"CategoryName" character varying(128),
-"ForumName" character varying(128),
-"ForumTheme" character varying(100),
+"CategoryName" varchar(128),
+"ForumName" varchar(128),
+"ForumTheme" varchar(100),
 "TopicID" integer,
-"TopicName" character varying(128)
+"TopicName" varchar(128)
 );
 --GO
 
@@ -2022,27 +2024,27 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_user_lazydata_return_type AS 
 (
-"ProviderUserKey" character varying(64),
+"ProviderUserKey" varchar(64),
 "UserFlags" integer,
-"UserName" character varying(128),
-"DisplayName" character varying(128),
-"Suspended" timestamp with time zone,
-"ThemeFile" character varying(128),
-"LanguageFile" character varying(128),
+"UserName" varchar(128),
+"DisplayName" varchar(128),
+"Suspended" timestampTZ,
+"ThemeFile" varchar(128),
+"LanguageFile" varchar(128),
 "UseSingleSignOn" bool,
 "IsDirty" bool,
-"TextEditor" character varying(3),
+"TextEditor" varchar(3),
 "TimeZoneUser" integer,
-"CultureUser" character varying(10),
+"CultureUser" varchar(10),
 "IsFacebookUser" boolean,
 "IsTwitterUser" boolean,
 "IsGuest" boolean,
 "MailsPending" integer,
 "UnreadPrivate" integer,
-"LastUnreadPm"  timestamp with time zone,
+"LastUnreadPm"  timestampTZ,
 "PendingBuddies" integer,
-"LastPendingBuddies"   timestamp with time zone,
-"UserStyle"  character varying(255),
+"LastPendingBuddies"   timestampTZ,
+"UserStyle"  varchar(255),
 "NumAlbums" integer,
 "UsrAlbums"  integer,
 "UserHasBuddies" boolean,
@@ -2055,10 +2057,10 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_rsstopic_list_return_type AS
 (
-"Topic" character varying(128),
+"Topic" varchar(128),
 "TopicID" integer, 
-"Name" character varying(128), 
-"LastPosted" timestamp with time zone,
+"Name" varchar(128), 
+"LastPosted" timestampTZ,
 "LastUserID" integer,
 "LastMessageID" integer,
 "LastMessageFlags" integer
@@ -2069,7 +2071,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_last_posted_return_type AS
 (
  lasttopicid integer,
- lastposted timestamp with time zone
+ lastposted timestampTZ 
 );
 --GO
 
@@ -2113,7 +2115,7 @@ CREATE TYPE databaseSchema.objectQualifier_shoutbox_getmessages_return_type AS
 "UserID" integer,
 "Username" varchar(128),
 "Message" text,
-"Date" timestamp with time zone,
+"Date" timestampTZ,
 "Style"  varchar(255)
 );
 --GO
@@ -2123,7 +2125,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_message_getthanks_return_type AS
 (		
 "UserID" integer, 
-"ThanksDate" timestamp with time zone, 
+"ThanksDate" timestampTZ, 
 "Name"  varchar(128),
 "DisplayName"  varchar(128)
 );
@@ -2173,7 +2175,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_message_getallthanks_return_type AS
 (
 	"FromUserID" integer,
-	"ThanksDate" timestamp with time zone,
+	"ThanksDate" timestampTZ,
 	"MessageID" integer,
 	"ToUserID" integer,
         "ThanksFromUserNumber" integer,
@@ -2198,20 +2200,20 @@ CREATE TYPE databaseSchema.objectQualifier_topic_favorite_details_return_type AS
 	"ForumID" integer,
 	"TopicID" integer,
 	"TopicMovedID" integer,
-	"Posted"  timestamp with time zone,
+	"Posted"  timestampTZ,
 	"LinkTopicID" integer,
-	"Subject" character varying(255),
-	"Status" character varying(255),
-	"Styles" character varying(255),
-	"Description" character varying(255),
+	"Subject" varchar(255),
+	"Status" varchar(255),
+	"Styles" varchar(255),
+	"Description" varchar(255),
 	"UserID" integer,
-	"Starter"  character varying(255),
+	"Starter"  varchar(255),
 	"NumPostsDeleted" integer,
 	"Replies" integer,
 	"Views" integer,
-	"LastPosted"  timestamp with time zone,
+	"LastPosted"  timestampTZ,
 	"LastUserID" integer,
-	"LastUserName"  character varying(255),
+	"LastUserName"  varchar(255),
 	"LastMessageID"  integer,
 	"LastMessageFlags"  integer,
 	"LastTopicID" integer,
@@ -2219,13 +2221,13 @@ CREATE TYPE databaseSchema.objectQualifier_topic_favorite_details_return_type AS
 	"FavoriteCount" integer,
 	"Priority" integer,
 	"PollID" integer,
-	"ForumName"  character varying(128),	
+	"ForumName"  varchar(128),	
 	"ForumFlags" integer,
 	"FirstMessage" text,
-	"StarterStyle"   character varying(255),
-	"LastUserStyle"   character varying(255),
-	"LastForumAccess"   timestamp with time zone,
-	"LastTopicAccess"   timestamp with time zone,
+	"StarterStyle"   varchar(255),
+	"LastUserStyle"   varchar(255),
+	"LastForumAccess"   timestampTZ,
+	"LastTopicAccess"   timestampTZ,
 	"TotalRows" integer,
 	"PageIndex" integer		
 );
@@ -2235,7 +2237,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_buddy_addrequest_return_type AS
 (
-	"i_paramoutput" character varying(128),
+	"i_paramoutput" varchar(128),
 	"i_approved" boolean
 );
 --GO
@@ -2250,13 +2252,13 @@ CREATE TYPE databaseSchema.objectQualifier_buddy_list_return_type AS
 (
     "UserID" integer,
     "BoardID" integer,
-    "Name" character varying(128),
-    "Joined" timestamp with time zone,
+    "Name" varchar(128),
+    "Joined" timestampTZ,
     "NumPosts" integer,
-    "RankName" character varying(128),
+    "RankName" varchar(128),
     "Approved" boolean,
     "FromUserID" integer,
-    "Requested" timestamp with time zone        
+    "Requested" timestampTZ         
 	
 );
 --GO
@@ -2265,7 +2267,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_buddy_remove_return_type AS
 (
-"i_paramoutput" character varying(128)
+"i_paramoutput" varchar(128)
 );
 --GO
 
@@ -2275,9 +2277,9 @@ CREATE TYPE databaseSchema.objectQualifier_album_list_return_type AS
 (
 "AlbumID" integer,
 "UserID" integer,
-"Title" character varying(255),
+"Title" varchar(255),
 "CoverImageID" integer,
-"Updated"  timestamp with time zone
+"Updated"  timestampTZ 
 );
 --GO
 
@@ -2296,11 +2298,11 @@ CREATE TYPE databaseSchema.objectQualifier_album_image_list_return_type AS
 (
  "ImageID" integer,
  "AlbumID" integer,
- "Caption" character varying(255),	
- "FileName"  character varying(255),
+ "Caption" varchar(255),	
+ "FileName"  varchar(255),
  "Bytes" integer,
- "ContentType"  character varying(50),
- "Uploaded" timestamp with time zone,
+ "ContentType"  varchar(50),
+ "Uploaded" timestampTZ,
  "Downloads" integer,
  "UserID" integer
  );
@@ -2315,11 +2317,11 @@ CREATE TYPE databaseSchema.objectQualifier_album_image_list_return_type2 AS
 (
  "ImageID" integer,
  "AlbumID" integer,
- "Caption" character varying(255),	
- "FileName"  character varying(255),
+ "Caption" varchar(255),	
+ "FileName"  varchar(255),
  "Bytes" integer,
- "ContentType"  character varying(50),
- "Uploaded" timestamp with time zone,
+ "ContentType"  varchar(50),
+ "Uploaded" timestampTZ,
  "Downloads" integer
  );
  --GO
@@ -2330,8 +2332,8 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_user_getsignaturedata_return_type AS
 (
  "UsrSigChars" integer,
- "UsrSigBBCodes" character varying(255),	
- "UsrSigHTMLTags"  character varying(255)
+ "UsrSigBBCodes" varchar(255),	
+ "UsrSigHTMLTags"  varchar(255)
  );
  --GO
  
@@ -2355,23 +2357,23 @@ CREATE TYPE databaseSchema.objectQualifier_message_secdata_return_type AS
 (
  "MessageID" integer,
  "UserID" integer,
- "Name" character varying(128),
+ "Name" varchar(128),
  "Message" text,
- "Posted" timestamp with time zone,
+ "Posted" timestampTZ,
  "TopicID" integer,
  "ForumID" integer,	
- "Topic"   character varying(128),
+ "Topic"   varchar(128),
  "Priority" integer,
  "Flags" integer,
- "Edited" timestamp with time zone,
+ "Edited" timestampTZ,
  "TopicFlags" integer,
- "EditReason"   character varying(128),
+ "EditReason"   varchar(128),
  "Position" integer,
  "IsModeratorChanged" boolean,
- "DeleteReason"   character varying(128),
+ "DeleteReason"   varchar(128),
  "BlogPostID" integer,
  "PollID" integer,
- "IP"   character varying(39),
+ "IP"   varchar(39),
  "EditedBy" integer
  );
  --GO
@@ -2384,18 +2386,18 @@ CREATE TYPE databaseSchema.objectQualifier_messagehistory_list_return_type AS
   "MessageID"		integer,
   "Message"			text,
   "IP"				varchar (15),
-  "Edited"			timestamp with time zone,  	
-  "EditReason"      character varying(128),
+  "Edited"			timestampTZ,  	
+  "EditReason"      varchar(128),
   "IsModeratorChanged"  boolean,
   "Flags" integer,  
   "EditedBy"		integer,
   "UserID" integer, 
-  "UserName" character varying(128), 
+  "UserName" varchar(128), 
   "ForumID" integer,  
   "TopicID" integer, 
   "Topic" text, 
-  "Name"  character varying(128), 
-  "Posted" timestamp with time zone
+  "Name"  varchar(128), 
+  "Posted" timestampTZ 
 );
 --GO
 
@@ -2409,9 +2411,9 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
   "MessageID"		 integer,
   "ForumID"		     integer,
   "TopicID"		     integer,
-  "Topic"		     character varying(128),
+  "Topic"		     varchar(128),
   "UserID"		     integer, 
-  "Posted"		     timestamp with time zone,  	
+  "Posted"		     timestampTZ,  	
   "Message"          text, 
   "Flags"            integer
 );
@@ -2433,10 +2435,10 @@ CREATE TYPE databaseSchema.objectQualifier_recent_users_rt AS
 (
 "UserID"  integer,
 "IsCrawler" integer,
-"Name" character varying,
+"Name" varchar,
 "UserCount" integer,
 "IsHidden" smallint,
-"Style" character varying
+"Style" varchar
 );
 --GO
 
@@ -2458,8 +2460,8 @@ CREATE TYPE databaseSchema.objectQualifier_moderators_team_list_return_type AS
 (
 "ForumID"  integer,
 "ModeratorID" integer,
-"ModeratorName" character varying(255),
-"Style" character varying(255),
+"ModeratorName" varchar(255),
+"Style" varchar(255),
 "IsGroup" boolean
 );
 --GO
@@ -2469,9 +2471,9 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_topicstatus_list_return_type AS
 (
 "TopicStatusID"  integer,
-"TopicStatusName" character varying(255),
+"TopicStatusName" varchar(255),
 "BoardID" integer,
-"DefaultDescription" character varying(255)
+"DefaultDescription" varchar(255)
 );
 --GO
 
@@ -2480,9 +2482,9 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_topicstatus_list_return_type AS
 (
 "TopicStatusID"  integer,
-"TopicStatusName" character varying(255),
+"TopicStatusName" varchar(255),
 "BoardID" integer,
-"DefaultDescription" character varying(255)
+"DefaultDescription" varchar(255)
 );
 --GO
 
@@ -2490,11 +2492,11 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_dbinfo_usertype_fields_info_rt AS
 (
-"ColumnName"  character varying(255),
-"ColumnType" character varying(255),
+"ColumnName"  varchar(255),
+"ColumnType" varchar(255),
 "NotNull" boolean ,
 "HasDefinition" boolean,
-"Npacl" character varying(255)
+"Npacl" varchar(255)
 );
 --GO
 
@@ -2504,11 +2506,11 @@ CREATE TYPE databaseSchema.objectQualifier_album_images_by_user_rt AS
 (
 "ImageID" integer,
 "AlbumID" integer,
-"Caption" character varying(255),	
-"FileName" character varying(255),
+"Caption" varchar(255),	
+"FileName" varchar(255),
 "Bytes" integer,
-"ContentType" character varying(50),
-"Uploaded" timestamp with time zone,
+"ContentType" varchar(50),
+"Uploaded" timestampTZ,
 "Downloads" integer
 );
 --GO

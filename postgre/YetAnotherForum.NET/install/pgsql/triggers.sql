@@ -26,11 +26,11 @@ END;$BODY$
 --GO
 
 CREATE TRIGGER databaseSchema_objectQualifier_tr_userflag_update
-    BEFORE UPDATE ON databaseSchema.objectQualifier_user
-    FOR EACH ROW
-    WHEN (OLD.flags IS DISTINCT FROM NEW.flags)
-    EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_user_updateflags();
-	--GO
+       BEFORE UPDATE ON databaseSchema.objectQualifier_user
+	          FOR EACH ROW
+			  WHEN (OLD.flags IS DISTINCT FROM NEW.flags)
+              EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_user_updateflags();
+--GO
 
 DROP TRIGGER IF EXISTS databaseSchema_objectQualifier_tr_userflag_insert ON databaseSchema.objectQualifier_user;
 --GO
@@ -52,10 +52,10 @@ BEGIN
 --GO
 
 CREATE TRIGGER databaseSchema_objectQualifier_tr_userflag_insert
-    BEFORE INSERT ON databaseSchema.objectQualifier_user
-    FOR EACH ROW   
-    EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_user_insertflags();
-	--GO
+       BEFORE INSERT ON databaseSchema.objectQualifier_user
+       FOR EACH ROW   
+       EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_user_insertflags();
+--GO
 
 
 -- user pmessage triggers
@@ -77,10 +77,10 @@ END;$BODY$
 --GO
 
 CREATE TRIGGER databaseSchema_objectQualifier_tr_userpmflag_update
-    BEFORE UPDATE ON databaseSchema.objectQualifier_userpmessage
-    FOR EACH ROW
-    WHEN (OLD.flags IS DISTINCT FROM NEW.flags)
-    EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_userpm_updateflags();
+       BEFORE UPDATE ON databaseSchema.objectQualifier_userpmessage
+	   FOR EACH ROW
+	   WHEN (OLD.flags IS DISTINCT FROM NEW.flags)
+	   EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_userpm_updateflags();
 	--GO
 
 DROP TRIGGER IF EXISTS databaseSchema_objectQualifier_tr_userpmflag_insert ON databaseSchema.objectQualifier_userpmessage;
@@ -100,9 +100,9 @@ BEGIN
 --GO
 
 CREATE TRIGGER databaseSchema_objectQualifier_tr_userpmflag_insert
-    BEFORE INSERT ON databaseSchema.objectQualifier_userpmessage
-    FOR EACH ROW   
-    EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_userpm_insertflags();
+       BEFORE INSERT ON databaseSchema.objectQualifier_userpmessage
+       FOR EACH ROW   
+       EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_userpm_insertflags();
 	--GO
 
 -- topic table
@@ -124,11 +124,11 @@ END;$BODY$
 --GO
 
 CREATE TRIGGER databaseSchema_objectQualifier_tr_topic_update
-    BEFORE UPDATE ON databaseSchema.objectQualifier_topic
-    FOR EACH ROW
-    WHEN (OLD.flags IS DISTINCT FROM NEW.flags)
-    EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_topic_updateflags();
-	--GO
+       BEFORE UPDATE ON databaseSchema.objectQualifier_topic
+       FOR EACH ROW
+       WHEN (OLD.flags IS DISTINCT FROM NEW.flags)
+       EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_topic_updateflags();
+--GO
 
 DROP TRIGGER IF EXISTS databaseSchema_objectQualifier_tr_topicflag_beforeinsert ON databaseSchema.objectQualifier_topic;
 --GO
@@ -147,10 +147,10 @@ BEGIN
 --GO
 
 CREATE TRIGGER databaseSchema_objectQualifier_tr_topicflag_beforeinsert
-    BEFORE INSERT ON databaseSchema.objectQualifier_topic
-	FOR EACH ROW
-    EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_topic_insertflags();
-	--GO
+       BEFORE INSERT ON databaseSchema.objectQualifier_topic
+	   FOR EACH ROW
+       EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_topic_insertflags();
+--GO
 
 	
 -- message table
@@ -170,10 +170,10 @@ END;$BODY$
 --GO
 
 CREATE TRIGGER databaseSchema_objectQualifier_tr_message_update
-    BEFORE UPDATE ON databaseSchema.objectQualifier_message
-    FOR EACH ROW
-    WHEN (OLD.flags IS DISTINCT FROM NEW.flags)
-    EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_message_updateflags();
+       BEFORE UPDATE ON databaseSchema.objectQualifier_message
+       FOR EACH ROW
+       WHEN (OLD.flags IS DISTINCT FROM NEW.flags)
+       EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_message_updateflags();
 	--GO
 
 DROP TRIGGER IF EXISTS databaseSchema_objectQualifier_tr_message_beforeinsert ON databaseSchema.objectQualifier_message;
@@ -192,7 +192,7 @@ BEGIN
 --GO
 
 CREATE TRIGGER databaseSchema_objectQualifier_tr_message_beforeinsert
-    BEFORE INSERT ON databaseSchema.objectQualifier_message
-	FOR EACH ROW
-    EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_message_insertflags();
-	--GO
+       BEFORE INSERT ON databaseSchema.objectQualifier_message
+	   FOR EACH ROW
+       EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_message_insertflags();
+--GO

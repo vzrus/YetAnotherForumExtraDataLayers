@@ -3,39 +3,14 @@
 -- They are distributed under terms of GPLv2 licence only as in http://www.fsf.org/licensing/licenses/gpl.html
 -- Copyright vzrus(c) 2009-2012
 
- -- Function: objectQualifier_bitset(integer, integer)
-
--- DROP FUNCTION objectQualifier_bitset(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_bitset(iflags integer, imask integer)
-  RETURNS boolean AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forum_posts(
+                           i_forumID integer)
+                  RETURNS integer AS
 $BODY$DECLARE
-obool2 boolean;
-BEGIN
-IF (iflags & imask) = imask THEN
-obool2 := true;
-ELSE
-obool2 := false;
-END IF;
-RETURN obool2;
-END ;
-$BODY$
-  LANGUAGE 'plpgsql' IMMUTABLE STRICT 
-  COST 100;
-     GRANT EXECUTE ON FUNCTION databaseSchema.objectQualifier_bitset(integer, integer) TO granteeName;
---GO
-
--- Function: databaseSchema.objectQualifier_forum_posts(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_forum_posts(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forum_posts(i_forumID integer)
-  RETURNS integer AS
-$BODY$DECLARE
-ici_NumPosts integer:=0;
-ici_tmp integer;
-cntrfp integer:=0;
-cur_forposts refcursor;
+             ici_NumPosts integer:=0;
+             ici_tmp integer;
+             cntrfp integer:=0;
+             cur_forposts refcursor;
 BEGIN	
 
 	select numposts INTO ici_NumPosts 
@@ -64,29 +39,24 @@ END LOOP;
 END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100;
-   GRANT EXECUTE ON FUNCTION databaseSchema.objectQualifier_forum_posts(integer) TO granteeName;
-
 --GO
 
-
-
--- Function: databaseSchema.objectQualifier_forum_lasttopic(integer, integer, integer, timestamp with time zone)
-
--- DROP FUNCTION databaseSchema.objectQualifier_forum_lasttopic(integer, integer, integer, timestamp with time zone);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forum_lasttopic(i_forumid integer, i_userid integer, i_lasttopicid integer, i_lastposted timestamp with time zone)
-  RETURNS integer AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forum_lasttopic(
+                           i_forumid integer, 
+						   i_userid integer, 
+						   i_lasttopicid integer, 
+						   i_lastposted timestamp with time zone)
+                  RETURNS integer AS
 $BODY$DECLARE
-ici_LastTopicID integer :=i_lasttopicid;
-ici_LastPosted  timestamp with time zone :=i_lastposted;
-ici_LastTopicIDTemp integer;
-ici_LastPostedTemp timestamp with time zone;
-ici_ParentID integer;
-ici_SubforumID integer;
-ici_doneflt integer:=1;
-ici_TopicID integer;
-ici_Posted timestamp with time zone;
-
+             ici_LastTopicID integer :=i_lasttopicid;
+			 ici_LastPosted  timestamp with time zone :=i_lastposted;
+			 ici_LastTopicIDTemp integer;
+			 ici_LastPostedTemp timestamp with time zone;
+			 ici_ParentID integer;
+			 ici_SubforumID integer;
+			 ici_doneflt integer:=1;
+			 ici_TopicID integer;
+			 ici_Posted timestamp with time zone;
  BEGIN
  
  	/*try to retrieve last direct topic posed in forums if not supplied as argument*/ 
@@ -143,8 +113,7 @@ ici_Posted timestamp with time zone;
  	RETURN   ici_LastTopicID;
  END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
-  COST 100;  
-GRANT EXECUTE ON FUNCTION databaseSchema.objectQualifier_forum_lasttopic(integer, integer, integer, timestamp with time zone) TO granteeName;
+  COST 100;
 --GO
 
 

@@ -164,7 +164,23 @@ $BODY$DECLARE
 			 ici_userid integer;
 			 ici_ForumID integer :=-1;
       BEGIN
-	  FOR _rec IN SELECT *
+	  FOR _rec IN SELECT
+	                    userid,
+                        forumid,
+                        isadmin,
+                        isforummoderator,
+                        ismoderator,
+                        readaccess,			
+                        postaccess,
+                        replyaccess,
+                        priorityaccess,
+                        pollaccess,
+                        voteaccess,
+                        moderatoraccess,
+                        editaccess,
+                        deleteaccess,
+                        uploadaccess,		
+                        downloadaccess
 	              FROM databaseSchema.objectQualifier_vaccess 
 				  where userid = i_userid
 	  LOOP
@@ -179,8 +195,6 @@ END;$BODY$
   COST 100 ROWS 1000; 
 --GO
 
---Function: objectQualifier_accessmask_delete(integer)
--- DROP FUNCTION databaseSchema.objectQualifier_accessmask_delete(integer);
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_accessmask_delete(
                            i_accessmaskid integer
 						   )
@@ -218,7 +232,12 @@ _rec databaseSchema.objectQualifier_accessmask_list_return_type%ROWTYPE;
 BEGIN
  IF i_accessmaskid IS NULL THEN
      FOR _rec IN
-        SELECT   a.*
+        SELECT
+		      a.accessmaskid,
+              a.boardid,
+              a.name,
+              a.flags,
+              a.sortorder
          FROM      databaseSchema.objectQualifier_accessmask a
           WHERE    a.boardid = i_board  and
 			(a.flags & i_excludeflags) = 0
@@ -228,7 +247,12 @@ BEGIN
        END LOOP;
  ELSE
     FOR _rec IN
-       SELECT   a.*
+       SELECT
+	          a.accessmaskid,
+              a.boardid,
+              a.name,
+              a.flags,
+              a.sortorder
         FROM      databaseSchema.objectQualifier_accessmask a
          WHERE    a.boardid = i_board
           AND a.accessmaskid = i_accessmaskid
@@ -242,14 +266,14 @@ END;$_$
   COST 100 ROWS 1000;   
 --GO
 
--- Function: databaseSchema.objectQualifier_accessmask_save(integer, integer, character varying, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer)
+-- Function: databaseSchema.objectQualifier_accessmask_save(integer, integer, varchar, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer)
 
--- DROP FUNCTION databaseSchema.objectQualifier_accessmask_save(integer, integer, character varying, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer);
+-- DROP FUNCTION databaseSchema.objectQualifier_accessmask_save(integer, integer, varchar, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer, integer);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_accessmask_save(
                            i_accessmaskid integer,
 						   i_boardid integer, 
-						   i_name character varying, 
+						   i_name varchar, 
 						   i_readaccess boolean,
 						   i_postaccess boolean, 
 						   i_replyaccess boolean, 
@@ -338,9 +362,9 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_active_list(
 
   -- delete non-active
   DELETE FROM databaseSchema.objectQualifier_active
-  WHERE    lastactive < current_timestamp at time zone 'UTC' - (i_interval::character varying(11) || ' minute')::interval;
+  WHERE    lastactive < current_timestamp at time zone 'UTC' - (i_interval::varchar(11) || ' minute')::interval;
   -- we don't delete guest access
-  DELETE FROM databaseSchema.objectQualifier_activeaccess where  lastactive < current_timestamp at time zone 'UTC' - (i_interval::character varying(11) || ' minute')::interval AND  IsGuestX is false;
+  DELETE FROM databaseSchema.objectQualifier_activeaccess where  lastactive < current_timestamp at time zone 'UTC' - (i_interval::varchar(11) || ' minute')::interval AND  IsGuestX is false;
 	
         -- select active
         IF i_guests IS TRUE THEN
@@ -502,7 +526,7 @@ BEGIN
 -- delete non-active
  
 DELETE FROM databaseSchema.objectQualifier_active
-WHERE    lastactive < current_timestamp at time zone 'UTC' - (i_interval::character varying(11) || ' minute')::interval;
+WHERE    lastactive < current_timestamp at time zone 'UTC' - (i_interval::varchar(11) || ' minute')::interval;
         -- select active
         IF (i_guests IS TRUE) THEN
           for _rec in   
@@ -914,14 +938,22 @@ _rec databaseSchema.objectQualifier_attachment_list_return_type%ROWTYPE;
 BEGIN
    IF i_messageid IS NOT NULL THEN
    FOR _rec IN
+
      SELECT 
- 			a.*,
- 			e.boardid,			
-            null AS Posted,
-            null AS ForumID,
-            null AS ForumName,
-            null AS TopicID,
-            null AS TopicName  
+	       a.attachmentid,
+		   a.messageid,
+		   a.filename,
+		   a.bytes,
+	       a.fileid,
+		   a.contenttype,
+		   a.downloads,
+		   a.filedata,
+		   e.boardid,
+		   null AS Posted,
+		   null AS ForumID,
+		   null AS ForumName,
+           null AS TopicID,
+           null AS TopicName  
  		from
  			databaseSchema.objectQualifier_attachment a
  			inner join databaseSchema.objectQualifier_message b on b.messageid = a.messageid
@@ -937,12 +969,19 @@ END LOOP;
    ELSEIF i_attachmentid IS NOT NULL THEN
    FOR _rec IN
      select 
- 			a.*,
- 			e.boardid,			
-            null AS ForumID,
-            null AS ForumName,
-            null AS TopicID,
-            null AS TopicName  
+	       a.attachmentid,
+		   a.messageid,
+		   a.filename,
+		   a.bytes,
+	       a.fileid,
+		   a.contenttype,
+		   a.downloads,
+		   a.filedata,
+		   e.boardid,
+		   null AS ForumID,
+		   null AS ForumName,
+		   null AS TopicID,
+		   null AS TopicName  
  		from
  			databaseSchema.objectQualifier_attachment a
  			inner join databaseSchema.objectQualifier_message b on b.messageid = a.messageid
@@ -958,13 +997,20 @@ END LOOP;
    ELSE
    FOR _rec IN 
     select 
- 			a.*,
- 			i_BoardID AS BoardID,
- 			b.posted AS Posted,
- 			d.forumid AS ForumID,
- 			d.name AS ForumName,
- 			c.topicid AS TopicID,
- 			c.topic AS TopicName
+	       a.attachmentid,
+		   a.messageid,
+		   a.filename,
+		   a.bytes,
+	       a.fileid,
+		   a.contenttype,
+		   a.downloads,
+		   a.filedata,
+		   i_BoardID AS BoardID,
+		   b.posted AS Posted,
+		   d.forumid AS ForumID,
+		   d.name AS ForumName,
+		   c.topicid AS TopicID,
+		   c.topic AS TopicName
  		from 
  			databaseSchema.objectQualifier_attachment a
  			inner join databaseSchema.objectQualifier_message b on b.messageid = a.messageid
@@ -987,16 +1033,16 @@ END;$BODY$
 --GO
 
 
--- Function: objectQualifier_attachment_save(integer, character varying, integer, character varying, bytea)
+-- Function: objectQualifier_attachment_save(integer, varchar, integer, varchar, bytea)
 
--- DROP FUNCTION objectQualifier_attachment_save(integer, character varying, integer, character varying, bytea);
+-- DROP FUNCTION objectQualifier_attachment_save(integer, varchar, integer, varchar, bytea);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_attachment_save(
                            i_messageid integer, 
-						   i_filename character varying, 
+						   i_filename varchar, 
 						   i_bytes integer, 
 						   i_contenttype 
-						   character varying, 
+						   varchar, 
 						   i_filedata bytea)
 				  RETURNS void AS
 'INSERT INTO databaseSchema.objectQualifier_attachment
@@ -1047,17 +1093,28 @@ $BODY$DECLARE
 _rec databaseSchema.objectQualifier_bannedip_list_return_type%ROWTYPE;
 BEGIN
 IF i_id IS NULL THEN
-for _rec in
-SELECT *
-FROM  databaseSchema.objectQualifier_bannedip
-WHERE  boardid = i_boardid
-LOOP
-	RETURN NEXT _rec;
-END LOOP;
-
+  for _rec in
+      SELECT
+	        id,
+			boardid,
+            mask,
+            since,
+            reason,
+            userid
+     FROM  databaseSchema.objectQualifier_bannedip
+	 WHERE  boardid = i_boardid
+  LOOP
+	  RETURN NEXT _rec;
+  END LOOP;
 ELSE
 for _rec in
-SELECT *
+SELECT
+      id,
+	  boardid,
+	  mask,
+	  since,
+	  reason,
+	  userid
 FROM   databaseSchema.objectQualifier_bannedip
 WHERE  boardid = i_boardid
 AND id = i_id 
@@ -1071,15 +1128,11 @@ END;$BODY$
   COST 100;
   --GO
 
--- Function: objectQualifier_bannedip_save(integer, integer, character varying)
-
--- DROP FUNCTION objectQualifier_bannedip_save(integer, integer, character varying);
-
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_bannedip_save(
                            i_id integer, 
 						   i_boardid integer, 
-						   i_mask character varying, 
-						   i_reason character varying, 
+						   i_mask varchar, 
+						   i_reason varchar, 
 						   i_userid integer)
 				  RETURNS void AS
 $BODY$
@@ -1168,24 +1221,24 @@ BEGIN
   ROWS 1000;
 --GO
 
--- Function: objectQualifier_bbcode_save(integer, integer, character varying, character varying, character varying, text, text, text, text, text, character varying, boolean, character varying, integer)
+-- Function: objectQualifier_bbcode_save(integer, integer, varchar, varchar, varchar, text, text, text, text, text, varchar, boolean, varchar, integer)
 
--- DROP FUNCTION objectQualifier_bbcode_save(integer, integer, character varying, character varying, character varying, text, text, text, text, text, character varying, boolean, character varying, integer);
+-- DROP FUNCTION objectQualifier_bbcode_save(integer, integer, varchar, varchar, varchar, text, text, text, text, text, varchar, boolean, varchar, integer);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_bbcode_save(
                            i_bbcodeid integer,
 						   i_boardid integer,
-						   i_name character varying,
-						   i_description character varying,
-						   i_onclickjs character varying,
+						   i_name varchar,
+						   i_description varchar,
+						   i_onclickjs varchar,
 						   i_displayjs text,
 						   i_editjs text,
 						   i_displaycss text,
 						   i_searchregex text,
 						   i_replaceregex text,
-						   i_variables character varying,
+						   i_variables varchar,
 						   i_usemodule boolean,
-						   i_moduleclass character varying,
+						   i_moduleclass varchar,
 						   i_execorder integer)
 				  RETURNS void AS
 $BODY$
@@ -1225,27 +1278,27 @@ $BODY$
   COST 100; 
 --GO
 
--- Function: objectQualifier_board_create(character varying, character varying, character varying, character varying, character varying, boolean)
+-- Function: objectQualifier_board_create(varchar, varchar, varchar, varchar, varchar, boolean)
 
-DROP FUNCTION IF EXISTS  databaseSchema.objectQualifier_board_create(character varying, character varying, character varying, character varying, character varying, uuid, boolean);
+DROP FUNCTION IF EXISTS  databaseSchema.objectQualifier_board_create(varchar, varchar, varchar, varchar, varchar, uuid, boolean);
 --GO
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_board_create(
-                           i_boardname character varying, 
-                           i_languagefile character varying, 
+                           i_boardname varchar, 
+                           i_languagefile varchar, 
 						   i_culture varchar(10), 
-						   i_membershipappname character varying, 
-						   i_rolesappname character varying, 
-						   i_username character varying, 
-						   i_useremail character varying, 
+						   i_membershipappname varchar, 
+						   i_rolesappname varchar, 
+						   i_username varchar, 
+						   i_useremail varchar, 
 						   i_userkey uuid, 
 						   i_ishostadmin boolean, 
 						   i_newguid uuid,
-						   i_roleprefix character varying)
+						   i_roleprefix varchar)
 				  RETURNS integer AS
 $BODY$ DECLARE   
  ici_boardid                integer;
  i_timezone                 integer;
- i_forumemail			    character varying(50);
+ i_forumemail			    varchar(50);
  l_GroupIDAdmin			    integer;
  l_GroupIDGuest			    integer;
  l_GroupIDMember		    integer;
@@ -1267,10 +1320,10 @@ $BODY$ DECLARE
 BEGIN
  	
 
-   i_timezone:= COALESCE((SELECT CAST(CAST(value AS character varying(10)) AS integer)                                           
+   i_timezone:= COALESCE((SELECT CAST(CAST(value AS varchar(10)) AS integer)                                           
                          FROM   databaseSchema.objectQualifier_registry
                          WHERE  Lower(name) = Lower('TimeZone')),0);
-   i_forumemail:= (SELECT CAST(value AS character varying(50))                                               			
+   i_forumemail:= (SELECT CAST(value AS varchar(50))                                               			
                            FROM   databaseSchema.objectQualifier_registry
                            WHERE  Lower(name) = Lower('ForumEmail'));                          
                            
@@ -1517,7 +1570,7 @@ $BODY$
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_board_list(
                            i_boardid integer,
-						   i_sysinfo character varying(1000))
+						   i_sysinfo varchar(1000))
 				  RETURNS SETOF databaseSchema.objectQualifier_board_list_return_type AS
 $BODY$DECLARE
 _rec databaseSchema.objectQualifier_board_list_return_type%ROWTYPE;
@@ -1637,7 +1690,7 @@ BEGIN
     WHERE LOWER(name) = LOWER('maxusers') 
     AND      boardid=i_boardid),0)  INTO _rec."MaxUsers";
     
-    SELECT CAST(value AS character varying(255)) INTO _rec."MaxUsersWhen" 
+    SELECT CAST(value AS varchar(255)) INTO _rec."MaxUsersWhen" 
     FROM databaseSchema.objectQualifier_registry 
     WHERE LOWER(name) = LOWER('maxuserswhen') 
     AND     boardid=i_boardid;
@@ -1699,28 +1752,28 @@ $BODY$
   COST 100;
 --GO
 
--- Function: objectQualifier_board_save(integer, character varying, boolean)
+-- Function: objectQualifier_board_save(integer, varchar, boolean)
 -- drop an old function with differing parameters
 DROP FUNCTION IF EXISTS objectQualifier_board_save(
                         integer, 
-						character varying, 
+						varchar, 
 						char, 
-						character varying,
+						varchar,
 						boolean);
 
 --GO
 DROP FUNCTION IF EXISTS objectQualifier_board_save(
                         integer, 
-						character varying, 
 						varchar, 
-						character varying,
+						varchar, 
+						varchar,
 						boolean);
 --GO
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_board_save(
                            i_boardid integer, 
-						   i_name character varying, 
-						   i_languagefile character varying,
-						   i_culture character varying, 
+						   i_name varchar, 
+						   i_languagefile varchar,
+						   i_culture varchar, 
 						   i_allowthreaded boolean)
 				  RETURNS integer AS
   $BODY$DECLARE
@@ -1928,16 +1981,16 @@ END LOOP;
 --GO
 
 
--- Function: objectQualifier_category_save(integer, integer, character varying, smallint, character varying)
+-- Function: objectQualifier_category_save(integer, integer, varchar, smallint, varchar)
 
--- DROP FUNCTION objectQualifier_category_save(integer, integer, character varying, smallint, character varying);
+-- DROP FUNCTION objectQualifier_category_save(integer, integer, varchar, smallint, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_category_save(
                            i_boardid integer, 
 						   i_categoryid integer, 
-						   i_name character varying, 
+						   i_name varchar, 
 						   i_sortorder smallint, 
-						   i_categoryimage character varying)
+						   i_categoryimage varchar)
 				  RETURNS databaseSchema.objectQualifier_category_save_return_type AS
 $BODY$DECLARE
 ici_sortorder smallint:=i_sortorder; 
@@ -1986,12 +2039,12 @@ END;$BODY$
   COST 100;
 --GO
 
--- Function: objectQualifier_checkemail_list(character varying)
+-- Function: objectQualifier_checkemail_list(varchar)
 
--- DROP FUNCTION objectQualifier_checkemail_list(character varying);
+-- DROP FUNCTION objectQualifier_checkemail_list(varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_checkemail_list(
-                           i_email character varying)
+                           i_email varchar)
 				  RETURNS SETOF databaseSchema.objectQualifier_checkemail_list_return_type AS
 $BODY$DECLARE
 _rec databaseSchema.objectQualifier_checkemail_list_return_type%ROWTYPE;
@@ -2016,14 +2069,14 @@ $BODY$
   COST 100 ROWS 1000;
 --GO
 
--- Function: objectQualifier_checkemail_save(integer, character varying, character varying)
+-- Function: objectQualifier_checkemail_save(integer, varchar, varchar)
 
--- DROP FUNCTION objectQualifier_checkemail_save(integer, character varying, character varying);
+-- DROP FUNCTION objectQualifier_checkemail_save(integer, varchar, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_checkemail_save(
                            i_iserid integer, 
-						   i_hash character varying, 
-						   i_email character varying)
+						   i_hash varchar, 
+						   i_email varchar)
 				  RETURNS void AS
 'INSERT INTO databaseSchema.objectQualifier_checkemail
 (userid,email,created,hash)
@@ -2032,20 +2085,20 @@ VALUES
   LANGUAGE 'sql' VOLATILE SECURITY DEFINER
   COST 100;
 --GO
- COMMENT ON FUNCTION databaseSchema.objectQualifier_checkemail_save(integer, character varying, character varying) IS 'Saves email message data for delivering in CheckEmail table.';
+ COMMENT ON FUNCTION databaseSchema.objectQualifier_checkemail_save(integer, varchar, varchar) IS 'Saves email message data for delivering in CheckEmail table.';
 --GO
 
--- Function: objectQualifier_checkemail_update(character varying)
+-- Function: objectQualifier_checkemail_update(varchar)
 
--- DROP FUNCTION databaseSchema."objectQualifier_checkemail_update"(character varying);
+-- DROP FUNCTION databaseSchema."objectQualifier_checkemail_update"(varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_checkemail_update(
-                           i_hash character varying)
+                           i_hash varchar)
 				  RETURNS SETOF databaseSchema.objectQualifier_checkemail_update_return_type AS
 $BODY$DECLARE 
 l_UserID integer;
 l_CheckEmailID integer;
-l_Email character varying(50);
+l_Email varchar(50);
 _rec databaseSchema.objectQualifier_checkemail_update_return_type%ROWTYPE;
 BEGIN
  
@@ -2083,15 +2136,15 @@ END;$BODY$
   COST 100 ROWS 1000;  
 --GO
 
--- Function: objectQualifier_choice_add(integer, character varying)
+-- Function: objectQualifier_choice_add(integer, varchar)
 
--- DROP FUNCTION objectQualifier_choice_add(integer, character varying);
+-- DROP FUNCTION objectQualifier_choice_add(integer, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_choice_add(
                            i_pollid integer,
-						   i_choice character varying,
-						   i_objectpath character varying,
-						   i_mimetype character varying)
+						   i_choice varchar,
+						   i_objectpath varchar,
+						   i_mimetype varchar)
 				  RETURNS void AS
 'INSERT INTO databaseSchema.objectQualifier_choice
 (pollid, choice, votes, objectpath, mimetype)
@@ -2100,7 +2153,7 @@ VALUES
   LANGUAGE 'sql' VOLATILE SECURITY DEFINER
   COST 100; 
 --GO
-  COMMENT ON FUNCTION databaseSchema.objectQualifier_choice_add(integer, character varying, character varying, character varying) IS 'Inserts a single Poll option into Choice table';
+  COMMENT ON FUNCTION databaseSchema.objectQualifier_choice_add(integer, varchar, varchar, varchar) IS 'Inserts a single Poll option into Choice table';
 --GO
 
 -- Function: objectQualifier_choice_delete(integer)
@@ -2116,15 +2169,15 @@ WHERE choiceid = $1;'
   COST 100;  
 --GO
 
--- Function: objectQualifier_choice_update(integer, character varying)
+-- Function: objectQualifier_choice_update(integer, varchar)
 
--- DROP FUNCTION objectQualifier_choice_update(integer, character varying);
+-- DROP FUNCTION objectQualifier_choice_update(integer, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_choice_update(
                            i_choiceid integer,
-						   i_choice character varying,
-						   i_objectpath character varying,
-						   i_mimetype character varying)
+						   i_choice varchar,
+						   i_objectpath varchar,
+						   i_mimetype varchar)
 				  RETURNS void AS
 'UPDATE databaseSchema.objectQualifier_choice
 SET choice = $2, objectpath =$3, mimetype = $4
@@ -2133,14 +2186,14 @@ WHERE choiceid = $1;'
   COST 100;  
 --GO
 
--- Function: objectQualifier_choice_vote(integer, integer, character varying)
+-- Function: objectQualifier_choice_vote(integer, integer, varchar)
 
--- DROP FUNCTION objectQualifier_choice_vote(integer, integer, character varying);
+-- DROP FUNCTION objectQualifier_choice_vote(integer, integer, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_choice_vote(
                            i_choiceid integer, 
 						   i_userid integer, 
-						   i_remoteip character varying)
+						   i_remoteip varchar)
 				  RETURNS void AS
 $BODY$DECLARE
 l_PollID integer;
@@ -2167,13 +2220,13 @@ $BODY$
   COST 100; 
 --GO
 
--- Function: objectQualifier_eventlog_create(integer, character varying, text, integer)
+-- Function: objectQualifier_eventlog_create(integer, varchar, text, integer)
 
--- DROP FUNCTION databaseSchema.objectQualifier_eventlog_create(integer, character varying, text, integer);
+-- DROP FUNCTION databaseSchema.objectQualifier_eventlog_create(integer, varchar, text, integer);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_eventlog_create(
                            i_userid integer, 
-						   i_source character varying, 
+						   i_source varchar, 
 						   i_description text, 
 						   i_type integer)
 				  RETURNS void AS
@@ -2304,13 +2357,13 @@ END LOOP;
   COST 100 ROWS 1000; 
 --GO
 
--- Function: objectQualifier_extension_list(integer, character varying)
+-- Function: objectQualifier_extension_list(integer, varchar)
 
--- DROP FUNCTION objectQualifier_extension_list(integer, character varying);
+-- DROP FUNCTION objectQualifier_extension_list(integer, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_extension_list(
                            i_boardid integer, 
-						   i_extension character varying)
+						   i_extension varchar)
 				  RETURNS SETOF databaseSchema.objectQualifier_extension_return_type AS
 $BODY$DECLARE 
  _rec databaseSchema.objectQualifier_extension_return_type%ROWTYPE;
@@ -2355,14 +2408,14 @@ $BODY$
   COST 100 ROWS 1000;  
 --GO
 
--- Function: objectQualifier_extension_save(integer, integer, character varying)
+-- Function: objectQualifier_extension_save(integer, integer, varchar)
 
--- DROP FUNCTION objectQualifier_extension_save(integer, integer, character varying);
+-- DROP FUNCTION objectQualifier_extension_save(integer, integer, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_extension_save(
                            i_extensionid integer, 
 						   i_boardid integer, 
-						   i_extension character varying)
+						   i_extension varchar)
 				  RETURNS void AS
 $BODY$
  BEGIN
@@ -2860,7 +2913,7 @@ END; $BODY$
 				   RETURNS SETOF databaseSchema.objectQualifier_forum_listread_helper_return_type AS
  $BODY$DECLARE
 _rec databaseSchema.objectQualifier_forum_listread_helper_return_type%ROWTYPE; 
- ici_lastposted timestamp with time zone;
+ ici_lastposted timestampTZ ;
  ici_LastMessageID integer;
  ici_lastmessageflags integer;
  ici_LastUserID integer;
@@ -2921,17 +2974,17 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forum_listread(
 $BODY$DECLARE
 ici_lasttopicid integer;
 ici_topicmovedid integer;
-ici_lastposted timestamp with time zone;
+ici_lastposted timestampTZ ;
 ici_lastmessageid integer;
 ici_lastmessageflags integer;
 ici_lastuserid integer;
-ici_lasttopicname character varying(255);
-ici_lasttopicstyles character varying(255);
-ici_lastuser character varying(255);
+ici_lasttopicname varchar(255);
+ici_lasttopicstyles varchar(255);
+ici_lastuser varchar(255);
 ici_pollgroupid integer; 
-ici_style character varying(255):='';
-ici_lasttopicstatus  character varying(255):='';
-ici_lasttopicaccess  timestamp with time zone;
+ici_style varchar(255):='';
+ici_lasttopicstatus  varchar(255):='';
+ici_lasttopicaccess  timestampTZ ;
 ici_forumids int array; 
 ici_forumids1 int array; 
 intcnt integer:=0; 
@@ -3503,25 +3556,25 @@ END;$BODY$
   COST 100;
  --GO
 
--- Function: databaseSchema.objectQualifier_forum_save(integer, integer, integer, character varying, character varying, smallint, boolean, boolean, boolean, boolean, character varying, character varying, integer)
+-- Function: databaseSchema.objectQualifier_forum_save(integer, integer, integer, varchar, varchar, smallint, boolean, boolean, boolean, boolean, varchar, varchar, integer)
 
--- DROP FUNCTION databaseSchema.objectQualifier_forum_save(integer, integer, integer, character varying, character varying, smallint, boolean, boolean, boolean, boolean, character varying, character varying, integer);
+-- DROP FUNCTION databaseSchema.objectQualifier_forum_save(integer, integer, integer, varchar, varchar, smallint, boolean, boolean, boolean, boolean, varchar, varchar, integer);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forum_save(
                            i_forumid integer, 
 						   i_categoryid integer, 
 						   i_parentid integer, 
-						   i_name character varying, 
-						   i_description character varying, 
+						   i_name varchar, 
+						   i_description varchar, 
 						   i_sortorder smallint, 
 						   i_locked boolean, 
 						   i_hidden boolean, 
 						   i_istest boolean, 
 						   i_moderated boolean, 
-						   i_remoteurl character varying, 
-						   i_themeurl character varying, 
-						   i_imageurl  character varying,
-						   i_styles  character varying,
+						   i_remoteurl varchar, 
+						   i_themeurl varchar, 
+						   i_imageurl  varchar,
+						   i_styles  varchar,
 						   i_accessmaskid integer)
 				   RETURNS integer AS
 $BODY$DECLARE 
@@ -3629,21 +3682,21 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forum_updatelastpost(
 $BODY$DECLARE 
 ici_ParentID integer;
 ici_tmpParent integer;
-ici_tmpMaxPosted3 timestamp with time zone;
+ici_tmpMaxPosted3 timestampTZ ;
 
-ici_LastPostedTmp timestamp with time zone;
+ici_LastPostedTmp timestampTZ ;
 ici_LastTopicIDTmp integer;
 ici_LastMessageIDTmp integer;
 ici_LastUserIDTmp integer;
-ici_LastUserNameTmp character varying(128);
+ici_LastUserNameTmp varchar(128);
 
-ici_MaxTPosted timestamp with time zone;
+ici_MaxTPosted timestampTZ ;
  
-ici_lastposted timestamp with time zone;
+ici_lastposted timestampTZ ;
 ici_LastTopicID integer;
 ici_LastMessageID integer;
 ici_LastUserID integer;
-ici_LastUserName character varying(128);
+ici_LastUserName varchar(128);
 
 
 BEGIN
@@ -4023,10 +4076,11 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_forumaccess_group(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forumaccess_group(i_groupid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_forumaccess_group_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forumaccess_group(
+                           i_groupid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_forumaccess_group_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_forumaccess_group_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_forumaccess_group_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN
  	SELECT 
@@ -4062,10 +4116,11 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_forumaccess_list(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forumaccess_list(i_forumid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_forumaccess_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forumaccess_list(
+                  i_forumid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_forumaccess_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_forumaccess_list_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_forumaccess_list_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN
         SELECT a.*,
@@ -4101,8 +4156,9 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forumaccess_save(i_for
 
 -- DROP FUNCTION databaseSchema.objectQualifier_group_delete(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_delete(i_groupid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_delete(
+                           i_groupid integer)
+                  RETURNS void AS
 $BODY$
 BEGIN
         DELETE FROM databaseSchema.objectQualifier_forumaccess
@@ -4121,10 +4177,12 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_group_list(integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_list(i_boardid integer, i_groupid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_group_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_list(
+                           i_boardid integer, 
+						   i_groupid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_group_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_group_list_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_group_list_return_type%ROWTYPE;
 BEGIN
 
         IF i_groupid IS NULL THEN
@@ -4156,8 +4214,10 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_group_medal_delete(integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_medal_delete(i_groupid integer, i_medalid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_medal_delete(
+                           i_groupid integer, 
+						   i_medalid integer)
+                  RETURNS void AS
 'DELETE FROM databaseSchema.objectQualifier_groupmedal 
  	WHERE groupid=$1 AND medalid=$2;'
   LANGUAGE 'sql' VOLATILE SECURITY DEFINER
@@ -4168,10 +4228,12 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_medal_delete(i_g
 
 -- DROP FUNCTION databaseSchema.objectQualifier_group_medal_list(integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_medal_list(i_groupid integer, i_medalid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_group_medal_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_medal_list(
+                           i_groupid integer, 
+						   i_medalid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_group_medal_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_group_medal_list_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_group_medal_list_return_type%ROWTYPE;
 BEGIN
  FOR _rec IN
  	SELECT 
@@ -4210,23 +4272,28 @@ BEGIN
 
          LOOP
 	RETURN NEXT _rec;
-END LOOP;
- 		
+END LOOP; 		
  
 END;$BODY$
   LANGUAGE 'plpgsql' STABLE SECURITY DEFINER
   COST 100 ROWS 1000;
 --GO
 
--- Function: databaseSchema.objectQualifier_group_medal_save(integer, integer, character varying, boolean, boolean, smallint)
+-- Function: databaseSchema.objectQualifier_group_medal_save(integer, integer, varchar, boolean, boolean, smallint)
 
--- DROP FUNCTION databaseSchema.objectQualifier_group_medal_save(integer, integer, character varying, boolean, boolean, smallint);
+-- DROP FUNCTION databaseSchema.objectQualifier_group_medal_save(integer, integer, varchar, boolean, boolean, smallint);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_medal_save(i_groupid integer, i_medalid integer, i_message character varying, i_hide boolean, i_onlyribbon boolean, i_sortorder smallint)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_medal_save(
+                           i_groupid integer, 
+						   i_medalid integer, 
+						   i_message varchar, 
+						   i_hide boolean, 
+						   i_onlyribbon boolean, 
+						   i_sortorder smallint)
+                  RETURNS void AS
 $BODY$
 DECLARE
-ici_sortorder smallint:=i_sortorder;
+       ici_sortorder smallint:=i_sortorder;
 BEGIN
      IF ici_sortorder > 0 THEN 
     IF EXISTS(SELECT 1 FROM databaseSchema.objectQualifier_groupmedal 
@@ -4273,10 +4340,12 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_group_member(integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_member(i_boardid integer, i_userid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_group_member_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_member(
+                           i_boardid integer, 
+						   i_userid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_group_member_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_group_member_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_group_member_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN
         SELECT   a.groupid,
@@ -4298,35 +4367,34 @@ $BODY$
   COST 100 ROWS 1000; 
 --GO
 
--- Function: databaseSchema.objectQualifier_group_save(integer, integer, character varying, boolean, boolean, boolean, boolean, integer)
+-- Function: databaseSchema.objectQualifier_group_save(integer, integer, varchar, boolean, boolean, boolean, boolean, integer)
 
-DROP FUNCTION IF EXISTS databaseSchema.objectQualifier_group_save(integer, integer, character varying, boolean, boolean, boolean, boolean, integer);
+DROP FUNCTION IF EXISTS databaseSchema.objectQualifier_group_save(integer, integer, varchar, boolean, boolean, boolean, boolean, integer);
 --GO
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_save(
-    i_groupid integer, 
-    i_boardid integer, 
-    i_name character varying, 
-    i_isadmin boolean, 
-    i_isguest boolean, 
-    i_isstart boolean, 
-    i_ismoderator boolean, 
-    i_accessmaskid integer, 
-    i_pmlimit integer,
-    i_style character varying(255), 
-    i_sortorder smallint,
-    i_description varchar(128),
-    i_usrsigchars integer,
-	i_usrsigbbcodes	varchar(255),
-	i_usrsightmltags varchar(255),
-	i_usralbums integer,
-	i_usralbumimages integer
-	)
-  RETURNS databaseSchema.objectQualifier_group_save_return_type AS
+                           i_groupid integer,
+						   i_boardid integer,
+						   i_name varchar,
+						   i_isadmin boolean,
+						   i_isguest boolean,
+						   i_isstart boolean,
+						   i_ismoderator boolean,
+						   i_accessmaskid integer,
+						   i_pmlimit integer,
+						   i_style varchar(255),
+						   i_sortorder smallint,
+						   i_description varchar(128),
+						   i_usrsigchars integer,
+						   i_usrsigbbcodes	varchar(255),
+						   i_usrsightmltags varchar(255),
+						   i_usralbums integer,
+						   i_usralbumimages integer)
+                  RETURNS databaseSchema.objectQualifier_group_save_return_type AS
 $BODY$DECLARE
- _rec databaseSchema.objectQualifier_group_save_return_type;
- ici_groupid integer:=i_groupid;
- iciFlags integer:=0;
-  BEGIN         
+             _rec databaseSchema.objectQualifier_group_save_return_type;
+             ici_groupid integer:=i_groupid;
+             iciFlags integer:=0;
+BEGIN         
         
         IF i_isadmin IS NOT FALSE THEN
         iciFlags := iciFlags | 1 ; END IF;
@@ -4399,11 +4467,12 @@ $BODY$DECLARE
   COST 100;  
 --GO
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_rank_style(i_boardid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_group_rank_style_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_rank_style(
+                           i_boardid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_group_rank_style_type AS
 $BODY$
 DECLARE
-_rec databaseSchema.objectQualifier_group_rank_style_type%ROWTYPE;
+       _rec databaseSchema.objectQualifier_group_rank_style_type%ROWTYPE;
 BEGIN
 FOR _rec IN
 (SELECT 1 AS LegendID,name,style FROM databaseSchema.objectQualifier_group
@@ -4420,12 +4489,19 @@ END;$BODY$
   ROWS 1000; 
  --GO
 
--- Function: databaseSchema.objectQualifier_mail_create(character varying, character varying, character varying, character varying, character varying, text, text)
+-- Function: databaseSchema.objectQualifier_mail_create(varchar, varchar, varchar, varchar, varchar, text, text)
 
--- DROP FUNCTION databaseSchema.objectQualifier_mail_create(character varying, character varying, character varying, character varying, character varying, text, text);
+-- DROP FUNCTION databaseSchema.objectQualifier_mail_create(varchar, varchar, varchar, varchar, varchar, text, text);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_mail_create(i_from character varying, i_fromname character varying, i_to character varying, i_toname character varying, i_subject character varying, i_body text, i_bodyhtml text)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_mail_create(
+                           i_from varchar, 
+						   i_fromname varchar, 
+						   i_to varchar, 
+						   i_toname varchar, 
+						   i_subject varchar, 
+						   i_body text, 
+						   i_bodyhtml text)
+                  RETURNS void AS
 $BODY$
 BEGIN
  	INSERT INTO databaseSchema.objectQualifier_mail
@@ -4437,12 +4513,19 @@ BEGIN
   COST 100;  
 --GO
 
--- Function: databaseSchema.objectQualifier_mail_createwatch(integer, character varying, character varying, character varying, text, text, integer)
+-- Function: databaseSchema.objectQualifier_mail_createwatch(integer, varchar, varchar, varchar, text, text, integer)
 
--- DROP FUNCTION databaseSchema.objectQualifier_mail_createwatch(integer, character varying, character varying, character varying, text, text, integer);
+-- DROP FUNCTION databaseSchema.objectQualifier_mail_createwatch(integer, varchar, varchar, varchar, text, text, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_mail_createwatch(i_topicid integer, i_from character varying, i_fromname character varying, i_subject character varying, i_body text, i_bodyhtml text, i_userid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_mail_createwatch(
+                           i_topicid integer, 
+						   i_from varchar, 
+						   i_fromname varchar, 
+						   i_subject varchar, 
+						   i_body text, 
+						   i_bodyhtml text, 
+						   i_userid integer)
+                 RETURNS void AS
 $BODY$
 BEGIN
  	INSERT INTO databaseSchema.objectQualifier_mail(fromuser,fromusername,touser,tousername,created,subject,body,bodyhtml)
@@ -4505,8 +4588,9 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_mail_delete(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_mail_delete(i_mailid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_mail_delete(
+                           i_mailid integer)
+                  RETURNS void AS
 'DELETE FROM databaseSchema.objectQualifier_mail WHERE mailid = $1;'
   LANGUAGE 'sql' VOLATILE SECURITY DEFINER
   COST 100; 
@@ -4516,12 +4600,13 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_mail_delete(i_mailid i
 
 -- DROP FUNCTION databaseSchema.objectQualifier_mail_list(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_mail_list(i_processid integer)
-   RETURNS SETOF databaseSchema.objectQualifier_mail_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_mail_list(
+                           i_processid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_mail_list_return_type AS
 $BODY$DECLARE 
-_rec databaseSchema.objectQualifier_mail_list_return_type%ROWTYPE;
-intervaladd integer :=5;
-timesendattempt timestamp with time zone;
+             _rec databaseSchema.objectQualifier_mail_list_return_type%ROWTYPE;
+             intervaladd integer :=5;
+             timesendattempt timestampTZ ;
 BEGIN
 timesendattempt:=current_timestamp at time zone 'UTC' +  interval '5 minute';
      UPDATE databaseSchema.objectQualifier_mail
@@ -4547,12 +4632,15 @@ END LOOP;
   COST 100 ROWS 1000; 
 --GO
 
--- Function: databaseSchema.objectQualifier_medal_delete(integer, integer, character varying)
+-- Function: databaseSchema.objectQualifier_medal_delete(integer, integer, varchar)
 
--- DROP FUNCTION databaseSchema.objectQualifier_medal_delete(integer, integer, character varying);
+-- DROP FUNCTION databaseSchema.objectQualifier_medal_delete(integer, integer, varchar);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_medal_delete(i_boardid integer, i_medalid integer, i_category character varying)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_medal_delete(
+                           i_boardid integer, 
+						   i_medalid integer, 
+						   i_category varchar)
+                  RETURNS void AS
 $BODY$
 BEGIN
  
@@ -4593,14 +4681,17 @@ END;$BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_medal_list(integer, integer, character varying)
+-- Function: databaseSchema.objectQualifier_medal_list(integer, integer, varchar)
 
--- DROP FUNCTION databaseSchema.objectQualifier_medal_list(integer, integer, character varying);
+-- DROP FUNCTION databaseSchema.objectQualifier_medal_list(integer, integer, varchar);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_medal_list(i_boardid integer, i_medalid integer, i_category character varying)
-  RETURNS SETOF databaseSchema.objectQualifier_medal_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_medal_list(
+                           i_boardid integer, 
+						   i_medalid integer, 
+						   i_category varchar)
+                  RETURNS SETOF databaseSchema.objectQualifier_medal_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_medal_list_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_medal_list_return_type%ROWTYPE;
 BEGIN
  
  	IF i_medalid IS NOT NULL THEN
@@ -4657,10 +4748,11 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_medal_listusers(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_medal_listusers(i_medalid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_medal_listusers_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_medal_listusers(
+                           i_medalid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_medal_listusers_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_medal_listusers_return_type%ROWTYPE; 
+             _rec databaseSchema.objectQualifier_medal_listusers_return_type%ROWTYPE; 
 BEGIN
 FOR _rec IN
  	SELECT((SELECT 
@@ -4695,11 +4787,14 @@ END;
 
 -- DROP FUNCTION databaseSchema.objectQualifier_medal_resort(integer, integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_medal_resort(i_boardid integer, i_medalid integer, i_move integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_medal_resort(
+                           i_boardid integer, 
+						   i_medalid integer, 
+						   i_move integer)
+                  RETURNS void AS
 $BODY$DECLARE 
-i_Position integer;
-i_Category character varying(128);
+             i_Position integer;
+             i_Category varchar(128);
 BEGIN
  	
  	SELECT 
@@ -4752,15 +4847,31 @@ END;$BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_medal_save(integer, integer, character varying, text, character varying, character varying, character varying, character varying, character varying, character varying, integer, integer, integer, integer, smallint, integer)
+-- Function: databaseSchema.objectQualifier_medal_save(integer, integer, varchar, text, varchar, varchar, varchar, varchar, varchar, varchar, integer, integer, integer, integer, smallint, integer)
 
--- DROP FUNCTION databaseSchema.objectQualifier_medal_save(integer, integer, character varying, text, character varying, character varying, character varying, character varying, character varying, character varying, integer, integer, integer, integer, smallint, integer);
+-- DROP FUNCTION databaseSchema.objectQualifier_medal_save(integer, integer, varchar, text, varchar, varchar, varchar, varchar, varchar, varchar, integer, integer, integer, integer, smallint, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_medal_save(i_boardid integer, i_medalid integer, i_name character varying, i_description text, i_message character varying, i_category character varying, i_medalurl character varying, i_ribbonurl character varying, i_smallmedalurl character varying, i_smallribbonurl character varying, i_smallmedalwidth smallint, i_smallmedalheight smallint, i_smallribbonwidth smallint, i_smallribbonheight smallint, i_sortorder smallint, i_flags integer)
-  RETURNS  integer AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_medal_save(
+                           i_boardid integer, 
+						   i_medalid integer, 
+						   i_name varchar, 
+						   i_description text, 
+						   i_message varchar, 
+						   i_category varchar, 
+						   i_medalurl varchar, 
+						   i_ribbonurl varchar, 
+						   i_smallmedalurl varchar, 
+						   i_smallribbonurl varchar, 
+						   i_smallmedalwidth smallint, 
+						   i_smallmedalheight smallint, 
+						   i_smallribbonwidth smallint, 
+						   i_smallribbonheight smallint, 
+						   i_sortorder smallint, 
+						   i_flags integer)
+                 RETURNS  integer AS
 $BODY$DECLARE
-ici_sortorder smallint:=i_sortorder;
-ici_medalid integer :=i_medalid;
+             ici_sortorder smallint:=i_sortorder;
+             ici_medalid integer :=i_medalid;
 BEGIN 
     
     IF ici_sortorder > 0 THEN 
@@ -4821,17 +4932,17 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_message_approve(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_approve(i_messageid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_approve(
+                           i_messageid integer)
+                  RETURNS void AS
 $BODY$DECLARE
-ici_userid	integer;
-ici_ForumID	integer;
-ici_TopicID	integer;
-ici_Posted	timestamp;
-ici_UserName	character varying(128);
-ici_NewFlag integer;
-ici_parentid integer;
-
+             ici_userid	    integer;
+             ici_ForumID	integer;
+             ici_TopicID	integer;
+             ici_Posted	    timestamp;
+             ici_UserName	varchar(128);
+             ici_NewFlag    integer;
+             ici_parentid   integer;
 BEGIN 	
  	SELECT 
  		 a.userid,
@@ -4924,14 +5035,16 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_message_delete(integer, boolean);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_delete(i_messageid integer, i_erasemessage boolean)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_delete(
+                           i_messageid integer, 
+						   i_erasemessage boolean)
+                  RETURNS void AS
 $BODY$DECLARE
-ici_TopicID		integer;
-ici_ForumID		integer;
-ici_MessageCount	integer;
-ici_LastMessageID	integer;
-ici_userid		integer;
+             ici_TopicID		integer;
+             ici_ForumID		integer;
+             ici_MessageCount	integer;
+             ici_LastMessageID	integer;
+             ici_userid		    integer;
 BEGIN	
  
  	/*Find TopicID and ForumID*/
@@ -5010,19 +5123,23 @@ END; $BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_message_deleteundelete(integer, boolean, character varying, integer)
+-- Function: databaseSchema.objectQualifier_message_deleteundelete(integer, boolean, varchar, integer)
 
--- DROP FUNCTION databaseSchema.objectQualifier_message_deleteundelete(integer, boolean, character varying, integer);
+-- DROP FUNCTION databaseSchema.objectQualifier_message_deleteundelete(integer, boolean, varchar, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_deleteundelete(i_messageid integer, i_ismoderatorchanged boolean, i_deletereason character varying, i_isdeleteaction integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_deleteundelete(
+                           i_messageid integer, 
+						   i_ismoderatorchanged boolean, 
+						   i_deletereason varchar, 
+						   i_isdeleteaction integer)
+                  RETURNS void AS
 $BODY$DECLARE
-ici_TopicID		integer;
-ici_ForumID		integer;
-ici_MessageCount	integer;
-ici_LastMessageID	integer;
-ici_userid		integer;
-ici_DeleteAction      integer:=i_isdeleteaction*8;
+             ici_TopicID		integer;
+             ici_ForumID		integer;
+             ici_MessageCount	integer;
+             ici_LastMessageID	integer;
+             ici_userid		    integer;
+             ici_DeleteAction   integer:=i_isdeleteaction*8;
 BEGIN
  	-- Find TopicID and ForumID
  	SELECT b.topicid,b.forumid,a.userid 
@@ -5092,20 +5209,20 @@ $BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_message_findunread(integer, timestamp with time zone)
+-- Function: databaseSchema.objectQualifier_message_findunread(integer, timestampTZ )
 
--- DROP FUNCTION databaseSchema.objectQualifier_message_findunread(integer, timestamp with time zone);
+-- DROP FUNCTION databaseSchema.objectQualifier_message_findunread(integer, timestampTZ );
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_findunread(
-i_topicid integer, 
-i_messageid integer,
-i_lastread timestamp with time zone,
-i_showdeleted boolean,
-i_authoruserid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_message_findunread_return_type AS
+                           i_topicid integer,
+						   i_messageid integer,
+						   i_lastread timestampTZ,
+						   i_showdeleted boolean,
+						   i_authoruserid integer)
+                 RETURNS SETOF databaseSchema.objectQualifier_message_findunread_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_message_findunread_return_type%ROWTYPE;
-_candidatrow databaseSchema.objectQualifier_message_findunread_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_message_findunread_return_type%ROWTYPE;
+             _candidatrow databaseSchema.objectQualifier_message_findunread_return_type%ROWTYPE;
 
 ici_firstmessageid integer;
 cntrt integer := 1; 
@@ -5186,10 +5303,11 @@ END LOOP;
 
 -- DROP FUNCTION databaseSchema.objectQualifier_message_getReplies(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_getReplies(i_messageid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_message_getReplies_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_getReplies(
+                           i_messageid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_message_getReplies_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_message_getReplies_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_message_getReplies_return_type%ROWTYPE;
 BEGIN
  FOR _rec IN 
  SELECT messageid 
@@ -5208,11 +5326,13 @@ END LOOP;
 
 -- DROP FUNCTION databaseSchema.objectQualifier_message_getReplies(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_secdata(i_messageid integer,i_pageuserid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_message_secdata_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_secdata(
+                           i_messageid integer,
+						   i_pageuserid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_message_secdata_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_message_secdata_return_type%ROWTYPE;
-ici_pageuserid integer:=i_pageuserid; 
+             _rec databaseSchema.objectQualifier_message_secdata_return_type%ROWTYPE;
+             ici_pageuserid integer:=i_pageuserid; 
 BEGIN
 -- BoardID=@BoardID and
 if (ici_pageuserid is null) THEN
@@ -5261,10 +5381,11 @@ END IF;
 
 -- DROP FUNCTION databaseSchema.objectQualifier_message_list(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_list(i_messageid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_message_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_list(
+                           i_messageid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_message_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_message_list_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_message_list_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN
  	SELECT
@@ -5314,10 +5435,11 @@ END LOOP;
 
 -- DROP FUNCTION databaseSchema.objectQualifier_message_listreported(integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_listreported(i_forumid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_message_listreported_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_listreported(
+                           i_forumid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_message_listreported_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_message_listreported_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_message_listreported_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN
  	SELECT
@@ -5363,23 +5485,19 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_message_move(integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_move(i_messageid integer, i_movetotopic integer)
-  RETURNS void AS
-$BODY$DECLARE
-ref_mmov refcursor;
- ici_Position integer;
-ici_ReplyToID integer;
-ici_OldTopicID integer;
-ici_OldForumID integer;
-ici_NewForumID	integer;
-ici_MessageCount integer;
-ici_LastMessageID integer;
-BEGIN
-
- 
- 	/*Find topicid and Forumid
- SELECT b.topicid,b.forumid INTO ici_ForumID,ici_OldTopicID
-        FROM databaseSchema.objectQualifier_message a,objectQualifier_topic b WHERE a.messageid=i_MessageID and b.topicid=a.topicid;*/
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_move(
+                           i_messageid integer, 
+						   i_movetotopic integer)
+                  RETURNS void AS
+$BODY$DECLARE            
+             ici_Position integer;
+             ici_ReplyToID integer;
+             ici_OldTopicID integer;
+             ici_OldForumID integer;
+             ici_NewForumID	integer;
+             ici_MessageCount integer;
+             ici_LastMessageID integer;
+BEGIN 
 
 SELECT    forumid INTO ici_NewForumID
  				FROM         databaseSchema.objectQualifier_topic
@@ -5478,10 +5596,11 @@ IF ici_Position IS NULL THEN  ici_Position := 0; END IF;
 
 -- DROP FUNCTION databaseSchema.objectQualifier_message_reply_list(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_reply_list(i_messageid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_message_reply_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_reply_list(
+                           i_messageid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_message_reply_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_message_reply_list_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_message_reply_list_return_type%ROWTYPE;
 BEGIN
  	
  /*SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;*/
@@ -5514,10 +5633,12 @@ $BODY$
 --GO
 -- DROP FUNCTION databaseSchema.objectQualifier_message_reply_list(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_listreporters(i_messageid integer, i_userid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_message_listreporters_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_listreporters(
+                           i_messageid integer, 
+						   i_userid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_message_listreporters_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_message_listreporters_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_message_listreporters_return_type%ROWTYPE;
 BEGIN
 IF i_userid > 0 THEN
 	FOR _rec IN
@@ -5545,12 +5666,16 @@ $BODY$
   ROWS 1000;  
 --GO
 
--- Function: databaseSchema.objectQualifier_message_report(integer, integer, integer, timestamp with time zone)
+-- Function: databaseSchema.objectQualifier_message_report(integer, integer, integer, timestampTZ )
 
--- DROP FUNCTION databaseSchema.objectQualifier_message_report(integer, integer, integer, timestamp with time zone);
+-- DROP FUNCTION databaseSchema.objectQualifier_message_report(integer, integer, integer, timestampTZ );
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_report(i_messageid integer, i_reporterid integer, i_reporteddate timestamp with time zone, i_reporttext character varying(4000))
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_report(
+                           i_messageid integer, 
+						   i_reporterid integer, 
+						   i_reporteddate timestampTZ, 
+						   i_reporttext varchar(4000))
+                  RETURNS void AS
 $BODY$
 BEGIN 	
  	IF NOT EXISTS (SELECT messageid from 
@@ -5558,9 +5683,9 @@ BEGIN
      WHERE messageid=i_messageid AND 
      userid=i_reporterid LIMIT 1) THEN
  		INSERT INTO databaseSchema.objectQualifier_messagereportedaudit
-         (messageid,userid,reported, reporttext) VALUES (i_messageid,i_reporterid,i_reporteddate, current_timestamp at time zone 'UTC'::character varying(40) || '??' || i_reporttext ); 
+         (messageid,userid,reported, reporttext) VALUES (i_messageid,i_reporterid,i_reporteddate, current_timestamp at time zone 'UTC'::varchar(40) || '??' || i_reporttext ); 
     ELSE
-        UPDATE databaseSchema.objectQualifier_messagereportedaudit SET reportednumber = ( CASE WHEN reportednumber < 2147483647 THEN  reportednumber  + 1 ELSE reportednumber END ), reported = i_reporteddate,  reporttext = (CASE WHEN (LENGTH(reporttext) + LENGTH(i_reporttext ) + 255 < 4000)  THEN  reporttext ||  '|' || CAST(current_timestamp at time zone 'UTC' as character varying(40)) || '??' ||  i_reporttext END) WHERE messageid=i_messageid AND userid=i_reporterid; 
+        UPDATE databaseSchema.objectQualifier_messagereportedaudit SET reportednumber = ( CASE WHEN reportednumber < 2147483647 THEN  reportednumber  + 1 ELSE reportednumber END ), reported = i_reporteddate,  reporttext = (CASE WHEN (LENGTH(reporttext) + LENGTH(i_reporttext ) + 255 < 4000)  THEN  reporttext ||  '|' || CAST(current_timestamp at time zone 'UTC' as varchar(40)) || '??' ||  i_reporttext END) WHERE messageid=i_messageid AND userid=i_reporterid; 
 	END IF;
 
  	IF NOT EXISTS (SELECT messageid FROM databaseSchema.objectQualifier_messagereported 
@@ -5590,10 +5715,11 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_message_reportcopyover(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_reportcopyover(i_messageid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_reportcopyover(
+                           i_messageid integer)
+                  RETURNS void AS
 $BODY$DECLARE
-ici_Message text;
+             ici_Message text;
 BEGIN
 SELECT m.message INTO ici_Message
 FROM databaseSchema.objectQualifier_messagereported mr
@@ -5614,8 +5740,11 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_message_reportresolve(integer, integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_reportresolve(i_messageflag integer, i_messageid integer, i_userid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_reportresolve(
+                           i_messageflag integer, 
+						   i_messageid integer, 
+						   i_userid integer)
+                  RETURNS void AS
 $BODY$
 BEGIN
  	UPDATE databaseSchema.objectQualifier_messagereported
@@ -5631,35 +5760,34 @@ BEGIN
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_message_save(integer, integer, text, character varying, character varying, timestamp with time zone, integer, character varying, integer)
+-- Function: databaseSchema.objectQualifier_message_save(integer, integer, text, varchar, varchar, timestampTZ, integer, varchar, integer)
 
--- DROP FUNCTION databaseSchema.objectQualifier_message_save(integer, integer, text, character varying, character varying, timestamp with time zone, integer, character varying, integer);
+-- DROP FUNCTION databaseSchema.objectQualifier_message_save(integer, integer, text, varchar, varchar, timestampTZ, integer, varchar, integer);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_save(
                            i_topicid integer, 
 						   i_userid integer, 
 						   i_message text, 
-						   i_username character varying, 
-						   i_ip character varying, 
-						   i_posted timestamp with time zone, 
+						   i_username varchar, 
+						   i_ip varchar, 
+						   i_posted timestampTZ, 
 						   i_replyto integer, 
-						   i_blogpostid character varying, 
-						   i_externalmessageid character varying(255),
-						   i_referencemessageid character varying(255),
+						   i_blogpostid varchar, 
+						   i_externalmessageid varchar(255),
+						   i_referencemessageid varchar(255),
 						   i_flags integer
 						   )
-                   RETURNS integer AS
+                  RETURNS integer AS
 $BODY$DECLARE
-i_messageid integer;
-ici_ForumID integer;
-ici_ForumFlags integer;
-ici_Position integer;
-ici_Indent integer;
-ici_temp integer;
-irr integer;
-ici_Posted timestamp:=i_posted;
-ici_ReplyTo int:=i_replyto;
--- _rec databaseSchema.objectQualifier_message_save_return_type;
+             i_messageid integer;
+             ici_ForumID integer;
+             ici_ForumFlags integer;
+             ici_Position integer;
+             ici_Indent integer;
+             ici_temp integer;
+             irr integer;
+             ici_Posted timestamp:=i_posted;
+             ici_ReplyTo int:=i_replyto;
 BEGIN
  
  	IF ici_Posted IS NULL THEN
@@ -5755,11 +5883,13 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_message_simplelist(integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_simplelist(i_startid integer, i_limit integer)
-  RETURNS SETOF databaseSchema.objectQualifier_message_simplelist_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_simplelist(
+                           i_startid integer, 
+						   i_limit integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_message_simplelist_return_type AS
 $BODY$DECLARE
-cntr integer:=0;
-_rec databaseSchema.objectQualifier_message_simplelist_return_type%ROWTYPE;
+             cntr integer:=0;
+             _rec databaseSchema.objectQualifier_message_simplelist_return_type%ROWTYPE;
 BEGIN     
        FOR _rec IN      
 SELECT  m.messageid,
@@ -5784,10 +5914,11 @@ RETURN;
 
 -- DROP FUNCTION databaseSchema.objectQualifier_message_unapproved(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_unapproved(i_forumid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_message_unapproved_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_unapproved(
+                           i_forumid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_message_unapproved_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_message_unapproved_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_message_unapproved_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN
       SELECT
@@ -5821,33 +5952,33 @@ $BODY$
   COST 100 ROWS 1000; 
 --GO
 
--- Function: databaseSchema.objectQualifier_message_update(integer, integer, character varying, integer, text, character varying, boolean, boolean)
+-- Function: databaseSchema.objectQualifier_message_update(integer, integer, varchar, integer, text, varchar, boolean, boolean)
 
--- DROP FUNCTION databaseSchema.objectQualifier_message_update(integer, integer, character varying, integer, text, character varying, boolean, boolean);
+-- DROP FUNCTION databaseSchema.objectQualifier_message_update(integer, integer, varchar, integer, text, varchar, boolean, boolean);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_update
                            (
                            i_messageid integer, 
 						   i_priority integer, 
-						   i_subject character varying, 
-						   i_description character varying, 
-						   i_status character varying, 
-						   i_styles character varying,
+						   i_subject varchar, 
+						   i_description varchar, 
+						   i_status varchar, 
+						   i_styles varchar,
 						   i_flags integer, 
 						   i_message text, 
-						   i_reason character varying, 
+						   i_reason varchar, 
 						   i_editedby integer, 
 						   i_ismoderatorchanged boolean, 
 						   i_overrideapproval boolean, 
 						   i_originalmessage text,
 						   i_newguid uuid,
-						   i_utctimestamp timestamp with time zone)
-  RETURNS void AS
+						   i_utctimestamp timestampTZ )
+                  RETURNS void AS
 $BODY$DECLARE
-ici_TopicID	integer;
-ici_ForumFlags	integer;
-ici_flags integer:= i_flags & ~16;
-intNull integer;
+             ici_TopicID	integer;
+             ici_ForumFlags	integer;
+             ici_flags integer:= i_flags & ~16;
+             intNull integer;
 BEGIN		
  	
  	SELECT 
@@ -5927,8 +6058,9 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_nntpforum_delete(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntpforum_delete(i_nntpforumid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntpforum_delete(
+                           i_nntpforumid integer)
+                  RETURNS void AS
 $BODY$
 BEGIN
 DELETE FROM databaseSchema.objectQualifier_nntptopic where nntpforumid = i_nntpforumid;
@@ -5942,11 +6074,15 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_nntpforum_list(integer, integer, integer, boolean);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntpforum_list(i_boardid integer, i_minutes integer, i_nntpforumid integer, i_active boolean)
-  RETURNS SETOF databaseSchema.objectQualifier_nntpforum_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntpforum_list(
+                           i_boardid integer, 
+						   i_minutes integer, 
+						   i_nntpforumid integer, 
+						   i_active boolean)
+                  RETURNS SETOF databaseSchema.objectQualifier_nntpforum_list_return_type AS
 $BODY$DECLARE
-i_tmptimestmp timestamp with time zone;
-_rec databaseSchema.objectQualifier_nntpforum_list_return_type%ROWTYPE;
+             i_tmptimestmp timestampTZ ;
+             _rec databaseSchema.objectQualifier_nntpforum_list_return_type%ROWTYPE;
 BEGIN
  FOR _rec IN	
  SELECT
@@ -5990,17 +6126,17 @@ END;$BODY$
   ROWS 1000; 
 --GO
 
--- Function: databaseSchema.objectQualifier_nntpforum_save(integer, integer, character varying, character varying, boolean)
+-- Function: databaseSchema.objectQualifier_nntpforum_save(integer, integer, varchar, varchar, boolean)
 
--- DROP FUNCTION databaseSchema.objectQualifier_nntpforum_save(integer, integer, character varying, character varying, boolean);
+-- DROP FUNCTION databaseSchema.objectQualifier_nntpforum_save(integer, integer, varchar, varchar, boolean);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntpforum_save(
                            i_nntpforumid integer, 
 						   i_nntpserverid integer, 
-						   i_groupname character varying,
+						   i_groupname varchar,
 						   i_forumid integer, 
 						   i_active boolean,
-						   i_datecutoff timestamp with time zone)
+						   i_datecutoff timestampTZ )
                   RETURNS void AS
 $BODY$
 BEGIN
@@ -6035,10 +6171,13 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_nntpforum_update(integer, integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntpforum_update(i_nntpforumid integer, i_lastmessageno integer, i_userid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntpforum_update(
+                           i_nntpforumid integer, 
+						   i_lastmessageno integer, 
+						   i_userid integer)
+                  RETURNS void AS
 $BODY$DECLARE	
-ici_ForumID	integer;
+             ici_ForumID	integer;
 BEGIN 	
  	SELECT forumid INTO ici_ForumID from databaseSchema.objectQualifier_nntpforum where nntpforumid=i_nntpforumid;
  
@@ -6067,8 +6206,9 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_nntpserver_delete(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntpserver_delete(i_nntpserverid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntpserver_delete(
+                           i_nntpserverid integer)
+                  RETURNS void AS
 $BODY$
 BEGIN
  	DELETE FROM databaseSchema.objectQualifier_nntptopic WHERE nntpforumid IN (SELECT 
@@ -6087,10 +6227,12 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_nntpserver_list(integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntpserver_list(i_boardid integer, i_nntpserverid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_nntpserver_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntpserver_list(
+                           i_boardid integer, 
+						   i_nntpserverid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_nntpserver_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_nntpserver_list_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_nntpserver_list_return_type%ROWTYPE;
 BEGIN
 
  	IF i_nntpserverid IS NULL THEN
@@ -6119,8 +6261,15 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_nntpserver_save(integer, integer, integer, integer, integer, integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntpserver_save(i_nntpserverid integer, i_boardid integer, i_name character varying, i_address character varying, i_port integer, i_username character varying, i_userpass character varying)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntpserver_save(
+                           i_nntpserverid integer, 
+						   i_boardid integer, 
+						   i_name varchar, 
+						   i_address varchar, 
+						   i_port integer, 
+						   i_username varchar, 
+						   i_userpass varchar)
+                  RETURNS void AS
 $BODY$
 BEGIN
  	IF i_nntpserverid IS NULL THEN
@@ -6147,10 +6296,11 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_nntptopic_list(character);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntptopic_list(i_thread character varying(64))
-  RETURNS SETOF databaseSchema.objectQualifier_nntptopic_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntptopic_list(
+                           i_thread varchar(64))
+                  RETURNS SETOF databaseSchema.objectQualifier_nntptopic_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_nntptopic_list_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_nntptopic_list_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN
 	SELECT
@@ -6169,32 +6319,30 @@ $BODY$
   COST 100 ROWS 1000; 
 --GO
 
--- Function: databaseSchema.objectQualifier_nntptopic_savemessage(integer, character varying, text, integer, character varying, character varying, timestamp with time zone, character varying)
+-- Function: databaseSchema.objectQualifier_nntptopic_savemessage(integer, varchar, text, integer, varchar, varchar, timestampTZ, varchar)
 
--- DROP FUNCTION databaseSchema.objectQualifier_nntptopic_savemessage(integer, character varying, text, integer, character varying, character varying, timestamp with time zone, character varying);
+-- DROP FUNCTION databaseSchema.objectQualifier_nntptopic_savemessage(integer, varchar, text, integer, varchar, varchar, timestampTZ, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_nntptopic_savemessage(
                            i_nntpforumid integer, 
-						   i_topic character varying, 
+						   i_topic varchar, 
 						   i_body text, 
 						   i_userid integer, 
-						   i_username character varying, 
-						   i_ip character varying, 
-						   i_posted timestamp with time zone, 
-						   i_externalmessageid character varying(255),
-						   i_referencemessageid character varying(255))
+						   i_username varchar, 
+						   i_ip varchar, 
+						   i_posted timestampTZ, 
+						   i_externalmessageid varchar(255),
+						   i_referencemessageid varchar(255))
                   RETURNS void AS
 $BODY$DECLARE
-ici_ForumID	integer;
-ici_TopicID	integer := null;
-ici_MessageID	integer;
-ici_ParentID integer;
--- ici_thread char(32)=i_thread;
-ici_replyto	integer:=null;
-varchardummy character varying(128):=NULL;
-
-BEGIN
- 	
+             ici_ForumID	integer;
+             ici_TopicID	integer := null;
+             ici_MessageID	integer;
+             ici_ParentID integer;
+          -- ici_thread char(32)=i_thread;
+             ici_replyto	integer:=null;
+             varchardummy varchar(128):=NULL;
+BEGIN 	
  
  	SELECT forumid INTO ici_ForumID 
  	FROM databaseSchema.objectQualifier_nntpforum WHERE nntpforumid=i_nntpforumid;
@@ -6282,9 +6430,10 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_pmessage_archive(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_archive(i_userpmessageid integer)
-  RETURNS void AS
-$BODY$DECLARE
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_archive(
+                           i_userpmessageid integer)
+                  RETURNS void AS
+$BODY$
 BEGIN
  	/* set IsArchived boolean */
 	UPDATE databaseSchema.objectQualifier_userpmessage 
@@ -6302,12 +6451,13 @@ AND CAST(CAST(SIGN(flags & 4) AS char(1))AS boolean) IS FALSE;
 
 -- DROP FUNCTION databaseSchema.objectQualifier_pmessage_delete(integer, boolean);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_delete(i_userpmessageid integer, i_fromoutbox boolean)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_delete(
+                           i_userpmessageid integer, 
+						   i_fromoutbox boolean)
+                  RETURNS void AS
 $BODY$DECLARE 
-ici_PMessageID integer;
-ici_msgcount integer;
-
+             ici_PMessageID integer;
+             ici_msgcount integer;
 BEGIN 	 
  
  	SELECT pmessageid INTO ici_PMessageID 
@@ -6365,9 +6515,9 @@ $BODY$
 -- DROP FUNCTION databaseSchema.objectQualifier_pmessage_info();
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_info()
-  RETURNS SETOF databaseSchema.objectQualifier_pmessage_info_return_type AS
+                  RETURNS SETOF databaseSchema.objectQualifier_pmessage_info_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_pmessage_info_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_pmessage_info_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN
 	SELECT
@@ -6390,7 +6540,10 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_pmessage_list(integer, integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_list(i_touserid integer,i_fromuserid integer,  i_userpmessageid integer)
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_list(
+                           i_touserid integer,
+						   i_fromuserid integer,  
+						   i_userpmessageid integer)
                   RETURNS SETOF databaseSchema.objectQualifier_pmessage_list_return_type AS
 $BODY$DECLARE
              _rec databaseSchema.objectQualifier_pmessage_list_return_type%ROWTYPE;
@@ -6438,8 +6591,9 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_pmessage_markread(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_markread(i_userpmessageid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_markread(
+                           i_userpmessageid integer)
+                  RETURNS void AS
 'UPDATE databaseSchema.objectQualifier_userpmessage 
  	SET flags = flags | 1 	
  	WHERE userpmessageid = $1 
@@ -6448,12 +6602,10 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_markread(i_us
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_pmessage_prune(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_pmessage_prune(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_prune(i_daysread integer, i_daysunread integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_prune(
+                           i_daysread integer, 
+						   i_daysunread integer)
+                  RETURNS void AS
 $BODY$
 BEGIN
  	DELETE FROM databaseSchema.objectQualifier_userpmessage 	 
@@ -6478,15 +6630,20 @@ $BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_pmessage_save(integer, integer, character varying, text, integer)
+-- Function: databaseSchema.objectQualifier_pmessage_save(integer, integer, varchar, text, integer)
 
--- DROP FUNCTION databaseSchema.objectQualifier_pmessage_save(integer, integer, character varying, text, integer);
+-- DROP FUNCTION databaseSchema.objectQualifier_pmessage_save(integer, integer, varchar, text, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_save(i_fromuserid integer, i_touserid integer, i_subject character varying, i_body text, i_flags integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_save(
+                           i_fromuserid integer, 
+						   i_touserid integer, 
+						   i_subject varchar, 
+						   i_body text, 
+						   i_flags integer)
+                  RETURNS void AS
 $BODY$DECLARE
- ici_PMessageID integer;
- ici_userid integer;
+             ici_PMessageID integer;
+             ici_userid integer;
 BEGIN	
  
  	INSERT INTO databaseSchema.objectQualifier_pmessage
@@ -6533,15 +6690,14 @@ END;$BODY$
 -- DROP FUNCTION databaseSchema.objectQualifier_poll_remove(integer);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_poll_remove(
-i_pollgroupid integer,
-i_pollid integer,
-i_boardid integer,
-i_removecompletely boolean,
-i_removeeverywhere boolean
-)
-  RETURNS void AS
+                           i_pollgroupid integer,
+						   i_pollid integer,
+						   i_boardid integer,
+						   i_removecompletely boolean,
+						   i_removeeverywhere boolean)
+                  RETURNS void AS
 $BODY$DECLARE
-ici_groupcount int;
+             ici_groupcount int;
 BEGIN
 	if i_removecompletely IS TRUE then
 	
@@ -6574,22 +6730,21 @@ $BODY$
   COST 100;  
 --GO
 
--- Function: databaseSchema.objectQualifier_poll_save(character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, time with time zone)
+-- Function: databaseSchema.objectQualifier_poll_save(varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, time with time zone)
 
--- DROP FUNCTION databaseSchema.objectQualifier_poll_save(character varying, timestamp with time zone);
+-- DROP FUNCTION databaseSchema.objectQualifier_poll_save(varchar, timestampTZ );
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_poll_save(
-i_question character varying, 
-i_closes timestamp with time zone,
-i_userid integer,
-i_pollgroupid integer,
-i_objectpath character varying,
-i_mimetype  character varying,
-i_flags integer)
-  RETURNS  integer AS
+                           i_question varchar,
+						   i_closes timestampTZ,
+						   i_userid integer,
+						   i_pollgroupid integer,
+						   i_objectpath varchar,
+						   i_mimetype  varchar,
+						   i_flags integer)
+                  RETURNS  integer AS
 $BODY$DECLARE
-ici_PollID	integer;
-it integer;
+             ici_PollID	integer;            
 BEGIN 	 
  	INSERT INTO databaseSchema.objectQualifier_poll(question,closes,userid,pollgroupid,objectpath,mimetype, flags) 
  	VALUES(i_question,i_closes,i_userid,i_pollgroupid,i_objectpath,i_mimetype, i_flags) RETURNING pollid INTO ici_PollID; 	
@@ -6604,13 +6759,12 @@ END;$BODY$
 -- DROP FUNCTION databaseSchema.objectQualifier_poll_stats(integer);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_poll_stats(i_pollid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_poll_stats_return_type AS
-$BODY$
-DECLARE
-iciCase integer;
-iciCount integer;
-iciStats integer;
-_rec databaseSchema.objectQualifier_poll_stats_return_type%ROWTYPE;
+                  RETURNS SETOF databaseSchema.objectQualifier_poll_stats_return_type AS
+$BODY$DECLARE
+             iciCase integer;
+             iciCount integer;
+             iciStats integer;
+             _rec databaseSchema.objectQualifier_poll_stats_return_type%ROWTYPE;
 BEGIN 
 SELECT SUM(x.votes) INTO iciCase
 FROM   databaseSchema.objectQualifier_choice x
@@ -6663,14 +6817,14 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_pollgroup_stats(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pollgroup_stats(i_pollgroupid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_pollgroup_stats_return_type AS
-$BODY$
-DECLARE
-iciCase integer;
-iciCount integer;
-iciStats integer;
-_rec databaseSchema.objectQualifier_pollgroup_stats_return_type%ROWTYPE;
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pollgroup_stats(
+                           i_pollgroupid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_pollgroup_stats_return_type AS
+$BODY$DECLARE
+             iciCase integer;
+			 iciCount integer;
+			 iciStats integer;
+			 _rec databaseSchema.objectQualifier_pollgroup_stats_return_type%ROWTYPE;
 BEGIN 
 
 FOR _rec IN
@@ -6723,13 +6877,12 @@ END;$BODY$
 -- DROP FUNCTION databaseSchema.objectQualifier_pollgroup_votecheck(integer);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pollgroup_votecheck(
-i_pollgroupid integer, 
-i_userid integer, 
-i_remoteip varchar(39))
-  RETURNS SETOF databaseSchema.objectQualifier_pollgroup_votecheck_return_type AS
-$BODY$
-DECLARE
-_rec databaseSchema.objectQualifier_pollgroup_votecheck_return_type%ROWTYPE;
+                           i_pollgroupid integer,
+						   i_userid integer,
+						   i_remoteip varchar(39))
+                  RETURNS SETOF databaseSchema.objectQualifier_pollgroup_votecheck_return_type AS
+$BODY$DECLARE
+             _rec databaseSchema.objectQualifier_pollgroup_votecheck_return_type%ROWTYPE;
 BEGIN 
 	IF i_userid IS NULL then	  
 		IF i_remoteip IS NOT NULL then		
@@ -6779,27 +6932,25 @@ END;$BODY$
   ROWS 1000;
 --GO
 
--- Function: databaseSchema.objectQualifier_poll_update(integer, character varying, timestamp with time zone)
+-- Function: databaseSchema.objectQualifier_poll_update(integer, varchar, timestampTZ )
 
--- DROP FUNCTION databaseSchema.objectQualifier_poll_update(integer, character varying, timestamp with time zone);
+-- DROP FUNCTION databaseSchema.objectQualifier_poll_update(integer, varchar, timestampTZ );
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_poll_update(
-i_pollid integer, 
-i_question character varying, 
-i_closes timestamp with time zone,
-i_questionobjectpath character varying,
-i_questionmimetype character varying,
-i_isbounded boolean,
-i_isclosedbounded boolean,
-i_allowmultiplechoices boolean,
-i_showvoters boolean,
-i_allowskipvote boolean 
-)
- RETURNS void AS
-$BODY$
-DECLARE
-	ici_pgid integer;
-	ici_flags integer;
+                           i_pollid integer,
+						   i_question varchar,
+						   i_closes timestampTZ,
+						   i_questionobjectpath varchar,
+						   i_questionmimetype varchar,
+						   i_isbounded boolean,
+						   i_isclosedbounded boolean,
+						   i_allowmultiplechoices boolean,
+						   i_showvoters boolean,
+						   i_allowskipvote boolean)
+                  RETURNS void AS
+$BODY$DECLARE
+	         ici_pgid integer;
+			 ici_flags integer;
 BEGIN
 		update databaseSchema.objectQualifier_poll
 		set flags = 0 where pollid = i_pollid AND flags IS NULL;
@@ -6855,14 +7006,17 @@ END;$BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_pollvote_check(integer, integer, character varying)
+-- Function: databaseSchema.objectQualifier_pollvote_check(integer, integer, varchar)
 
--- DROP FUNCTION databaseSchema.objectQualifier_pollvote_check(integer, integer, character varying);
+-- DROP FUNCTION databaseSchema.objectQualifier_pollvote_check(integer, integer, varchar);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pollvote_check(i_pollid integer, i_userid integer, i_remoteip character varying)
-  RETURNS SETOF databaseSchema.objectQualifier_pollvote_check_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pollvote_check(
+                           i_pollid integer, 
+						   i_userid integer, 
+						   i_remoteip varchar)
+                  RETURNS SETOF databaseSchema.objectQualifier_pollvote_check_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_pollvote_check_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_pollvote_check_return_type%ROWTYPE;
 BEGIN
  	IF i_userid IS NULL THEN 	
  		IF i_remoteip IS NOT NULL THEN 		
@@ -6893,11 +7047,15 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_post_last10user(integer, integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_post_alluser(i_boardid integer, i_userid integer, i_pageuserid integer, i_topcount integer)
-  RETURNS SETOF databaseSchema.objectQualifier_post_alluser_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_post_alluser(
+                           i_boardid integer, 
+						   i_userid integer, 
+						   i_pageuserid integer, 
+						   i_topcount integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_post_alluser_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_post_alluser_type%ROWTYPE;
-_counter integer:=1;
+             _rec databaseSchema.objectQualifier_post_alluser_type%ROWTYPE;
+			 _counter integer:=1;
 BEGIN
         FOR _rec IN
         SELECT DISTINCT a.posted,
@@ -6948,43 +7106,39 @@ $BODY$
 -- DROP FUNCTION databaseSchema.objectQualifier_post_list(integer, smallint, boolean);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_post_list(
-     i_topicid integer,
-				 i_authoruserid int,
-				i_updateviewcount smallint,
-				i_showdeleted boolean,
-				i_stylednicks boolean, 
-				i_sinceposteddate timestamp with time zone, 
-				i_toposteddate timestamp with time zone, 
-				i_sinceediteddate timestamp with time zone, 
-				i_toediteddate timestamp with time zone, 
-				i_pageindex integer, 
-				i_pagesize integer, 
-				i_sortposted integer, 
-				i_sortedited  integer,
-				i_sortposition  integer,				
-				i_showthanks boolean,
-				i_messageposition integer
- 
-)
-  RETURNS SETOF databaseSchema.objectQualifier_post_list_type AS
+                           i_topicid integer,
+						   i_authoruserid int,
+						   i_updateviewcount smallint,
+						   i_showdeleted boolean,
+						   i_stylednicks boolean,
+						   i_sinceposteddate timestampTZ,
+						   i_toposteddate timestampTZ,
+						   i_sinceediteddate timestampTZ,
+						   i_toediteddate timestampTZ,
+						   i_pageindex integer,
+						   i_pagesize integer,
+						   i_sortposted integer,
+						   i_sortedited  integer,
+						   i_sortposition  integer,
+						   i_showthanks boolean,
+						   i_messageposition integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_post_list_type AS
 $BODY$DECLARE
-ici_sortposted integer := i_sortposted;
-ici_pageindex integer := i_pageindex;
-_rec databaseSchema.objectQualifier_post_list_type%ROWTYPE;
-
- ici_post_totalrowsnumber integer:=0; 
- ici_firstselectrownum integer:= 0;  
- ici_firstselectposted timestamp with time zone;
- ici_firstselectedited timestamp with time zone;
- ici_floor decimal :=0;
- ici_ceiling decimal := 0;
- ici_newpageindex integer;
- ici_offset integer:=0;    
- ici_pagecorrection integer:=0;
- ici_pageshift integer:=0;
- ici_counter integer := 0;
- ici_retcount integer := 0;
-
+             ici_sortposted integer := i_sortposted;
+			 ici_pageindex integer := i_pageindex;
+			 _rec databaseSchema.objectQualifier_post_list_type%ROWTYPE;
+			 ici_post_totalrowsnumber integer:=0;
+			 ici_firstselectrownum integer:= 0;
+			 ici_firstselectposted timestampTZ ;
+			 ici_firstselectedited timestampTZ ;
+			 ici_floor decimal :=0;
+			 ici_ceiling decimal := 0;
+			 ici_newpageindex integer;
+			 ici_offset integer:=0;
+			 ici_pagecorrection integer:=0;
+			 ici_pageshift integer:=0;
+			 ici_counter integer := 0;
+			 ici_retcount integer := 0;
 BEGIN
 
 if (ici_sortposted IS NULL) then
@@ -7207,11 +7361,11 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_post_list_reverse10(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_post_list_reverse10(i_topicid integer)
-  RETURNS SETOF databaseSchema.post_list_reverse10_return_type AS
-$BODY$
-DECLARE
-_rec databaseSchema.post_list_reverse10_return_type%ROWTYPE;
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_post_list_reverse10(
+                           i_topicid integer)
+                  RETURNS SETOF databaseSchema.post_list_reverse10_return_type AS
+$BODY$DECLARE
+             _rec databaseSchema.post_list_reverse10_return_type%ROWTYPE;
 BEGIN
  	/*set nocount on*/
  -- SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
@@ -7247,8 +7401,9 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_rank_delete(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_rank_delete(i_rankid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_rank_delete(
+                           i_rankid integer)
+                  RETURNS void AS
 'DELETE from databaseSchema.objectQualifier_rank 
 	where rankid = $1;'
   LANGUAGE 'sql' VOLATILE SECURITY DEFINER
@@ -7259,10 +7414,12 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_rank_delete(i_rankid i
 
 -- DROP FUNCTION databaseSchema.objectQualifier_rank_list(integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_rank_list(i_boardid integer, i_rankid integer)
-  RETURNS SETOF databaseSchema.rank_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_rank_list(
+                           i_boardid integer, 
+						   i_rankid integer)
+                  RETURNS SETOF databaseSchema.rank_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.rank_list_return_type%ROWTYPE; 
+             _rec databaseSchema.rank_list_return_type%ROWTYPE; 
 BEGIN
  	IF i_rankid IS NULL THEN
            FOR _rec IN
@@ -7296,30 +7453,31 @@ END;$BODY$
   COST 100 ROWS 1000; 
 --GO
 
--- Function: databaseSchema.objectQualifier_rank_save(integer, integer, character varying, boolean, boolean, integer, character varying)
+-- Function: databaseSchema.objectQualifier_rank_save(integer, integer, varchar, boolean, boolean, integer, varchar)
 
--- DROP FUNCTION databaseSchema.objectQualifier_rank_save(integer, integer, character varying, boolean, boolean, integer, character varying);
+-- DROP FUNCTION databaseSchema.objectQualifier_rank_save(integer, integer, varchar, boolean, boolean, integer, varchar);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_rank_save(i_rankid integer, 
-           i_boardid integer, 
-           i_name character varying, 
-           i_isstart boolean, 
-           i_isladder boolean, 
-           i_minposts integer, 
-           i_rankimage character varying, 
-           i_pmlimit integer, 
-           i_style character varying(255), 
-           i_sortorder smallint,           
-           i_description varchar(128),
-           i_usrsigchars integer,
-	       i_usrsigbbcodes	varchar(255),
-	       i_usrsightmltags varchar(255),
-	       i_usralbums integer,
-	       i_usralbumimages integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_rank_save(
+                           i_rankid integer,
+						   i_boardid integer,
+						   i_name varchar,
+						   i_isstart boolean,
+						   i_isladder boolean,
+						   i_minposts integer,
+						   i_rankimage varchar,
+						   i_pmlimit integer,
+						   i_style varchar(255),
+						   i_sortorder smallint,
+						   i_description varchar(128),
+						   i_usrsigchars integer,
+						   i_usrsigbbcodes	varchar(255),
+						   i_usrsightmltags varchar(255),
+						   i_usralbums integer,
+						   i_usralbumimages integer)
+                 RETURNS void AS
 $BODY$DECLARE
-ici_flags integer:=0;
-i_MinPosts integer:=i_minposts;
+             ici_flags integer:=0;
+             i_MinPosts integer:=i_minposts;
 BEGIN 
  	IF i_isladder IS FALSE THEN  
  	i_MinPosts := NULL; 
@@ -7392,14 +7550,12 @@ $BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_registry_list(character varying, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_registry_list(character varying, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_registry_list(i_name character varying, i_boardid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_registry_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_registry_list(
+                           i_name varchar, 
+						   i_boardid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_registry_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_registry_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_registry_return_type%ROWTYPE;
 BEGIN
  	IF i_boardid IS NULL THEN
  	
@@ -7443,12 +7599,15 @@ $BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_registry_save(character varying, text, integer)
+-- Function: databaseSchema.objectQualifier_registry_save(varchar, text, integer)
 
--- DROP FUNCTION databaseSchema.objectQualifier_registry_save(character varying, text, integer);
+-- DROP FUNCTION databaseSchema.objectQualifier_registry_save(varchar, text, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_registry_save(i_name character varying, i_value text, i_boardid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_registry_save(
+                           i_name varchar, 
+						   i_value text, 
+						   i_boardid integer)
+                  RETURNS void AS
 $BODY$
 BEGIN
         
@@ -7500,8 +7659,9 @@ BEGIN
 
 -- DROP FUNCTION databaseSchema.objectQualifier_replace_words_delete(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_replace_words_delete(i_id integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_replace_words_delete(
+                           i_id integer)
+                  RETURNS void AS
 'DELETE FROM databaseSchema.objectQualifier_replace_words 
 WHERE id = $1;'
   LANGUAGE 'sql' VOLATILE SECURITY DEFINER
@@ -7512,10 +7672,12 @@ WHERE id = $1;'
 
 -- DROP FUNCTION databaseSchema.objectQualifier_replace_words_list(integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_replace_words_list(i_boardid integer, i_id integer)
-  RETURNS SETOF databaseSchema.objectQualifier_replace_words_list_select AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_replace_words_list(
+                           i_boardid integer, 
+						   i_id integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_replace_words_list_select AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_replace_words_list_select%ROWTYPE;
+             _rec databaseSchema.objectQualifier_replace_words_list_select%ROWTYPE;
 BEGIN
  	IF (i_id IS NOT NULL AND i_id <> 0) THEN
 FOR _rec IN
@@ -7537,12 +7699,16 @@ END IF;
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_replace_words_save(integer, integer, character varying, character varying)
+-- Function: databaseSchema.objectQualifier_replace_words_save(integer, integer, varchar, varchar)
 
--- DROP FUNCTION databaseSchema.objectQualifier_replace_words_save(integer, integer, character varying, character varying);
+-- DROP FUNCTION databaseSchema.objectQualifier_replace_words_save(integer, integer, varchar, varchar);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_replace_words_save(i_boardid integer, i_id integer, i_badword character varying, i_goodword character varying)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_replace_words_save(
+                           i_boardid integer, 
+						   i_id integer, 
+						   i_badword varchar, 
+						   i_goodword varchar)
+                  RETURNS void AS
 $BODY$
 BEGIN
  	IF (i_id IS NOT NULL AND i_id <> 0) THEN 	
@@ -7565,8 +7731,9 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_smiley_delete(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_smiley_delete(i_smileyid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_smiley_delete(
+                           i_smileyid integer)
+                  RETURNS void AS
 $BODY$
 BEGIN
  	IF i_smileyid IS NOT NULL THEN
@@ -7583,10 +7750,12 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_smiley_list(integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_smiley_list(i_boardid integer, i_smileyid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_smiley_list_selecttype AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_smiley_list(
+                           i_boardid integer, 
+						   i_smileyid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_smiley_list_selecttype AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_smiley_list_selecttype%ROWTYPE;
+             _rec databaseSchema.objectQualifier_smiley_list_selecttype%ROWTYPE;
 BEGIN
 IF i_smileyid IS NULL THEN
 FOR _rec IN
@@ -7615,14 +7784,15 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_smiley_listunique(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_smiley_listunique(i_boardid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_smiley_listunique_selecttype AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_smiley_listunique(
+                           i_boardid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_smiley_listunique_selecttype AS
 $BODY$DECLARE 
-_rec databaseSchema.objectQualifier_smiley_listunique_selecttype%ROWTYPE;
+             _rec databaseSchema.objectQualifier_smiley_listunique_selecttype%ROWTYPE;
 BEGIN
 FOR _rec IN
  	SELECT 
- 		icon AS Icon , 
+ 		icon AS Icon, 
  		emoticon AS Emoticon,
  		(SELECT code from databaseSchema.objectQualifier_smiley x 
  		where x.icon=databaseSchema.objectQualifier_smiley.icon LIMIT 1) AS Code,
@@ -7654,10 +7824,13 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_smiley_resort(integer, integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_smiley_resort(i_boardid integer, i_smileyid integer, i_move integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_smiley_resort(
+                           i_boardid integer, 
+						   i_smileyid integer, 
+						   i_move integer)
+                  RETURNS void AS
 $BODY$DECLARE
-ici_Position integer;
+             ici_Position integer;
 BEGIN 	
  
  	SELECT sortorder INTO ici_Position FROM databaseSchema.objectQualifier_smiley
@@ -7696,12 +7869,15 @@ END;$BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_smiley_save(integer, integer, character varying, character varying, character varying, smallint, smallint)
-
--- DROP FUNCTION databaseSchema.objectQualifier_smiley_save(integer, integer, character varying, character varying, character varying, smallint, smallint);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_smiley_save(i_smileyid integer, i_boardid integer, i_code character varying, i_icon character varying, i_emoticon character varying, i_sortorder smallint, i_replace smallint)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_smiley_save(
+                           i_smileyid integer, 
+						   i_boardid integer, 
+						   i_code varchar, 
+						   i_icon varchar, 
+						   i_emoticon varchar, 
+						   i_sortorder smallint, 
+						   i_replace smallint)
+                  RETURNS void AS
 $BODY$
 BEGIN
  	IF i_smileyid IS NOT NULL THEN
@@ -7730,32 +7906,32 @@ END;$BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_system_initialize(character varying, integer, character varying, character varying, character varying, character)
+-- Function: databaseSchema.objectQualifier_system_initialize(varchar, integer, varchar, varchar, varchar, character)
 
--- DROP FUNCTION databaseSchema.objectQualifier_system_initialize(character varying, integer, character varying, character varying, character varying, character);
+-- DROP FUNCTION databaseSchema.objectQualifier_system_initialize(varchar, integer, varchar, varchar, varchar, character);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_system_initialize(
-                           i_name character varying, 
+                           i_name varchar, 
 						   i_timezone integer, 
-						   i_languagefile character varying,  
-						   i_culture character varying, 
-						   i_forumemail character varying, 
-						   i_smtpserver character varying, 
-						   i_user character varying, 
-						   i_useremail character varying, 
+						   i_languagefile varchar,  
+						   i_culture varchar, 
+						   i_forumemail varchar, 
+						   i_smtpserver varchar, 
+						   i_user varchar, 
+						   i_useremail varchar, 
 						   i_userkey uuid,
 						   i_newboardguid uuid,
-						   i_roleprefix character varying)
-RETURNS void AS
+						   i_roleprefix varchar)
+                  RETURNS void AS
 $BODY$DECLARE
-ici_tmpvalue text:= CAST(i_TimeZone AS text);
-ici_varnull character varying;
-ici_smtpserver text:= CAST(i_SmtpServer AS text);
-ici_forumemail text:= CAST(i_ForumEmail AS text);
+             ici_tmpvalue text:= CAST(i_TimeZone AS text);
+			 ici_varnull varchar;
+			 ici_smtpserver text:= CAST(i_SmtpServer AS text);
+			 ici_forumemail text:= CAST(i_ForumEmail AS text);
 BEGIN
  	
  	 /*initalize required 'registry' settings*/
- 	 	-- ici_tmpValue:= CAST(i_TimeZone AS character varying);
+ 	 	-- ici_tmpValue:= CAST(i_TimeZone AS varchar);
  	PERFORM databaseSchema.objectQualifier_registry_save('version','1',null);
  	PERFORM databaseSchema.objectQualifier_registry_save('versionname','1.0.0',null); 
  	PERFORM databaseSchema.objectQualifier_registry_save('timezone',ici_tmpvalue ,null);
@@ -7778,14 +7954,16 @@ $BODY$
  -- Function: databaseSchema.objectQualifier_topic_announcements(integer, integer, integer)
 
 -- DROP FUNCTION databaseSchema.objectQualifier_topic_announcements(integer, integer, integer);
--- Function: databaseSchema.objectQualifier_system_updateversion(integer, character varying)
+-- Function: databaseSchema.objectQualifier_system_updateversion(integer, varchar)
 
--- DROP FUNCTION databaseSchema.objectQualifier_system_updateversion(integer, character varying);
+-- DROP FUNCTION databaseSchema.objectQualifier_system_updateversion(integer, varchar);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_system_updateversion(i_version integer, i_versionname character varying)
-  RETURNS void AS
-$BODY$
-DECLARE ici_tmpvalue text;
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_system_updateversion(
+                           i_version integer, 
+						   i_versionname varchar)
+                  RETURNS void AS
+$BODY$DECLARE 
+             ici_tmpvalue text;
 BEGIN	
 	SELECT CAST(i_version AS TEXT) INTO ici_tmpvalue;
 	PERFORM databaseSchema.objectQualifier_registry_save ('Version',ici_tmpvalue,null);
@@ -7798,24 +7976,24 @@ END;$BODY$
 
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_active(
-i_boardid integer, 
-i_categoryid integer, 
-i_pageuserid integer, 
-i_sincedate timestamp with time zone, 
-i_todate timestamp with time zone, 
-i_pageindex integer, 
-i_pagesize integer, 
-i_stylednicks boolean,
-i_findlastunread boolean)
-  RETURNS SETOF databaseSchema.objectQualifier_topic_active_return_type AS
-  $BODY$DECLARE 
- ici_topics_totalrowsnumber  integer; 
- ici_firstselectrownum integer;   
- ici_firstselectposted timestamp with time zone;  
- ici_pageindex integer := i_pageindex;
- ici_retcount integer := 0;
- ici_counter integer := 0;
-_rec databaseSchema.objectQualifier_topic_active_return_type%ROWTYPE;
+                           i_boardid integer,
+						   i_categoryid integer,
+						   i_pageuserid integer,
+						   i_sincedate timestampTZ,
+						   i_todate timestampTZ,
+						   i_pageindex integer,
+						   i_pagesize integer,
+						   i_stylednicks boolean,
+						   i_findlastunread boolean)
+                  RETURNS SETOF databaseSchema.objectQualifier_topic_active_return_type AS
+$BODY$DECLARE 
+             ici_topics_totalrowsnumber  integer;
+			 ici_firstselectrownum integer;
+			 ici_firstselectposted timestampTZ ;
+			 ici_pageindex integer := i_pageindex;
+			 ici_retcount integer := 0;
+			 ici_counter integer := 0;
+			 _rec databaseSchema.objectQualifier_topic_active_return_type%ROWTYPE;
 BEGIN  
 		-- find total returned count
 		select
@@ -7957,10 +8135,13 @@ $BODY$
   ROWS 1000; 
 --GO
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_announcements(i_boardid integer, i_numposts integer, i_pageuserid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_topic_announcements_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_announcements(
+                           i_boardid integer, 
+						   i_numposts integer, 
+						   i_pageuserid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_topic_announcements_return_type AS
 $BODY$DECLARE
-cntr integer:=0;
+             cntr integer:=0;
 _rec databaseSchema.objectQualifier_topic_announcements_return_type%ROWTYPE;
 BEGIN 
 	
@@ -7996,20 +8177,16 @@ END LOOP;
   ROWS 1000;
 --GO
 
--- Function: databaseSchema.objectQualifier_topic_create_by_message(integer, integer, character varying)
-
--- DROP FUNCTION databaseSchema.objectQualifier_topic_create_by_message(integer, integer, character varying);
-
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_rss_topic_latest(
-    i_boardid integer,
-	i_numposts integer,
-	i_pageuserid integer,
-	i_stylednicks boolean,
-	i_shownocountposts boolean)
-  RETURNS SETOF databaseSchema.objectQualifier_rss_topic_latest_return_type AS
+                           i_boardid integer,
+						   i_numposts integer,
+						   i_pageuserid integer,
+						   i_stylednicks boolean,
+						   i_shownocountposts boolean)
+                  RETURNS SETOF databaseSchema.objectQualifier_rss_topic_latest_return_type AS
 $BODY$DECLARE	
-_counter integer := 0;
-_rec databaseSchema.objectQualifier_rss_topic_latest_return_type%ROWTYPE; 
+             _counter integer := 0;
+			 _rec databaseSchema.objectQualifier_rss_topic_latest_return_type%ROWTYPE; 
 BEGIN		
 	
 	for _rec IN SELECT
@@ -8060,17 +8237,16 @@ $BODY$
   COST 100 ROWS 1000;
 --GO
 
--- Function: databaseSchema.objectQualifier_topic_create_by_message(integer, integer, character varying)
-
--- DROP FUNCTION databaseSchema.objectQualifier_topic_create_by_message(integer, integer, character varying);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_create_by_message(i_messageid integer, i_forumid integer, i_subject character varying)
-  RETURNS integer AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_create_by_message(
+                           i_messageid integer, 
+						   i_forumid integer, 
+						   i_subject varchar)
+                  RETURNS integer AS
 $BODY$DECLARE
-ici_userid integer;
-ici_Posted timestamp with time zone;
-ici_TopicID integer;
-varcharnull character varying;
+             ici_userid integer;
+			 ici_Posted timestampTZ ;
+			 ici_TopicID integer;
+			 varcharnull varchar;
  BEGIN    
 
    SELECT userid,posted  
@@ -8097,14 +8273,16 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_topic_delete(integer, boolean, boolean);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_delete(i_topicid integer, i_updatelastpost boolean, i_erasetopic boolean)
-  RETURNS void AS
-$BODY$    DECLARE 
-     ici_ForumID integer;
-     ici_ForumID2 integer;
-     ici_pollID integer;
-     ici_Deleted integer;
-     
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_delete(
+                           i_topicid integer, 
+						   i_updatelastpost boolean, 
+						   i_erasetopic boolean)
+                  RETURNS void AS
+$BODY$DECLARE 
+             ici_ForumID integer;
+             ici_ForumID2 integer;
+             ici_pollID integer;
+             ici_Deleted integer;     
     BEGIN
     /*SET NOCOUNT ON*/   
 
@@ -8192,12 +8370,14 @@ END;$BODY$
   COST 100;  
 --GO
 
--- Function: databaseSchema.objectQualifier_pollgroup_remove(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_pollgroup_remove(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pollgroup_remove(i_pollgroupid integer, i_topicid integer, i_forumid integer, i_categoryid integer, i_boardid integer, i_removecompletely boolean, i_removeeverywhere boolean)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pollgroup_remove(
+                          i_pollgroupid integer, i_topicid integer, 
+						  i_forumid integer, 
+						  i_categoryid integer, 
+						  i_boardid integer, 
+						  i_removecompletely boolean, 
+						  i_removeeverywhere boolean)
+                  RETURNS void AS
 $BODY$	
 BEGIN
 		 -- we delete poll from the place only it persists in other places 
@@ -8239,10 +8419,15 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_pollgroup_list(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pollgroup_attach(i_pollgroupid integer,i_topicid integer, i_forumid integer, i_categoryid integer, i_boardid integer)
-  RETURNS integer AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pollgroup_attach(
+                           i_pollgroupid integer,
+						   i_topicid integer, 
+						   i_forumid integer, 
+						   i_categoryid integer, 
+						   i_boardid integer)
+                  RETURNS integer AS
 $BODY$DECLARE
-retRes integer := 1;
+             retRes integer := 1;
 BEGIN	
   -- this deletes possible polls without choices it should not normally happen
                   
@@ -8286,10 +8471,13 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_pollgroup_list(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pollgroup_list(i_userid integer, i_forumid integer, i_boardid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_pollgroup_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pollgroup_list(
+                           i_userid integer, 
+						   i_forumid integer, 
+						   i_boardid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_pollgroup_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_pollgroup_list_return_type;
+             _rec databaseSchema.objectQualifier_pollgroup_list_return_type;
 BEGIN
 	
 for _rec in select distinct(p.question), p.pollgroupid from databaseSchema.objectQualifier_poll p
@@ -8309,8 +8497,9 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_pollgroup_list(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_findduplicate(i_topicname character varying)
-  RETURNS integer AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_findduplicate(
+                           i_topicname varchar)
+                  RETURNS integer AS
 $BODY$
 BEGIN	
 IF i_topicname IS NOT NULL then		
@@ -8331,12 +8520,13 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_topic_findnext(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_findnext(i_topicid integer)
-  RETURNS databaseSchema.objectQualifier_topic_findnext_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_findnext(
+                           i_topicid integer)
+                  RETURNS databaseSchema.objectQualifier_topic_findnext_return_type AS
 $BODY$DECLARE 
-ici_lastposted timestamp with time zone;
-ici_ForumID integer;
-_rec databaseSchema.objectQualifier_topic_findnext_return_type;
+             ici_lastposted timestampTZ;
+			 ici_ForumID integer;
+			 _rec databaseSchema.objectQualifier_topic_findnext_return_type;
 BEGIN
 	
  	SELECT lastposted,forumid INTO ici_lastposted, ici_ForumID  
@@ -8354,18 +8544,13 @@ END;$BODY$
   COST 100;  
 --GO
 
--- Function: databaseSchema.objectQualifier_topic_findprev(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_topic_findprev(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_findprev(i_topicid integer)
-  RETURNS databaseSchema.objectQualifier_topic_findprevnext_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_findprev(
+                           i_topicid integer)
+                  RETURNS databaseSchema.objectQualifier_topic_findprevnext_return_type AS
 $BODY$DECLARE
-ici_lastposted timestamp with time zone;
-ici_ForumID integer;
-ret_TopicID integer;
-_rec databaseSchema.objectQualifier_topic_findprevnext_return_type;
-ici_prevtopicid integer;
+             ici_lastposted timestampTZ;
+			 ici_ForumID integer;			
+			 _rec databaseSchema.objectQualifier_topic_findprevnext_return_type;			
 BEGIN 
 	
  	SELECT lastposted,forumid INTO ici_lastposted,ici_ForumID 
@@ -8393,45 +8578,142 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_info(
 						   i_showdeleted boolean)
                   RETURNS SETOF databaseSchema.objectQualifier_topic_info_return_type AS
 $BODY$DECLARE
-ici_TopicID integer:= i_topicid;
-_rec databaseSchema.objectQualifier_topic_info_return_type%ROWTYPE;
+             ici_TopicID integer:= i_topicid;
+             _rec databaseSchema.objectQualifier_topic_info_return_type%ROWTYPE;
  BEGIN 	
  
  	IF ici_TopicID IS NULL OR ici_TopicID = 0 THEN
  	
  	IF i_showdeleted IS TRUE THEN
 FOR _rec IN
- 			SELECT *, 
-			((flags & 8) = 8) AS IsDeleted, 
-			((flags & 1024) = 1024) AS IsAnswered    
+ 			SELECT
+			      topicid,
+				  forumid,
+				  userid,
+				  username,
+				  posted,
+				  topic,
+				  views,
+				  priority,
+				  pollid,
+				  topicmovedid,
+				  lastposted,
+				  lastmessageid,
+				  lastuserid,
+				  lastusername,
+				  numposts,
+				  flags,
+				  answermessageid,
+				  lastmessageflags,
+				  description,
+				  status,
+				  styles,
+				  islocked,
+				  isdeleted,
+				  ispersistent,
+				  isquestion 			 
 			FROM databaseSchema.objectQualifier_topic
 LOOP
-RETURN NEXT _rec;
+    RETURN NEXT _rec;
 END LOOP;
  		ELSE
 FOR _rec IN
- 			SELECT *, 
-			((flags & 8) = 8) AS IsDeleted, 
-			((flags & 1024) = 1024) AS IsAnswered  
-			FROM databaseSchema.objectQualifier_topic WHERE (flags & 8) <> 8
+ 			SELECT
+			      topicid,
+				  forumid,
+				  userid,
+				  username,
+				  posted,
+				  topic,
+				  views,
+				  priority,
+				  pollid,
+				  topicmovedid,
+				  lastposted,
+				  lastmessageid,
+				  lastuserid,
+				  lastusername,
+				  numposts,
+				  flags,
+				  answermessageid,
+				  lastmessageflags,
+				  description,
+				  status,
+				  styles,
+				  islocked,
+				  isdeleted,
+				  ispersistent,
+				  isquestion 			
+			FROM databaseSchema.objectQualifier_topic 
+			WHERE (flags & 8) <> 8
 LOOP
-RETURN NEXT _rec;
+    RETURN NEXT _rec;
 END LOOP;
  	END IF;
  	ELSE 	
  		IF i_showdeleted IS TRUE THEN
 FOR _rec IN
- 			SELECT *, 
-			((flags & 8) = 8) AS IsDeleted, 
-			((flags & 1024) = 1024) AS IsAnswered   FROM databaseSchema.objectQualifier_topic WHERE topicid = ici_TopicID
+ 			SELECT
+			      topicid,
+				  forumid,
+				  userid,
+				  username,
+				  posted,
+				  topic,
+				  views,
+				  priority,
+				  pollid,
+				  topicmovedid,
+				  lastposted,
+				  lastmessageid,
+				  lastuserid,
+				  lastusername,
+				  numposts,
+				  flags,
+				  answermessageid,
+				  lastmessageflags,
+				  description,
+				  status,
+				  styles,
+				  islocked,
+				  isdeleted,
+				  ispersistent,
+				  isquestion  
+			FROM databaseSchema.objectQualifier_topic 
+			WHERE topicid = ici_TopicID
 LOOP
 RETURN NEXT _rec;
 END LOOP;
  		ELSE
 FOR _rec IN
- 			SELECT *, 
-			((flags & 8) = 8) AS IsDeleted, 
-			((flags & 1024) = 1024) AS IsAnswered   FROM databaseSchema.objectQualifier_topic WHERE topicid = ici_TopicID
+ 			SELECT
+			      topicid,
+				  forumid,
+				  userid,
+				  username,
+				  posted,
+				  topic,
+				  views,
+				  priority,
+				  pollid,
+				  topicmovedid,
+				  lastposted,
+				  lastmessageid,
+				  lastuserid,
+				  lastusername,
+				  numposts,
+				  flags,
+				  answermessageid,
+				  lastmessageflags,
+				  description,
+				  status,
+				  styles,
+				  islocked,
+				  isdeleted,
+				  ispersistent,
+				  isquestion    
+				  FROM databaseSchema.objectQualifier_topic 
+				  WHERE topicid = ici_TopicID
 AND (flags & 8) = 0
 LOOP
 RETURN NEXT _rec;
@@ -8445,24 +8727,18 @@ END;$BODY$
   ROWS 1000; 
 --GO
 
-/* STORED PROCEDURE CREATED BY VZ-TEAM topic_latest */
-
--- Function: databaseSchema.objectQualifier_topic_latest(integer, integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_topic_latest(integer, integer, integer);
-
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_latest(
-i_boardid integer, 
-i_numposts integer, 
-i_pageuserid integer, 
-i_stylednicks boolean, 
-i_shownocountposts boolean, 
-i_findlastunread boolean)
-  RETURNS SETOF databaseSchema.objectQualifier_topic_latest_return_type AS
+                           i_boardid integer,
+						   i_numposts integer,
+						   i_pageuserid integer,
+						   i_stylednicks boolean,
+						   i_shownocountposts boolean,
+						   i_findlastunread boolean)
+                  RETURNS SETOF databaseSchema.objectQualifier_topic_latest_return_type AS
 $BODY$DECLARE
-cntr integer:=0;
-i_StartID integer:=0;
-_rec databaseSchema.objectQualifier_topic_latest_return_type%ROWTYPE;
+             cntr integer:=0;
+			 i_StartID integer:=0;
+			 _rec databaseSchema.objectQualifier_topic_latest_return_type%ROWTYPE;
 BEGIN 	
  	FOR _rec IN
  	SELECT
@@ -8532,35 +8808,34 @@ END LOOP;
   ROWS 1000;
 --GO
 
--- Function: databaseSchema.objectQualifier_topic_list(integer, integer, integer, timestamp with time zone, integer, integer)
+-- Function: databaseSchema.objectQualifier_topic_list(integer, integer, integer, timestampTZ, integer, integer)
 
--- DROP FUNCTION databaseSchema.objectQualifier_topic_list(integer, integer, integer, timestamp with time zone, integer, integer, boolean);
+-- DROP FUNCTION databaseSchema.objectQualifier_topic_list(integer, integer, integer, timestampTZ, integer, integer, boolean);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_announcements_list(
-i_forumid integer, 
-i_userid integer, 
-i_sincedate timestamp with time zone, 
-i_todate timestamp with time zone, 
-i_pageindex integer, 
-i_pagesize integer, 
-i_stylednicks boolean,
-i_showmoved boolean,
-i_findlastunread boolean)
-  RETURNS SETOF databaseSchema.objectQualifier_topic_list_return_type AS
+                           i_forumid integer,
+						   i_userid integer,
+						   i_sincedate timestampTZ,
+						   i_todate timestampTZ,
+						   i_pageindex integer,
+						   i_pagesize integer,
+						   i_stylednicks boolean,
+						   i_showmoved boolean,
+						   i_findlastunread boolean)
+                  RETURNS SETOF databaseSchema.objectQualifier_topic_list_return_type AS
 $BODY$DECLARE
-
- ici_shiftsticky integer :=0;
- ici_post_totalrowsnumber  integer; 
- ici_post_priorityrowsnumber_pages integer;
- ici_post_priorityrowsnumber integer;
- ici_post_priorityrowsnumber_shift integer;
- ici_firstselectrownum integer;   
- ici_firstselectposted timestamp with time zone; 
- ici_ceiling decimal;
- ici_pageindex integer := i_pageindex;
- ici_retcount integer := 0;
- ici_counter integer := 0;
-_rec databaseSchema.objectQualifier_topic_list_return_type%ROWTYPE;
+             ici_shiftsticky integer :=0;
+			 ici_post_totalrowsnumber  integer;
+			 ici_post_priorityrowsnumber_pages integer;
+			 ici_post_priorityrowsnumber integer;
+			 ici_post_priorityrowsnumber_shift integer;
+			 ici_firstselectrownum integer;
+			 ici_firstselectposted timestampTZ ;
+			 ici_ceiling decimal;
+			 ici_pageindex integer := i_pageindex;
+			 ici_retcount integer := 0;
+			 ici_counter integer := 0;
+			 _rec databaseSchema.objectQualifier_topic_list_return_type%ROWTYPE;
 BEGIN  
 		-- find total returned count
 		select
@@ -8687,35 +8962,34 @@ $BODY$
   ROWS 1000; 
 --GO
 
--- Function: databaseSchema.objectQualifier_topic_list(integer, integer, integer, timestamp with time zone, integer, integer)
+-- Function: databaseSchema.objectQualifier_topic_list(integer, integer, integer, timestampTZ, integer, integer)
 
--- DROP FUNCTION databaseSchema.objectQualifier_topic_list(integer, integer, integer, timestamp with time zone, integer, integer, boolean);
+-- DROP FUNCTION databaseSchema.objectQualifier_topic_list(integer, integer, integer, timestampTZ, integer, integer, boolean);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_list(
-i_forumid integer, 
-i_userid integer, 
-i_sincedate timestamp with time zone, 
-i_todate timestamp with time zone, 
-i_pageindex integer, 
-i_pagesize integer, 
-i_stylednicks boolean,
-i_showmoved boolean,
-i_findlastunread boolean)
-  RETURNS SETOF databaseSchema.objectQualifier_topic_list_return_type AS
+                           i_forumid integer,
+						   i_userid integer,
+						   i_sincedate timestampTZ,
+						   i_todate timestampTZ,
+						   i_pageindex integer,
+						   i_pagesize integer,
+						   i_stylednicks boolean,
+						   i_showmoved boolean,
+						   i_findlastunread boolean)
+                  RETURNS SETOF databaseSchema.objectQualifier_topic_list_return_type AS
 $BODY$DECLARE
-
- ici_shiftsticky integer :=0;
- ici_post_totalrowsnumber  integer; 
- ici_post_priorityrowsnumber_pages integer;
- ici_post_priorityrowsnumber integer;
- ici_post_priorityrowsnumber_shift integer;
- ici_firstselectrownum integer;   
- ici_firstselectposted timestamp with time zone; 
- ici_ceiling decimal;
- ici_pageindex integer := i_pageindex;
- ici_retcount integer := 0;
- ici_counter integer := 0;
-_rec databaseSchema.objectQualifier_topic_list_return_type%ROWTYPE;
+             ici_shiftsticky integer :=0;
+			 ici_post_totalrowsnumber  integer;
+			 ici_post_priorityrowsnumber_pages integer;
+			 ici_post_priorityrowsnumber integer;
+			 ici_post_priorityrowsnumber_shift integer;
+			 ici_firstselectrownum integer;
+			 ici_firstselectposted timestampTZ ;
+			 ici_ceiling decimal;
+			 ici_pageindex integer := i_pageindex;
+			 ici_retcount integer := 0;
+			 ici_counter integer := 0;
+			 _rec databaseSchema.objectQualifier_topic_list_return_type%ROWTYPE;
 BEGIN      
        
       	-- find priority returned count
@@ -8750,9 +9024,7 @@ BEGIN
 		(i_showmoved IS NOT TRUE AND  t.topicmovedid IS NULL));
 
 		 ici_pageindex := ici_pageindex+1;
-         ici_firstselectrownum := (ici_pageindex - 1) * i_pagesize;	 
-
-
+         ici_firstselectrownum := (ici_pageindex - 1) * i_pagesize;	
 
     select		
 		t.lastposted
@@ -8867,16 +9139,14 @@ $BODY$
   ROWS 1000; 
 --GO
 
--- Function: databaseSchema.objectQualifier_topic_list(integer, integer, integer, timestamp with time zone, integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_topic_list(integer, integer, integer, timestamp with time zone, integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_list_helper(i_forumid integer, 
- i_announcement integer, i_date timestamp with time zone)
-  RETURNS SETOF databaseSchema.objectQualifier_topic_list_helper_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_list_helper(
+                           i_forumid integer,
+						   i_announcement integer, 
+						   i_date timestampTZ)
+                  RETURNS SETOF databaseSchema.objectQualifier_topic_list_helper_return_type AS
 $BODY$DECLARE
-rowno integer:=1;
-_rec databaseSchema.objectQualifier_topic_list_helper_return_type%ROWTYPE;
+             rowno integer:=1;
+             _rec databaseSchema.objectQualifier_topic_list_helper_return_type%ROWTYPE;
 BEGIN
  FOR _rec IN
  	SELECT
@@ -8917,10 +9187,11 @@ $BODY$
 
 -- Function: databaseSchema.objectQualifier_topic_listmessages(integer)
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_listmessages(i_topicid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_topic_listmessages_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_listmessages(
+                           i_topicid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_topic_listmessages_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_topic_listmessages_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_topic_listmessages_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN SELECT
  	a.messageid,
@@ -8956,8 +9227,10 @@ END;$BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_topic_lock(integer, boolean);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_lock(i_topicid integer, i_locked boolean)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_lock(
+                           i_topicid integer, 
+						   i_locked boolean)
+                  RETURNS void AS
 $BODY$
 BEGIN
 
@@ -8975,14 +9248,13 @@ END;$BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_topic_move(integer, integer, boolean)
-
--- DROP FUNCTION databaseSchema.objectQualifier_topic_move(integer, integer, boolean);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_move(i_topicid integer, i_forumid integer, i_showmoved boolean)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_move(
+                           i_topicid integer, 
+						   i_forumid integer, 
+						   i_showmoved boolean)
+                  RETURNS void AS
 $BODY$DECLARE
-ici_OldForumID integer;
+             ici_OldForumID integer;
 BEGIN     
  
      SELECT  forumid INTO ici_OldForumID FROM databaseSchema.objectQualifier_topic 
@@ -9014,25 +9286,23 @@ END;$BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_topic_poll_update(integer, integer, integer)
-
-DROP FUNCTION IF EXISTS databaseSchema.objectQualifier_topic_poll_update(integer, integer, integer);
-
-
--- Function: databaseSchema.objectQualifier_topic_prune(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_topic_prune(integer, integer);
+DROP FUNCTION IF EXISTS databaseSchema.objectQualifier_topic_poll_update(
+                        integer, 
+						integer, integer);
 -- GO
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_prune(i_boardid integer,i_forumid integer, i_days integer, i_permdelete boolean)
-  RETURNS integer AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_prune(
+                           i_boardid integer,
+						   i_forumid integer, 
+						   i_days integer, 
+						   i_permdelete boolean)
+                  RETURNS integer AS
 $BODY$DECLARE
-frmnull integer DEFAULT 0;
-frmnotnull integer DEFAULT 0;
-iciTopicID integer;
-iciCount integer DEFAULT 0;
-ici_ForumID integer:=i_forumid;
-ref_tprune1 refcursor;
-
+             frmnull integer DEFAULT 0;
+			 frmnotnull integer DEFAULT 0;
+			 iciTopicID integer;
+			 iciCount integer DEFAULT 0;
+			 ici_ForumID integer:=i_forumid;
+			 ref_tprune1 refcursor;
 BEGIN    
 
 
@@ -9083,9 +9353,7 @@ END LOOP;
 END LOOP;     
      CLOSE ref_tprune1;
      END IF;
-
-
-
+	 
      /*
      -- This takes forever with many posts...
      --CALL databaseSchema.objectQualifier_topic_updatelastpost(null)*/
@@ -9098,32 +9366,28 @@ $BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_topic_save(integer, character varying, integer, text, smallint, character varying, character varying, integer, timestamp with time zone, character varying, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_topic_save(integer, character varying, integer, text, smallint, character varying, character varying, integer, timestamp with time zone, character varying, integer);
-
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_save(
-i_forumid integer,
-i_subject character varying, 
-i_status character varying, 
-i_styles character varying, 
-i_description character varying, 
-i_userid integer, 
-i_message text, 
-i_priority smallint, 
-i_username character varying, 
-i_ip character varying,
-i_posted timestamp with time zone,
-i_blogpostid character varying, 
-i_flags integer)
-  RETURNS databaseSchema.objectQualifier_topic_save_return_type AS
+                           i_forumid integer,
+						   i_subject varchar,
+						   i_status varchar,
+						   i_styles varchar,
+						   i_description varchar,
+						   i_userid integer,
+						   i_message text,
+						   i_priority smallint,
+						   i_username varchar,
+						   i_ip varchar,
+						   i_posted timestampTZ,
+						   i_blogpostid varchar,
+						   i_flags integer)
+                 RETURNS databaseSchema.objectQualifier_topic_save_return_type AS
 $BODY$DECLARE
-ici_TopicID     integer;
-ici_MessageID   integer;
-ici_Posted	timestamp with time zone:=i_posted;
-ici_ReplyToNull integer;
-ici_blogpostid character varying:=i_blogpostid;
-_rec  databaseSchema.objectQualifier_topic_save_return_type; 
+             ici_TopicID     integer;
+			 ici_MessageID   integer;
+			 ici_Posted	     timestampTZ :=i_posted;
+             ici_ReplyToNull integer;
+             ici_blogpostid varchar:=i_blogpostid;
+             _rec  databaseSchema.objectQualifier_topic_save_return_type; 
 BEGIN 
      
      if ici_blogpostid = '' 
@@ -9154,19 +9418,14 @@ $BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100; 
 --GO
-/* STORED PROCEDURE CREATED BY VZ-TEAM topic_simplelist */
 
-
-
-   -- Function: databaseSchema.objectQualifier_topic_simplelist(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_topic_simplelist(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_simplelist(i_startid integer, i_limit integer)
-  RETURNS SETOF databaseSchema.objectQualifier_topic_simplelist_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_simplelist(
+                           i_startid integer, 
+						   i_limit integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_topic_simplelist_return_type AS
 $BODY$DECLARE
-cntr integer:=0;
-_rec databaseSchema.objectQualifier_topic_simplelist_return_type%ROWTYPE;
+             cntr integer:=0;
+             _rec databaseSchema.objectQualifier_topic_simplelist_return_type%ROWTYPE;
 BEGIN
     FOR _rec IN 
     SELECT   t.topicid,
@@ -9187,21 +9446,18 @@ END LOOP;
   ROWS 1000;
 --GO
 
--- Function: databaseSchema.objectQualifier_topic_updatelastpost(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_topic_updatelastpost(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_updatelastpost(i_forumid integer, i_topicid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_updatelastpost(
+                           i_forumid integer, 
+						   i_topicid integer)
+                  RETURNS void AS
 $BODY$DECLARE
-ici_ForumID integer:=i_forumid;
-ici_TopicID integer:=i_topicid;
-ici_lastposted timestamp with time zone;
-ici_LastMessageID integer;
-ici_lastmessageflags integer;
-ici_LastUserID integer;
-ici_LastUserName character varying(128);
-
+             ici_ForumID integer:=i_forumid;
+			 ici_TopicID integer:=i_topicid;
+			 ici_lastposted timestampTZ ;
+			 ici_LastMessageID integer;
+			 ici_lastmessageflags integer;
+			 ici_LastUserID integer;
+			 ici_LastUserName varchar(128);
 BEGIN                      
 IF ici_TopicID IS NOT NULL THEN
          SELECT DISTINCT x.posted,x.messageid, x.userid, x.username, x.flags INTO
@@ -9238,26 +9494,19 @@ ELSE
      AND (ici_ForumID IS NULL
      OR forumid = ici_ForumID);
 
- END IF; 
-
-  
+ END IF;   
      PERFORM databaseSchema.objectQualifier_forum_updatelastpost(ici_ForumID);
      RETURN;
      END ;
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100;
---GO
+--GO 
 
-
- 
-
-   -- Function: databaseSchema.objectQualifier_topic_simplelist(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_topic_simplelist(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_updatetopic(i_topicid integer, i_topic  character varying)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_updatetopic(
+                           i_topicid integer, 
+						   i_topic  varchar)
+                  RETURNS void AS
 $BODY$
 BEGIN
 		if i_topicid is not null then
@@ -9271,14 +9520,12 @@ BEGIN
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_accessmasks(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_accessmasks(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_accessmasks(i_boardid integer, i_userid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_user_accessmasks_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_accessmasks(
+                           i_boardid integer, 
+						   i_userid integer)
+                 RETURNS SETOF databaseSchema.objectQualifier_user_accessmasks_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_user_accessmasks_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_user_accessmasks_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN
      SELECT   *
@@ -9330,18 +9577,16 @@ END LOOP;
   COST 100
   ROWS 1000; 
 --GO
- /* STORED PROCEDURE CREATED BY VZ-TEAM user_activity_rank */
 
- -- Function: databaseSchema.objectQualifier_user_activity_rank(integer, integer, timestamp with time zone)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_activity_rank(integer, integer, timestamp with time zone);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_activity_rank(i_boardid integer, i_displaynumber integer, i_startdate timestamp with time zone)
-  RETURNS SETOF databaseSchema.objectQualifier_user_activity_rank_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_activity_rank(
+                           i_boardid integer, 
+						   i_displaynumber integer, 
+						   i_startdate timestampTZ )
+                  RETURNS SETOF databaseSchema.objectQualifier_user_activity_rank_return_type AS
 $BODY$DECLARE
-cntr integer:=0;
-_rec databaseSchema.objectQualifier_user_activity_rank_return_type%ROWTYPE;
-ici_GuestUserID integer;
+             cntr integer:=0;
+             _rec databaseSchema.objectQualifier_user_activity_rank_return_type%ROWTYPE;
+             ici_GuestUserID integer;
 BEGIN 
  	/*SET ROWCOUNT i_DisplayNumber*/ 	
  	SELECT 
@@ -9382,12 +9627,11 @@ $BODY$
   COST 100
   ROWS 1000;
 --GO
--- Function: databaseSchema.objectQualifier_user_addpoints(integer, integer)
 
--- DROP FUNCTION databaseSchema.objectQualifier_user_addpoints(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_addpoints(i_userid integer, i_points integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_addpoints(
+                           i_userid integer, 
+						   i_points integer)
+                  RETURNS void AS
 'UPDATE databaseSchema.objectQualifier_user
      SET    points = points + $2
      WHERE  userid = $1;'
@@ -9395,21 +9639,17 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_addpoints(i_useri
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_adminsave(integer, integer, character varying, character varying, integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_adminsave(integer, integer, character varying, character varying, integer, integer);
-
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_adminsave(
-i_boardid integer, 
-i_userid integer, 
-i_name character varying,
-i_displayname character varying,
-i_email character varying, 
-i_flags integer, 
-i_rankid integer)
-  RETURNS databaseSchema.objectQualifier_user_adminsave_return_type AS
+                           i_boardid integer,
+						   i_userid integer,
+						   i_name varchar,
+						   i_displayname varchar,
+						   i_email varchar,
+						   i_flags integer,
+						   i_rankid integer)
+                  RETURNS databaseSchema.objectQualifier_user_adminsave_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_user_adminsave_return_type;
+             _rec databaseSchema.objectQualifier_user_adminsave_return_type;
  BEGIN
  SELECT i_userid INTO _rec;
      UPDATE databaseSchema.objectQualifier_user
@@ -9427,16 +9667,13 @@ $BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_approve(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_approve(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_approve(i_userid integer)
-  RETURNS boolean AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_approve(
+                           i_userid integer)
+                  RETURNS boolean AS
 $BODY$DECLARE
-ici_CheckEmailID integer;
-ici_email character varying;
-ici_bit boolean:=true;
+             ici_CheckEmailID integer;
+             ici_email varchar;
+             ici_bit boolean:=true;
 BEGIN
           SELECT
      checkemailid,
@@ -9457,50 +9694,47 @@ flags = flags | 2 WHERE userid = i_userid;
   COST 100;  
 --GO
 
--- Function: databaseSchema.objectQualifier_user_approveall(integer)
 
--- DROP FUNCTION databaseSchema.objectQualifier_user_approveall(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_approveall(i_boardid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_approveall(
+                           i_boardid integer)
+                  RETURNS void AS
 $BODY$DECLARE
-ici_userid integer;
-donetc integer := 0;
-icii_UserID integer;
-userslist refcursor;
+             ici_userid integer;            
+             _refUserID integer;
+             _userslist refcursor;
 
 BEGIN
- 	OPEN userslist FOR SELECT userid 
+ 	OPEN _userslist FOR SELECT userid 
  	FROM databaseSchema.objectQualifier_user 
  	WHERE boardid=i_boardid AND isapproved IS FALSE ;
  	LOOP
-          FETCH userslist INTO icii_UserID;
+          FETCH _userslist INTO _refUserID;
           EXIT WHEN NOT FOUND;
-          EXECUTE databaseSchema.objectQualifier_user_approve(icii_UserID);           
+          EXECUTE databaseSchema.objectQualifier_user_approve(_refUserID);           
         EXIT WHEN NOT FOUND; 
         END LOOP; 
- 	CLOSE userslist;
+ 	CLOSE _userslist;
  RETURN;
 END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_aspnet(integer, character varying, character varying, character varying, boolean)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_aspnet(integer, character varying, character varying, character varying, boolean);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_aspnet(i_boardid integer, 
-i_username character varying, i_displayname character varying,
-i_email character varying, i_provideruserkey character varying, 
-i_isapproved boolean)
-  RETURNS databaseSchema.objectQualifier_user_aspnet_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_aspnet(
+                           i_boardid integer,
+						   i_username varchar, 
+						   i_displayname varchar,
+						   i_email varchar, 
+						   i_provideruserkey varchar,
+						   i_isapproved boolean)
+                  RETURNS databaseSchema.objectQualifier_user_aspnet_return_type AS
 $BODY$DECLARE 
-ici_userid integer;
-ici_rankid integer;
-ici_displayname character varying :=i_displayname;
-ici_approvedFlag integer:=0;
-_rec databaseSchema.objectQualifier_user_aspnet_return_type;
+             ici_userid integer;
+			 ici_rankid integer;
+			 ici_displayname varchar :=i_displayname;
+			 ici_approvedFlag integer:=0;
+			 _rec databaseSchema.objectQualifier_user_aspnet_return_type;
 BEGIN
  	ici_approvedFlag := 0;
  	IF (i_isapproved IS TRUE) THEN ici_approvedFlag := 2;END IF;	
@@ -9549,12 +9783,9 @@ RETURN  _rec;
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_deleteavatar(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_deleteavatar(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_deleteavatar(i_userid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_deleteavatar(
+                           i_userid integer)
+                  RETURNS void AS
 'UPDATE databaseSchema.objectQualifier_user
     SET avatarimage = null,
     avatar = null,
@@ -9564,12 +9795,9 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_deleteavatar(i_us
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_avatarimage(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_avatarimage(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_avatarimage(i_userid integer)
-  RETURNS databaseSchema.objectQualifier_user_avatarimage_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_avatarimage(
+                           i_userid integer)
+                  RETURNS databaseSchema.objectQualifier_user_avatarimage_return_type AS
 $BODY$
                   SELECT 
                   userid,
@@ -9582,16 +9810,15 @@ $BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_changepassword(integer, character varying, character varying)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_changepassword(integer, character varying, character varying);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_changepassword(i_userid integer, i_oldpassword character varying, i_newpassword character varying)
-  RETURNS databaseSchema.objectQualifier_user_changepassword_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_changepassword(
+                           i_userid integer, 
+						   i_oldpassword varchar, 
+						   i_newpassword varchar)
+                  RETURNS databaseSchema.objectQualifier_user_changepassword_return_type AS
 $BODY$DECLARE 
-ici_CurrentOld character varying(32);
-ici_Success boolean:=true;
-_rec databaseSchema.objectQualifier_user_changepassword_return_type;
+             ici_CurrentOld varchar(32);
+             ici_Success boolean:=true;
+             _rec databaseSchema.objectQualifier_user_changepassword_return_type;
 BEGIN
                  
      SELECT  password 
@@ -9613,16 +9840,13 @@ $BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_delete(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_delete(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_delete(i_userid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_delete(
+                           i_userid integer)
+                  RETURNS void AS
 $BODY$DECLARE
-ici_GuestUserID	integer;
-ici_UserName	character varying(128);
-ici_GuestCount	integer;
+             ici_GuestUserID	integer;
+             ici_UserName	varchar(128);
+             ici_GuestCount	integer;
 BEGIN	
  
  	SELECT name 
@@ -9688,53 +9912,49 @@ BEGIN
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_deleteold(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_deleteold(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_deleteold(i_boardid integer, i_days integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_deleteold(
+                           i_boardid integer, 
+						   i_days integer)
+                  RETURNS void AS
 $BODY$DECLARE 
-ici_Since timestamp with time zone:=current_timestamp at time zone 'UTC';
+             ici_Since timestampTZ :=current_timestamp at time zone 'UTC';
 BEGIN  
 
     DELETE FROM databaseSchema.objectQualifier_eventlog  
     WHERE userid IN 
     (SELECT userid from databaseSchema.objectQualifier_user 
-    WHERE boardid=i_boardid and databaseSchema.objectQualifier_bitset(flags,2)=0 
+    WHERE boardid=i_boardid and isapproved IS FALSE
     and date_part('day', (ici_Since-joined))>i_days);  
       
     DELETE FROM databaseSchema.objectQualifier_checkemail 
     WHERE userid IN 
     (SELECT userid from databaseSchema.objectQualifier_user 
     WHERE boardid=i_boardid 
-    AND databaseSchema.objectQualifier_bitset(flags,2)=0 
+    AND  isapproved IS FALSE 
     AND date_part('day', ici_Since-joined)>i_days);
    
     DELETE FROM databaseSchema.objectQualifier_usergroup 
     WHERE userid IN 
     (SELECT userid from databaseSchema.objectQualifier_user 
     WHERE boardid=i_boardid 
-    AND databaseSchema.objectQualifier_bitset(flags,2)=0 
+    AND  isapproved IS FALSE 
     and date_part('day', ici_Since-joined)>i_days);
     
     DELETE FROM databaseSchema.objectQualifier_user 
     WHERE boardid=i_boardid 
-    AND databaseSchema.objectQualifier_bitset(flags,2)=0 
+    AND  isapproved IS FALSE 
     and date_part('day', ici_Since-joined)>i_days;
     END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_emails(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_emails(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_emails(i_boardid integer, i_groupid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_user_emails_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_emails(
+                           i_boardid integer, 
+						   i_groupid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_user_emails_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_user_emails_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_user_emails_return_type%ROWTYPE;
  BEGIN   
     IF i_groupid IS NULL THEN
 FOR _rec IN
@@ -9776,24 +9996,20 @@ $BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_find(integer, boolean, character varying, character varying)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_find(integer, boolean, character varying, character varying);
-
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_find(
-i_boardid integer, 
-i_filter boolean, 
-i_username character varying, 
-i_email character varying, 
-i_displayname character varying,
-i_notificationtype integer,
-i_dailydigest boolean)
-RETURNS SETOF databaseSchema.objectQualifier_user_find_return_type 
+                           i_boardid integer,
+						   i_filter boolean,
+						   i_username varchar,
+						   i_email varchar,
+						   i_displayname varchar,
+						   i_notificationtype integer,
+						   i_dailydigest boolean)
+                  RETURNS SETOF databaseSchema.objectQualifier_user_find_return_type 
 AS
 $BODY$DECLARE
-ici_UserName character varying(128):=i_username;
-ici_displayname character varying(128) :=i_displayname;
-_rec databaseSchema.objectQualifier_user_find_return_type%ROWTYPE;
+             ici_UserName varchar(128):=i_username;
+             ici_displayname varchar(128) :=i_displayname;
+             _rec databaseSchema.objectQualifier_user_find_return_type%ROWTYPE;
 BEGIN
  	IF (i_filter IS TRUE) THEN 	
  		IF ici_UserName IS NOT NULL THEN
@@ -9853,8 +10069,7 @@ BEGIN
  			(i_Email IS NOT NULL and a.email LIKE i_email) 
  			or (ici_displayname is not null and a.displayname like ici_displayname) 
 			or (i_notificationtype is not null and a.notificationtype = i_notificationtype) or
-			(i_dailydigest is not null and a.dailydigest = i_dailydigest))
-	
+			(i_dailydigest is not null and a.dailydigest = i_dailydigest))	
  		ORDER BY
  			a.name
                 LOOP
@@ -9922,19 +10137,13 @@ $BODY$
   ROWS 1000;
 --GO  
 
--- Function: databaseSchema.objectQualifier_user_savenotification(integer, character varying)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_savenotification(integer, character varying);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_savenotification
-(
-i_userid	            integer,
-i_pmnotification		boolean,
-i_autowatchtopics       boolean,
-i_notificationtype	    integer,
-i_dailydigest		    boolean
-)
-RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_savenotification(
+                           i_userid	            integer,
+                           i_pmnotification		boolean,
+                           i_autowatchtopics       boolean,
+                           i_notificationtype	    integer,
+                           i_dailydigest		    boolean)
+                  RETURNS void AS
 $BODY$
 BEGIN
 		UPDATE
@@ -9952,12 +10161,10 @@ $BODY$
   COST 100;
 --GO  
 
--- Function: databaseSchema.objectQualifier_user_get(integer, character varying)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_get(integer, character varying);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_get(i_boardid integer, i_provideruserkey character varying)
-  RETURNS databaseSchema.objectQualifier_user_get_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_get(
+                           i_boardid integer, 
+						   i_provideruserkey varchar)
+                  RETURNS databaseSchema.objectQualifier_user_get_return_type AS
 $BODY$
 	SELECT userid FROM databaseSchema.objectQualifier_user 
         WHERE boardid=$1 
@@ -9967,12 +10174,9 @@ $BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_getpoints(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_getpoints(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_getpoints(i_userid integer)
-  RETURNS databaseSchema.objectQualifier_user_getpoints_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_getpoints(
+                           i_userid integer)
+                  RETURNS databaseSchema.objectQualifier_user_getpoints_return_type AS
 $BODY$
 	SELECT points FROM databaseSchema.objectQualifier_user WHERE userid = $1;
 $BODY$
@@ -9980,12 +10184,9 @@ $BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_getsignature(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_getsignature(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_getsignature(i_userid integer)
-  RETURNS  databaseSchema.objectQualifier_user_getsignature_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_getsignature(
+                           i_userid integer)
+                  RETURNS  databaseSchema.objectQualifier_user_getsignature_return_type AS
 $BODY$
  	SELECT signature FROM databaseSchema.objectQualifier_user 
  	WHERE userid = $1;
@@ -9994,12 +10195,9 @@ $BODY$
   COST 100;  
 --GO
 
--- Function: databaseSchema.objectQualifier_user_guest(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_guest(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_guest(i_boardid integer)
-  RETURNS integer AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_guest(
+                           i_boardid integer)
+                  RETURNS integer AS
 'SELECT 
  		a.userid 
  	FROM
@@ -10013,15 +10211,11 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_guest(i_boardid i
   COST 100;   
 --GO
 
--- Function: databaseSchema.objectQualifier_user_ignoredlist(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_ignoredlist(integer);
-
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_ignoredlist(i_userid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_ignoreuser_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_ignoredlist(
+                           i_userid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_ignoreuser_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_ignoreuser_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_ignoreuser_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN
 	SELECT * FROM databaseSchema.objectQualifier_ignoreuser
@@ -10034,9 +10228,6 @@ END;$BODY$
   COST 100 ROWS 1000;
 --GO
 
-
--- Function: databaseSchema.objectQualifier_user_list(integer, integer, boolean, integer, integer)
-
 DROP FUNCTION IF EXISTS databaseSchema.objectQualifier_user_list(
                         integer, 
 						integer, 
@@ -10045,15 +10236,15 @@ DROP FUNCTION IF EXISTS databaseSchema.objectQualifier_user_list(
 						integer);
 --GO
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_list(
-                          i_boardid integer, 
-                          i_userid integer, 
-						  i_approved boolean, 
-						  i_groupid integer, 
-						  i_rankid integer, 
-						  i_stylednicks boolean)
-  RETURNS SETOF databaseSchema.objectQualifier_user_list_return_type AS
+                           i_boardid integer,
+						   i_userid integer,
+						   i_approved boolean, 
+						   i_groupid integer,
+						   i_rankid integer, 
+						   i_stylednicks boolean)
+                 RETURNS SETOF databaseSchema.objectQualifier_user_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_user_list_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_user_list_return_type%ROWTYPE;
 BEGIN
  	IF i_userid IS NOT NULL THEN
 FOR _rec IN
@@ -10169,8 +10360,8 @@ FOR _rec IN
 			a.istwitteruser,
             a.texteditor,
             a.usesinglesignon,
-			COALESCE(CAST(SIGN(a.flags & 2) AS integer)>0,false) AS isapproved,
-            COALESCE(CAST(SIGN(a.flags & 16) AS integer)>0,false) AS isactiveexcluded,
+			a.isapproved,
+            a.isactiveexcluded,
  			b.name AS RankName,
  			case(i_stylednicks)
 	        when true then  COALESCE(( SELECT f.style FROM databaseSchema.objectQualifier_usergroup e 
@@ -10238,8 +10429,8 @@ FOR _rec IN
 			a.istwitteruser,
             a.texteditor,
             a.usesinglesignon, 
-			COALESCE(CAST(SIGN(a.flags & 2) AS integer)>0,false) AS isapproved,
-            COALESCE(CAST(SIGN(a.flags & 16) AS integer)>0,false) AS isactiveexcluded,
+			a.isapproved,
+            a.isactiveexcluded,
  			b.name AS RankName,
  			case(i_stylednicks)
 	        when true then  COALESCE(( SELECT f.style FROM databaseSchema.objectQualifier_usergroup e 
@@ -10281,11 +10472,11 @@ $BODY$
   COST 100;   
 --GO
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_admin_list(
-                          i_boardid integer,                       
-						  i_stylednicks boolean)
-  RETURNS SETOF databaseSchema.objectQualifier_admin_list_rt AS
+                           i_boardid integer,                       
+						   i_stylednicks boolean)
+                  RETURNS SETOF databaseSchema.objectQualifier_admin_list_rt AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_admin_list_rt%ROWTYPE;
+             _rec databaseSchema.objectQualifier_admin_list_rt%ROWTYPE;
 BEGIN
 		for _rec in select 
 			        a.userid,    
@@ -10356,43 +10547,38 @@ $BODY$
   COST 100 ROWS 1000;   
 --GO
 
-
--- Function: databaseSchema.objectQualifier_user_listmembers(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_user_listmembers(integer);
-
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_listmembers(
-                i_boardid integer,
-				i_userid integer,
-				i_approved boolean,
-				i_groupid integer,
-				i_rankid integer,
-				i_stylednicks boolean,
-				i_literals varchar(255), 
-				i_exclude boolean, 
-				i_beginswith boolean, 				
-				i_pageindex integer, 
-				i_pagesize integer,
-				i_sortname integer,
-				i_sortrank integer,
-				i_sortjoined integer,
-				i_sortposts integer,	
-				i_sortlastvisit integer,
-				i_numposts integer,
-				i_numpostscompare integer)  
-RETURNS SETOF databaseSchema.objectQualifier_user_listmembers_return_type AS
+                           i_boardid integer,
+						   i_userid integer,
+						   i_approved boolean,
+						   i_groupid integer,
+						   i_rankid integer,
+						   i_stylednicks boolean,
+						   i_literals varchar(255),
+						   i_exclude boolean,
+						   i_beginswith boolean,
+						   i_pageindex integer,
+						   i_pagesize integer,
+						   i_sortname integer,
+						   i_sortrank integer,
+						   i_sortjoined integer,
+						   i_sortposts integer,
+						   i_sortlastvisit integer,
+						   i_numposts integer,
+						   i_numpostscompare integer)  
+                  RETURNS SETOF databaseSchema.objectQualifier_user_listmembers_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_user_listmembers_return_type%ROWTYPE;
- ici_user_totalrowsnumber integer:=0; 
- ici_pagelowerbound integer := i_pagesize*i_pageindex;
- ici_pageupperbound integer := i_pagesize -1 + ici_pagelowerbound;  
- ici_counter integer:=0; 
- ici_firstselectrownum integer; 
- ici_firstselectuserid character varying(255);
- ici_firstselectrankid integer;
- ici_firstselectlastvisit timestamp with time zone;
- ici_firstselectjoined timestamp with time zone;
- ici_firstselectposts integer;
+             _rec databaseSchema.objectQualifier_user_listmembers_return_type%ROWTYPE;
+			 ici_user_totalrowsnumber integer:=0;
+			 ici_pagelowerbound integer := i_pagesize*i_pageindex;
+			 ici_pageupperbound integer := i_pagesize -1 + ici_pagelowerbound;
+			 ici_counter integer:=0;
+			 ici_firstselectrownum integer;
+			 ici_firstselectuserid varchar(255);
+			 ici_firstselectrankid integer;
+			 ici_firstselectlastvisit timestampTZ ;
+			 ici_firstselectjoined timestampTZ ;
+			 ici_firstselectposts integer;
 BEGIN 
 
    -- get total number of users in the db
@@ -10540,10 +10726,11 @@ $BODY$
 
 -- DROP FUNCTION databaseSchema.objectQualifier_user_listmedals(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_listmedals(i_userid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_user_listmedals_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_listmedals(
+                           i_userid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_user_listmedals_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_user_listmedals_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_user_listmedals_return_type%ROWTYPE;
 BEGIN
  FOR _rec IN
  	SELECT
@@ -10606,12 +10793,10 @@ END;$BODY$
   ROWS 1000;   
 --GO
 
--- Function: databaseSchema.objectQualifier_user_medal_delete(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_medal_delete(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_medal_delete(i_userid integer, i_medalid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_medal_delete(
+                           i_userid integer, 
+						   i_medalid integer)
+                  RETURNS void AS
 'DELETE FROM databaseSchema.objectQualifier_usermedal 
  	WHERE userid=$1 
  	AND medalid=$2;' 
@@ -10619,14 +10804,12 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_medal_delete(i_us
   COST 100;  
 --GO
 
--- Function: databaseSchema.objectQualifier_user_medal_list(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_medal_list(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_medal_list(i_userid integer, i_medalid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_user_medal_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_medal_list(
+                           i_userid integer, 
+						   i_medalid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_user_medal_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_user_medal_list_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_user_medal_list_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN  
  	SELECT 
@@ -10670,14 +10853,17 @@ END;$BODY$
   COST 100 ROWS 1000;  
 --GO
 
--- Function: databaseSchema.objectQualifier_user_medal_save(integer, integer, character varying, boolean, boolean, smallint, timestamp with time zone)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_medal_save(integer, integer, character varying, boolean, boolean, smallint, timestamp with time zone);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_medal_save(i_userid integer, i_medalid integer, i_message character varying, i_hide boolean, i_onlyribbon boolean, i_sortorder smallint, i_dateawarded timestamp with time zone)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_medal_save(
+                           i_userid integer, 
+						   i_medalid integer, 
+						   i_message varchar, 
+						   i_hide boolean, 
+						   i_onlyribbon boolean, 
+						   i_sortorder smallint, 
+						   i_dateawarded timestampTZ )
+                  RETURNS void AS
 $BODY$DECLARE
-ici_DateAwarded timestamp with time zone :=i_dateawarded;
+             ici_DateAwarded timestampTZ  :=i_dateawarded;
 BEGIN
  
  	IF EXISTS(SELECT 1 from databaseSchema.objectQualifier_usermedal 
@@ -10708,19 +10894,18 @@ END;$BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_user_migrate(integer, character varying, boolean)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_migrate(integer, character varying, boolean);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_migrate(i_userid integer, i_provideruserkey character varying, i_updateprovider boolean)
-RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_migrate(
+                           i_userid integer, 
+						   i_provideruserkey varchar, 
+						   i_updateprovider boolean)
+                  RETURNS void AS
 $BODY$DECLARE
-ici_Password character varying(255);
-ici_IsApproved boolean;
-ici_LastActivity timestamp with time zone;
-ici_Joined timestamp with time zone;
-ici_case integer;
-ici_result boolean:=false;
+             ici_Password varchar(255);
+			 ici_IsApproved boolean;
+			 ici_LastActivity timestampTZ ;
+			 ici_Joined timestampTZ ;
+			 ici_case integer;
+			 ici_result boolean:=false;
 BEGIN
  	UPDATE databaseSchema.objectQualifier_user 
  	SET provideruserkey = i_ProviderUserKey WHERE userid = i_UserID;
@@ -10765,20 +10950,19 @@ $BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_user_nntp(integer, character varying, character varying)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_nntp(integer, character varying, character varying);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_nntp(i_boardid integer, i_username character varying, i_email character varying, i_timezone integer)
-  RETURNS integer AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_nntp(
+                           i_boardid integer, 
+						   i_username varchar,
+						   i_email varchar, 
+						   i_timezone integer)
+                  RETURNS integer AS
 $BODY$DECLARE
-ici_UserName character varying(128):=i_username;
-ici_userid integer; 
-ici_Count integer:=0;
-intnull integer;
-varcharnull character varying;
-charnull character varying(10);
-
+             ici_UserName varchar(128):=i_username;
+			 ici_userid integer;
+			 ici_Count integer:=0;
+			 intnull integer;
+			 varcharnull varchar;
+			 charnull varchar(10);
 BEGIN
   	ici_UserName := ici_UserName || ' (NNTP)';
  
@@ -10802,19 +10986,16 @@ END;$BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_pmcount(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_pmcount(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_pmcount(i_userid integer)
-  RETURNS databaseSchema.objectQualifier_user_pmcount_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_pmcount(
+                           i_userid integer)
+                  RETURNS databaseSchema.objectQualifier_user_pmcount_return_type AS
 $BODY$DECLARE
-ici_countin integer;
-ici_countout integer;
-ici_countarchivedin integer;
-ici_plimit1 integer;        
-ici_pcount integer;
-_rec databaseSchema.objectQualifier_user_pmcount_return_type;
+             ici_countin integer;
+			 ici_countout integer;
+			 ici_countarchivedin integer;
+			 ici_plimit1 integer;
+			 ici_pcount integer;
+             _rec databaseSchema.objectQualifier_user_pmcount_return_type;
 BEGIN
        
     SELECT  c.pmlimit INTO ici_plimit1 FROM databaseSchema.objectQualifier_user a 
@@ -10869,15 +11050,14 @@ END;$BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_user_recoverpassword(integer, character varying, character varying)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_recoverpassword(integer, character varying, character varying);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_recoverpassword(i_boardid integer, i_username character varying, i_email character varying)
-  RETURNS  databaseSchema.objectQualifier_user_recoverpassword_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_recoverpassword(
+                           i_boardid integer, 
+						   i_username varchar, 
+						   i_email varchar)
+                  RETURNS  databaseSchema.objectQualifier_user_recoverpassword_return_type AS
 $BODY$DECLARE
-ici_userid integer;
-_rec databaseSchema.objectQualifier_user_recoverpassword_return_type;
+             ici_userid integer;
+			 _rec databaseSchema.objectQualifier_user_recoverpassword_return_type;
 BEGIN
  	
  	SELECT  userid INTO ici_userid FROM databaseSchema.objectQualifier_user 
@@ -10897,12 +11077,10 @@ END;$BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_removepoints(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_removepoints(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_removepoints(i_userid integer, i_points integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_removepoints(
+                           i_userid integer, 
+						   i_points integer)
+                  RETURNS void AS
 'UPDATE databaseSchema.objectQualifier_user 
 SET points = points - $2 
 WHERE userid = $1;'
@@ -10910,12 +11088,10 @@ WHERE userid = $1;'
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_removepointsbytopicid(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_removepointsbytopicid(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_removepointsbytopicid(i_topicid integer, i_points integer)
-  RETURNS void AS 	
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_removepointsbytopicid(
+                           i_topicid integer, 
+						   i_points integer)
+                  RETURNS void AS 	
  	'UPDATE databaseSchema.objectQualifier_user 
  	SET points = points - $2 
  	WHERE userid = (SELECT userid
@@ -10925,85 +11101,76 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_removepointsbytop
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_user_resetpoints()
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_resetpoints();
-
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_resetpoints()
-  RETURNS void AS
+                  RETURNS void AS
 'UPDATE databaseSchema.objectQualifier_user 
 SET points = numposts * 3;'
   LANGUAGE 'sql' VOLATILE SECURITY DEFINER
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_user_save(integer, integer, character varying, character varying, integer, character varying, character varying, boolean, boolean, boolean, character varying)
+-- Function: databaseSchema.objectQualifier_user_save(integer, integer, varchar, varchar, integer, varchar, varchar, boolean, boolean, boolean, varchar)
 
--- DROP FUNCTION databaseSchema.objectQualifier_user_save(integer, integer, character varying, character varying, integer, character varying, character varying, boolean, boolean, boolean, character varying);
+-- DROP FUNCTION databaseSchema.objectQualifier_user_save(integer, integer, varchar, varchar, integer, varchar, varchar, boolean, boolean, boolean, varchar);
 /* DROP FUNCTION databaseSchema.objectQualifier_user_save(
                   integer,
 				  integer,
-				  character varying,
-				  character varying,
-				  character varying, 
+				  varchar,
+				  varchar,
+				  varchar, 
 				  integer, 
-				  character varying, 
+				  varchar, 
 				  char(5),
-				  character varying,
+				  varchar,
 				  boolean,
-				  character varying,
-				  character varying, 
+				  varchar,
+				  varchar, 
 				  boolean,  
 				  boolean,
 				  boolean,
 				  integer, 
-				  character varying, 
+				  varchar, 
   boolean,
   boolean, 
   boolean);
 
 DROP FUNCTION databaseSchema.objectQualifier_user_save(
-                  integer,integer,character varying,character varying,character varying, integer, character varying, 
-				  char(5),character varying,character varying,character varying, boolean,  boolean, integer, character varying, 
+                  integer,integer,varchar,varchar,varchar, integer, varchar, 
+				  char(5),varchar,varchar,varchar, boolean,  boolean, integer, varchar, 
   boolean,
   boolean, 
   boolean); */
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_save(
-
- i_userid integer,
- i_boardid integer, 
- i_username character varying, 
- i_displayname character varying, 
- i_email character varying, 
-
- i_timezone integer, 
- i_languagefile character varying, 
- i_culture character varying, 
- i_themefile character varying,
- i_usesinglesignon    bool,
- i_texteditor character varying, 
-
- i_overridedefaulttheme boolean,
- i_approved boolean, 
- i_pmnotification boolean,
- i_notificationtype integer,
- i_provideruserkey character varying, 
- i_autowatchtopics boolean,
- i_dstuser boolean, 
- i_hideuser boolean)
-
-  RETURNS integer AS
+                           i_userid integer,
+						   i_boardid integer,
+						   i_username varchar,
+						   i_displayname varchar,
+						   i_email varchar,
+						   i_timezone integer,
+						   i_languagefile varchar,
+						   i_culture varchar,
+						   i_themefile varchar,
+						   i_usesinglesignon    bool,
+						   i_texteditor varchar,
+						   i_overridedefaulttheme boolean,
+						   i_approved boolean,
+						   i_pmnotification boolean,
+						   i_notificationtype integer,
+						   i_provideruserkey varchar,
+						   i_autowatchtopics boolean,
+						   i_dstuser boolean,
+						   i_hideuser boolean)
+                 RETURNS integer AS
 $BODY$DECLARE
-ici_rankid integer;
-ici_flags integer:=0;
-ici_PMNotification boolean := COALESCE(i_pmnotification,TRUE);
-ici_OverrideDefaultTheme boolean :=i_overridedefaulttheme;
-ici_notificationtype integer = i_notificationtype;
-ici_email character varying :=i_email; 
-ici_userid integer :=i_userid;
-ici_autowatchtopics boolean :=i_autowatchtopics;
-
+             ici_rankid integer;
+			 ici_flags integer:=0;
+			 ici_PMNotification boolean := COALESCE(i_pmnotification,TRUE);
+			 ici_OverrideDefaultTheme boolean :=i_overridedefaulttheme;
+			 ici_notificationtype integer = i_notificationtype;
+			 ici_email varchar :=i_email;
+			 ici_userid integer :=i_userid;
+			 ici_autowatchtopics boolean :=i_autowatchtopics;
 BEGIN 		
  	-- new
  	IF i_usesinglesignon IS NULL THEN 
@@ -11083,23 +11250,24 @@ $BODY$
   COST 100;
 --GO 
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_setnotdirty
-(i_userid integer) 
-RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_setnotdirty(
+                           i_userid integer) 
+                  RETURNS void AS
 $BODY$
 BEGIN	
-	UPDATE databaseSchema.objectQualifier_user set flags = flags # 64 where userid = i_userid AND (flags & 64 = 64);
- END;
+	 UPDATE databaseSchema.objectQualifier_user set flags = flags # 64 where userid = i_userid AND (flags & 64 = 64);
+END;
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 30;
 --GO
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_repliedtopic
-(i_messageid integer, i_userid integer) 
-RETURNS integer AS
-$BODY$
-DECLARE ici_topicid integer;
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_repliedtopic(
+                           i_messageid integer, 
+						   i_userid integer) 
+                  RETURNS integer AS
+$BODY$DECLARE 
+             ici_topicid integer;
 BEGIN       
 SELECT topicid INTO ici_topicid FROM databaseSchema.objectQualifier_message WHERE mrssageid = i_messageid;
 
@@ -11111,25 +11279,25 @@ $BODY$
   COST 30;
 --GO
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_thankfromcount
-(i_userid integer) 
-RETURNS integer AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_thankfromcount(
+                           i_userid integer) 
+                  RETURNS integer AS
 $BODY$
 BEGIN
-RETURN (SELECT COUNT(1)
-        FROM databaseSchema.objectQualifier_thanks AS t WHERE t.thankstouserid = i_userid);		
+     RETURN (SELECT COUNT(1)
+             FROM databaseSchema.objectQualifier_thanks AS t WHERE t.thankstouserid = i_userid);		
  END;
 $BODY$
   LANGUAGE 'plpgsql' STABLE SECURITY DEFINER
   COST 20;
 --GO
 
--- Function: databaseSchema.objectQualifier_user_saveavatar(integer, character varying, bytea, character varying)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_saveavatar(integer, character varying, bytea, character varying);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_saveavatar(i_userid integer, i_avatar character varying, i_avatarimage bytea, i_avatarimagetype character varying)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_saveavatar(
+                           i_userid integer, 
+						   i_avatar varchar, 
+						   i_avatarimage bytea, 
+						   i_avatarimagetype varchar)
+                  RETURNS void AS
 $BODY$
 BEGIN
     IF i_avatar IS NOT NULL  THEN
@@ -11152,12 +11320,10 @@ $BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_user_savepassword(integer, character varying)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_savepassword(integer, character varying);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_savepassword(i_userid integer, i_password character varying)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_savepassword(
+                           i_userid integer, 
+						   i_password varchar)
+                  RETURNS void AS
 'UPDATE databaseSchema.objectQualifier_user 
     SET password = $2 
     where userid =$1;'
@@ -11165,12 +11331,10 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_savepassword(i_us
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_user_savesignature(integer, text)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_savesignature(integer, text);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_savesignature(i_userid integer, i_signature text)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_savesignature(
+                           i_userid integer, 
+						   i_signature text)
+                  RETURNS void AS
 'UPDATE databaseSchema.objectQualifier_user
  	 SET signature = $2 
  	 WHERE userid = $1;'
@@ -11178,28 +11342,26 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_savesignature(i_u
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_user_setpoints(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_setpoints(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_setpoints(i_userid integer, i_points integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_setpoints(
+                           i_userid integer, 
+						   i_points integer)
+                  RETURNS void AS
 'UPDATE databaseSchema.objectQualifier_user 
     SET points = $2 
     WHERE userid = $1;'
   LANGUAGE 'sql' VOLATILE SECURITY DEFINER
   COST 100; 
 --GO
-/* STORED PROCEDURE CREATED BY VZ-TEAM user_simplelist */
-    -- Function: databaseSchema.objectQualifier_user_simplelist(integer, integer)
 
 -- DROP FUNCTION databaseSchema.objectQualifier_user_simplelist(integer, integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_simplelist(i_startid integer, i_limit integer)
-  RETURNS SETOF databaseSchema.objectQualifier_user_simplelist_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_simplelist(
+                           i_startid integer, 
+						   i_limit integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_user_simplelist_return_type AS
 $BODY$DECLARE
-cntr integer:=0;
-_rec databaseSchema.objectQualifier_user_simplelist_return_type%ROWTYPE;
+             cntr integer:=0;
+             _rec databaseSchema.objectQualifier_user_simplelist_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN
     SELECT   a.userid,
@@ -11221,15 +11383,14 @@ FOR _rec IN
 COMMENT ON FUNCTION databaseSchema.objectQualifier_user_simplelist(integer, integer) IS 'UserID should be real user id, limit - number of rows. Used in RewriteUrlBuilder.cs only.';
 --GO
 
--- Function: databaseSchema.objectQualifier_user_setrole(integer, character varying, character varying)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_setrole(integer, character varying, character varying);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_setrole(i_boardid integer, i_provideruserkey character varying, i_role character varying)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_setrole(
+                           i_boardid integer, 
+						   i_provideruserkey varchar, 
+						   i_role varchar)
+                  RETURNS void AS
 $BODY$DECLARE
-ici_userid integer;
-ici_groupid integer;
+             ici_userid integer;
+             ici_groupid integer;
 BEGIN 
     SELECT userid INTO ici_userid
     FROM databaseSchema.objectQualifier_user
@@ -11272,31 +11433,26 @@ BEGIN
   COST 100;  
 --GO
 
--- Function: databaseSchema.objectQualifier_user_suspend(integer, timestamp with time zone)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_suspend(integer, timestamp with time zone);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_suspend(i_userid integer, i_suspend timestamp with time zone)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_suspend(
+                           i_userid integer, 
+						   i_suspend timestampTZ )
+                  RETURNS void AS
 'UPDATE databaseSchema.objectQualifier_user 
     SET suspended = $2 WHERE userid=$1;'  
   LANGUAGE 'sql' VOLATILE SECURITY DEFINER
   COST 100;   
 --GO
 
--- Function: databaseSchema.objectQualifier_user_upgrade(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_user_upgrade(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_upgrade(i_userid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_upgrade(
+                           i_userid integer)
+                  RETURNS void AS
 $BODY$DECLARE 
-ici_rankid	integer;
-ici_flags	integer;
-ici_minposts	integer;
-ici_numposts	integer;
-ici_boardid		integer;
-ici_rankboardid	integer;
+             ici_rankid	integer;
+			 ici_flags	integer;
+			 ici_minposts	integer;
+			 ici_numposts	integer;
+			 ici_boardid		integer;
+			 ici_rankboardid	integer;
  BEGIN   
     /* Get user and rank information */
     SELECT  
@@ -11358,27 +11514,22 @@ END;$BODY$
   COST 100;  
 --GO
 
--- Function: databaseSchema.objectQualifier_userforum_delete(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_userforum_delete(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_userforum_delete(i_userid integer, i_forumid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_userforum_delete(
+                           i_userid integer, 
+						   i_forumid integer)
+                  RETURNS void AS
 'DELETE FROM databaseSchema.objectQualifier_userforum 
 	WHERE userid=$1 AND forumid=$2;'
   LANGUAGE 'sql' VOLATILE SECURITY DEFINER
   COST 100;  
 --GO
 
-
--- Function: databaseSchema.objectQualifier_userforum_list(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_userforum_list(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_userforum_list(i_userid integer, i_forumid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_userforum_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_userforum_list(
+                           i_userid integer, 
+						   i_forumid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_userforum_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_userforum_list_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_userforum_list_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN
  SELECT
@@ -11435,12 +11586,11 @@ END;$BODY$
   COST 100;  
 --GO
 
--- Function: databaseSchema.objectQualifier_userforum_save(integer, integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_userforum_save(integer, integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_userforum_save(i_userid integer, i_forumid integer, i_accessmaskid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_userforum_save(
+                           i_userid integer, 
+						   i_forumid integer, 
+						   i_accessmaskid integer)
+                  RETURNS void AS
 $BODY$
 BEGIN
  	IF EXISTS(SELECT 1 FROM databaseSchema.objectQualifier_userforum 
@@ -11458,14 +11608,11 @@ $BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_usergroup_list(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_usergroup_list(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_usergroup_list(i_userid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_usergroup_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_usergroup_list(
+                           i_userid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_usergroup_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_usergroup_list_return_type%ROWTYPE; 
+             _rec databaseSchema.objectQualifier_usergroup_list_return_type%ROWTYPE; 
 BEGIN
 FOR _rec IN
  	SELECT 
@@ -11488,12 +11635,11 @@ END;$BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_usergroup_save(integer, integer, boolean)
-
--- DROP FUNCTION databaseSchema.objectQualifier_usergroup_save(integer, integer, boolean);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_usergroup_save(i_userid integer, i_groupid integer, i_member boolean)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_usergroup_save(
+                           i_userid integer, 
+						   i_groupid integer, 
+						   i_member boolean)
+                  RETURNS void AS
 $BODY$
 BEGIN
 	IF i_member IS FALSE THEN
@@ -11510,26 +11656,20 @@ END;$BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_userpmessage_delete(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_userpmessage_delete(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_userpmessage_delete(i_userpmessageid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_userpmessage_delete(
+                           i_userpmessageid integer)
+                  RETURNS void AS
 'DELETE FROM databaseSchema.objectQualifier_userpmessage 
  	WHERE userpmessageid=$1;'
   LANGUAGE 'sql' VOLATILE SECURITY DEFINER
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_userpmessage_list(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_userpmessage_list(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_userpmessage_list(i_userpmessageid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_userpmessage_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_userpmessage_list(
+                           i_userpmessageid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_userpmessage_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_userpmessage_list_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_userpmessage_list_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN
  	SELECT
@@ -11555,13 +11695,10 @@ END;$BODY$
   COST 100; 
 --GO
 
-
--- Function: databaseSchema.objectQualifier_watchforum_add(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_watchforum_add(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_watchforum_add(i_userid integer, i_forumid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_watchforum_add(
+                           i_userid integer, 
+						   i_forumid integer)
+                  RETURNS void AS
 $BODY$ 
 BEGIN
                           
@@ -11585,14 +11722,12 @@ $BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_watchforum_check(integer, integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_watchforum_check(integer, integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_watchforum_check(i_userid integer, i_forumid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_watchforum_check_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_watchforum_check(
+                           i_userid integer, 
+						   i_forumid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_watchforum_check_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_watchforum_check_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_watchforum_check_return_type%ROWTYPE;
 BEGIN 
 FOR _rec IN
  	SELECT watchforumid
@@ -11607,25 +11742,19 @@ END;$BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_watchforum_delete(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_watchforum_delete(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_watchforum_delete(i_watchforumid integer)
-  RETURNS void AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_watchforum_delete(
+                           i_watchforumid integer)
+                  RETURNS void AS
   	'DELETE FROM databaseSchema.objectQualifier_watchforum WHERE watchforumid = $1;'	
   LANGUAGE 'sql' VOLATILE SECURITY DEFINER
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_watchforum_list(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_watchforum_list(integer);
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_watchforum_list(i_userid integer)
-  RETURNS SETOF databaseSchema.objectQualifier_watchforum_list_return_type AS
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_watchforum_list(
+                           i_userid integer)
+                  RETURNS SETOF databaseSchema.objectQualifier_watchforum_list_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_watchforum_list_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_watchforum_list_return_type%ROWTYPE;
 BEGIN
 FOR _rec IN
  	SELECT
@@ -11660,8 +11789,6 @@ $BODY$
   COST 100;  
 --GO
 
--- Function: databaseSchema.objectQualifier_watchtopic_add(integer, integer)
-
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_watchtopic_add(
                            i_userid integer,
 						   i_topicid integer)
@@ -11679,7 +11806,6 @@ $BODY$
   COST 100; 
 --GO
 
--- Function: databaseSchema.objectQualifier_watchtopic_check(integer, integer)
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_watchtopic_check(
                            i_userid integer,
@@ -11699,8 +11825,6 @@ END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100;  
 --GO
-
--- Function: databaseSchema.objectQualifier_watchtopic_delete(integer)
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_watchtopic_delete(
                            i_watchtopicid integer)
@@ -11751,8 +11875,7 @@ $BODY$
 -- ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ    
 	
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_activeaccess_reset()
-                  RETURNS void
-AS
+                  RETURNS void AS
 $BODY$
 begin
 delete from databaseSchema.objectQualifier_active;
@@ -11763,19 +11886,17 @@ $BODY$
   COST 100;
 --GO
 
--- Function: databaseSchema.objectQualifier_pageload(character varying, integer, character varying, character varying, character varying, character varying, character varying, integer, integer, integer, integer, boolean)
--- old variants
-DROP FUNCTION IF EXISTS databaseSchema.objectQualifier_pageload(character varying, integer, character varying, character varying, character varying, character varying, character varying, integer, integer, integer, integer, boolean);
+DROP FUNCTION IF EXISTS databaseSchema.objectQualifier_pageload(varchar, integer, varchar, varchar, varchar, varchar, varchar, integer, integer, integer, integer, boolean);
 --GO
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pageload(
-                           i_sessionid character varying,
+                           i_sessionid varchar,
 						   i_boardid integer,
-						   i_userkey character varying,
-						   i_ip character varying,
-						   i_location character varying,
-						   i_forumpage character varying,
-						   i_browser character varying,
-						   i_platform character varying,
+						   i_userkey varchar,
+						   i_ip varchar,
+						   i_location varchar,
+						   i_forumpage varchar,
+						   i_browser varchar,
+						   i_platform varchar,
 						   ii_categoryid integer,
 						   ii_forumid integer,
 						   ii_topicid integer,
@@ -11792,12 +11913,12 @@ $BODY$DECLARE
 			 ici_isguest	boolean := true;
 			 ici_activeupdate	boolean := false;
 			 ici_rowcount	integer;
-			 ici_previousvisit	timestamp with time zone;
+			 ici_previousvisit	timestampTZ ;
 			 i_categoryid integer :=ii_categoryid;
 			 i_forumid integer :=ii_forumid;
 			 i_topicid integer := ii_topicid;
 			 i_messageid integer := ii_messageid;
-			 i_currenttime	timestamp with time zone := current_timestamp at time zone 'UTC';
+			 i_currenttime	timestampTZ  := current_timestamp at time zone 'UTC';
 			 ici_activeflags integer := 1;
 			 ici_crawler boolean := i_iscrawler;
 			 ici_guestid integer;
@@ -11816,9 +11937,6 @@ BEGIN
              RAISE NOTICE 'Found too many possible guest users. There should be one and only one user marked as guest.';
      END;		
 	
-	/*		raiserror('Found %d possible guest users. There should be one and only one user marked as guest.',16,1,@rowcount)
-	set implicit_transactions off*/
-
 -- verify that there's not the same session for other board and drop it if required.Test·code for portals with many boards  
  
 delete from databaseSchema.objectQualifier_active where (sessionid = i_sessionid and boardid != ici_boardid) ;
@@ -12259,9 +12377,9 @@ END;$BODY$
 
 /* User Ignore Procedures */
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_addignoreduser
-                          (i_userid INTEGER,
-						  i_ignoreduserid INTEGER)
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_addignoreduser(
+                           i_userid INTEGER,						   
+						   i_ignoreduserid INTEGER)
 				  RETURNS void AS
 $BODY$	
 BEGIN
@@ -12273,8 +12391,8 @@ END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER;
 --GO
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_removeignoreduser
-                           (i_userid INTEGER,
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_removeignoreduser(
+                           i_userid INTEGER,
 						   i_ignoreduserid INTEGER)
 				  RETURNS void 
 AS
@@ -12306,8 +12424,8 @@ END;$BODY$
 //  Modifications for integration into YAF/Conventions by Jaben Cargman
 //  Modifications for PostgreSQL by vzrus
 *****************************************************************************************************/
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_shoutbox_getmessages
-                           (i_boardid         integer,
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_shoutbox_getmessages(
+                           i_boardid         integer,
 						   i_numberofmessages integer,
 						   i_stylednicks      boolean)
 				  RETURNS SETOF  databaseSchema.objectQualifier_shoutbox_getmessages_return_type AS
@@ -12338,11 +12456,11 @@ $BODY$
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_shoutbox_savemessage
                            (i_userid        integer,
-						   i_username		character varying(255),
+						   i_username		varchar(255),
 						   i_boardid        integer,
 						   i_message		text,
-						   i_date			timestamp with time zone,
-						   i_ip			    character varying(39))
+						   i_date			timestampTZ,
+						   i_ip			    varchar(39))
 				  RETURNS void 
 AS  
    'INSERT INTO databaseSchema.objectQualifier_shoutboxmessage(userid, username, boardid,  message, "date", "ip")
@@ -12375,7 +12493,7 @@ $BODY$
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_addthanks
                            (i_fromuserid integer,
 						   i_messageid integer)
-				  RETURNS character varying(128)
+				  RETURNS varchar(128)
 AS
 $BODY$DECLARE 
 ici_touserid integer;
@@ -12451,7 +12569,7 @@ $BODY$
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_removethanks(
                            i_fromuserid integer,
 						   i_messageid integer)
-				  RETURNS character varying(128) AS
+				  RETURNS varchar(128) AS
 $BODY$
 BEGIN
 	DELETE FROM databaseSchema.objectQualifier_thanks WHERE thanksfromuserid=i_fromuserid AND messageid=i_messageid;
@@ -12553,7 +12671,7 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_getallthanks(
 				  RETURNS SETOF databaseSchema.objectQualifier_message_getallthanks_return_type AS
 $BODY$
 DECLARE 
-ici_messageid character varying(11);
+ici_messageid varchar(11);
 ici_messageids text := TRIM(BOTH FROM i_messageids) || ',';
 ici_pos integer := POSITION(',' IN ici_messageids);
 ici_messagearray int array;
@@ -12640,14 +12758,14 @@ $BODY$
 
  DROP FUNCTION  IF EXISTS databaseSchema.objectQualifier_user_lastread(integer) ;
   --GO
-  DROP FUNCTION  IF EXISTS databaseSchema.objectQualifier_user_lastread(integer, timestamp with time zone) ;
+  DROP FUNCTION  IF EXISTS databaseSchema.objectQualifier_user_lastread(integer, timestampTZ ) ;
   --GO
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_lastread(
                            i_userid integer)				 
-				  RETURNS timestamp with time zone AS
+				  RETURNS timestampTZ  AS
 $BODY$
-DECLARE ici_LastForumRead timestamp with time zone;
-		ici_LastTopicRead timestamp with time zone;	
+DECLARE ici_LastForumRead timestampTZ ;
+		ici_LastTopicRead timestampTZ ;	
 BEGIN		
 		
 		SELECT  lastaccessdate INTO ici_LastForumRead FROM  databaseSchema.objectQualifier_ForumReadTracking WHERE userid = i_userid ORDER BY lastaccessdate DESC LIMIT 1;
@@ -12676,7 +12794,7 @@ $BODY$
 
   CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_readtopic_lastread(
                            i_userid integer, i_topicid integer)				 
-				  RETURNS timestamp with time zone AS
+				  RETURNS timestampTZ  AS
 $BODY$
 BEGIN
     RETURN (SELECT LastAccessDate FROM  databaseSchema.objectQualifier_topicreadtracking WHERE userid = i_userid AND topicid = i_topicid);
@@ -12727,7 +12845,7 @@ $BODY$
    --GO
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_readforum_lastread(
                            i_userid integer, i_forumid integer)				 
-				  RETURNS timestamp with time zone AS
+				  RETURNS timestampTZ  AS
 $BODY$
 BEGIN
     RETURN (SELECT LastAccessDate FROM  databaseSchema.objectQualifier_forumreadtracking WHERE userid = i_userid AND forumid = i_forumid);
@@ -12785,8 +12903,8 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_favorite_details
 i_boardid integer, 
 i_categoryid integer, 
 i_pageuserid integer, 
-i_sincedate timestamp with time zone, 
-i_todate timestamp with time zone, 
+i_sincedate timestampTZ, 
+i_todate timestampTZ, 
 i_pageindex integer, 
 i_pagesize integer, 
 i_stylednicks boolean,
@@ -12795,7 +12913,7 @@ i_findlastunread boolean)
 $BODY$DECLARE 
  ici_topics_totalrowsnumber  integer; 
  ici_firstselectrownum integer;   
- ici_firstselectposted timestamp with time zone;  
+ ici_firstselectposted timestampTZ ;  
  ici_pageindex integer := i_pageindex;
  ici_retcount integer := 0;
  ici_counter integer := 0;
@@ -12942,7 +13060,7 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_buddy_addrequest(
                            i_fromuserid integer,
 						   i_touserid integer,
 					   out i_approved boolean, 
-					   out i_paramoutput character varying(255))
+					   out i_paramoutput varchar(255))
 				  RETURNS RECORD AS
 $BODY$
 BEGIN 
@@ -13023,8 +13141,8 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_buddy_approverequest(
                            i_fromuserid integer,
 						   i_touserid integer,
 						   i_mutual boolean,
-					   out i_paramoutput character varying(128))
-				  RETURNS character varying(128) AS
+					   out i_paramoutput varchar(128))
+				  RETURNS varchar(128) AS
 $BODY$
 -- DECLARE _rec databaseSchema.objectQualifier_buddy_approverequest_return_type%ROWTYPE;
     BEGIN
@@ -13118,8 +13236,8 @@ BEGIN
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_buddy_remove(
                            i_fromuserid integer,
 						   i_touserid integer, 
-						   out i_paramoutput character varying(128))
-				  RETURNS character varying(128) AS
+						   out i_paramoutput varchar(128))
+				  RETURNS varchar(128) AS
 $BODY$
     BEGIN
         DELETE  FROM   databaseSchema.objectQualifier_buddy
@@ -13138,8 +13256,8 @@ $BODY$
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_buddy_denyrequest(
                            i_fromuserid integer,
 						   i_touserid integer, 
-						   out i_paramoutput character varying(128))
-				  RETURNS character varying(255) AS
+						   out i_paramoutput varchar(128))
+				  RETURNS varchar(255) AS
 $BODY$
      BEGIN
         DELETE  FROM   databaseSchema.objectQualifier_buddy
@@ -13158,7 +13276,7 @@ $BODY$
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_album_save(
                            i_albumid integer,
 						   i_userid integer,
-						   i_title character varying(255),
+						   i_title varchar(255),
 						   i_coverimageid integer)
 				  RETURNS integer AS
 $BODY$ 
@@ -13262,9 +13380,9 @@ $BODY$
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_album_gettitle(
                            i_albumid integer)
-				  RETURNS character varying(255) AS
+				  RETURNS varchar(255) AS
 $BODY$DECLARE
-             ittl character varying(255);
+             ittl varchar(255);
 BEGIN
 SELECT title into ittl
           FROM   databaseSchema.objectQualifier_useralbum
@@ -13331,10 +13449,10 @@ $BODY$
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_album_image_save(
                            i_imageid integer,
 						   i_albumid integer,
-						   i_caption character varying(255),
-						   i_filename character varying(255),
+						   i_caption varchar(255),
+						   i_filename varchar(255),
 						   i_bytes integer,
-						   i_contenttype character varying(50))
+						   i_contenttype varchar(50))
 						   RETURNS void AS
 $BODY$
 BEGIN  
@@ -13490,14 +13608,14 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_getsignaturedata(
 				  RETURNS databaseSchema.objectQualifier_user_getsignaturedata_return_type  AS
 $BODY$DECLARE 
              R_UsrSigChars int:=0;
-			 R_UsrSigBBCodes character varying(4000);
-			 R_UsrSigHTMLTags character varying(4000);
+			 R_UsrSigBBCodes varchar(4000);
+			 R_UsrSigHTMLTags varchar(4000);
 			 G_UsrSigChars int:=0;
-			 G_UsrSigBBCodes character varying(4000);
-			 G_UsrSigHTMLTags character varying(4000);
+			 G_UsrSigBBCodes varchar(4000);
+			 G_UsrSigHTMLTags varchar(4000);
 			 TG_UsrSigChars integer;
-			 TG_UsrSigBBCodes character varying(4000);
-			 TG_UsrSigHTMLTags character varying(4000);
+			 TG_UsrSigBBCodes varchar(4000);
+			 TG_UsrSigHTMLTags varchar(4000);
 			 _rec databaseSchema.objectQualifier_user_getsignaturedata_return_type%ROWTYPE;
 			 _rec1 databaseSchema.objectQualifier_user_getsignaturedata_return_type%ROWTYPE;  
  BEGIN
@@ -13735,7 +13853,7 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_gettextbyids(i
   RETURNS SETOF databaseSchema.objectQualifier_message_gettextbyids_return_type AS
 $BODY$
 DECLARE 
-ici_messageid character varying(11);
+ici_messageid varchar(11);
 ici_messageids text := TRIM(BOTH FROM i_messageids) || ',';
 ici_pos integer:= POSITION(',' IN ici_messageids);
 ici_messagearray int array;
@@ -13805,7 +13923,7 @@ BEGIN
                 JOIN databaseSchema.objectQualifier_rank r on r.rankid=u.rankid
     WHERE u.isapproved IS TRUE AND
      u.boardid = i_boardid AND
-	 u.lastvisit > (current_timestamp at time zone 'UTC' - (i_timesincelastlogin::character varying(11) || ' minute')::interval)
+	 u.lastvisit > (current_timestamp at time zone 'UTC' - (i_timesincelastlogin::varchar(11) || ' minute')::interval)
      AND
                 --Excluding guests
                 NOT EXISTS(             
@@ -13827,8 +13945,8 @@ $BODY$
 i_boardid integer, 
 i_categoryid integer, 
 i_pageuserid integer, 
-i_sincedate timestamp with time zone, 
-i_todate timestamp with time zone, 
+i_sincedate timestampTZ, 
+i_todate timestampTZ, 
 i_pageindex integer, 
 i_pagesize integer, 
 i_stylednicks boolean,
@@ -13837,7 +13955,7 @@ i_findlastunread boolean)
   $BODY$DECLARE 
  ici_topics_totalrowsnumber  integer; 
  ici_firstselectrownum integer;   
- ici_firstselectposted timestamp with time zone;  
+ ici_firstselectposted timestampTZ ;  
  ici_pageindex integer := i_pageindex;
  ici_retcount integer := 0;
  ici_counter integer := 0;
@@ -14118,8 +14236,8 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_unanswered(
 i_boardid integer, 
 i_categoryid integer, 
 i_pageuserid integer, 
-i_sincedate timestamp with time zone, 
-i_todate timestamp with time zone, 
+i_sincedate timestampTZ, 
+i_todate timestampTZ, 
 i_pageindex integer, 
 i_pagesize integer, 
 i_stylednicks boolean,
@@ -14128,7 +14246,7 @@ i_findlastunread boolean)
 $BODY$DECLARE
  ici_topics_totalrowsnumber  integer; 
  ici_firstselectrownum integer;   
- ici_firstselectposted timestamp with time zone; 
+ ici_firstselectposted timestampTZ ; 
  ici_pageindex integer := i_pageindex;
  ici_retcount integer := 0;
  ici_counter integer := 0;
@@ -14281,8 +14399,8 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_topic_unread(
 i_boardid integer, 
 i_categoryid integer, 
 i_pageuserid integer, 
-i_sincedate timestamp with time zone, 
-i_todate timestamp with time zone, 
+i_sincedate timestampTZ, 
+i_todate timestampTZ, 
 i_pageindex integer, 
 i_pagesize integer, 
 i_stylednicks boolean,
@@ -14291,7 +14409,7 @@ i_findlastunread boolean)
   $BODY$DECLARE 
  ici_topics_totalrowsnumber  integer; 
  ici_firstselectrownum integer;   
- ici_firstselectposted timestamp with time zone;  
+ ici_firstselectposted timestampTZ ;  
  ici_pageindex integer := i_pageindex;
  ici_retcount integer := 0;
  ici_counter integer := 0;
