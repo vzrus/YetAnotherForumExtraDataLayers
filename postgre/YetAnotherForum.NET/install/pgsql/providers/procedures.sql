@@ -8,17 +8,17 @@
 -- #############################################################################
 -- PROVIDER FUNCTION SCRIPT BY VZ_TEAM 
 
--- Function: databaseSchema.objectQualifier_prov_createapplication(character varying)
+-- Function: databaseSchema.objectQualifier_prov_createapplication(varchar)
 
--- DROP FUNCTION databaseSchema.objectQualifier_prov_createapplication(character varying);
+-- DROP FUNCTION databaseSchema.objectQualifier_prov_createapplication(varchar);
 
 
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_createapplication(
-IN i_applicationname character varying, 
-IN i_newguid uuid, 
-OUT i_applicationid uuid)
-  RETURNS uuid AS  
+                        IN i_applicationname varchar, 
+                        IN i_newguid uuid, 
+                       OUT i_applicationid uuid)
+                  RETURNS uuid AS  
 $BODY$
 BEGIN
 
@@ -63,12 +63,12 @@ IF ((i_previousversion  = 31) OR (i_previousversion  = 32)) THEN
 -- PROVIDER FUNCTION SCRIPT BY VZ_TEAM 
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_changepassword
-(IN i_applicationname character varying, 
-IN i_username character varying, 
-IN i_password character varying, 
-IN i_passwordsalt character varying, 
-IN i_passwordformat character varying,
-IN i_passwordanswer character varying,
+(IN i_applicationname varchar, 
+IN i_username varchar, 
+IN i_password varchar, 
+IN i_passwordsalt varchar, 
+IN i_passwordformat varchar,
+IN i_passwordanswer varchar,
 IN i_newguid uuid) 
 RETURNS void AS
 $BODY$
@@ -90,15 +90,15 @@ LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER;
 
 -- PROVIDER FUNCTION SCRIPT BY VZ_TEAM 
 
--- Function: objectQualifier_prov_ChangePasswordQuestionAndAnswer(character varying, character varying, character varying, character varying)
+-- Function: objectQualifier_prov_ChangePasswordQuestionAndAnswer(varchar, varchar, varchar, varchar)
 
--- DROP FUNCTION objectQualifier_prov_ChangePasswordQuestionAndAnswer(character varying, character varying, character varying, character varying);
+-- DROP FUNCTION objectQualifier_prov_ChangePasswordQuestionAndAnswer(varchar, varchar, varchar, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_changepasswordquestionandanswer(
-i_applicationname character varying, 
-i_username character varying, 
-i_passwordquestion character varying, 
-i_passwordanswer character varying,
+i_applicationname varchar, 
+i_username varchar, 
+i_passwordquestion varchar, 
+i_passwordanswer varchar,
 IN i_newguid uuid) 
   RETURNS void AS
 $BODY$
@@ -114,19 +114,19 @@ END;$BODY$
   COST 100;  
 --GO
 
--- Function: databaseSchema.objectQualifier_prov_createuser(character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, boolean)
+-- Function: databaseSchema.objectQualifier_prov_createuser(varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, boolean)
 
--- DROP FUNCTION databaseSchema.objectQualifier_prov_createuser(character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, boolean);
+-- DROP FUNCTION databaseSchema.objectQualifier_prov_createuser(varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, boolean);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_createuser(
-IN i_applicationname character varying, 
-IN i_username character varying, 
-IN i_password character varying, 
-IN i_passwordsalt character varying,
-IN i_passwordformat character varying, 
-IN i_email character varying, 
-IN i_passwordquestion character varying, 
-IN i_passwordanswer character varying, 
+IN i_applicationname varchar, 
+IN i_username varchar, 
+IN i_password varchar, 
+IN i_passwordsalt varchar,
+IN i_passwordformat varchar, 
+IN i_email varchar, 
+IN i_passwordquestion varchar, 
+IN i_passwordanswer varchar, 
 IN i_isapproved boolean,
 IN i_newguid uuid,
 IN i_newuserkey uuid,  
@@ -150,18 +150,18 @@ END;$BODY$
 --GO
 -- PROVIDER FUNCTION SCRIPT BY VZ_TEAM --
 
--- Function: objectQualifier_prov_deleteuser(character varying, character varying, boolean)
+-- Function: objectQualifier_prov_deleteuser(varchar, varchar, boolean)
 
--- DROP FUNCTION objectQualifier_prov_deleteuser(character varying, character varying, boolean);
+-- DROP FUNCTION objectQualifier_prov_deleteuser(varchar, varchar, boolean);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_deleteuser(
-i_applicationname character varying, 
-i_username character varying, 
+i_applicationname varchar, 
+i_username varchar, 
 i_deleteallrelated boolean,
 IN i_newguid uuid)
   RETURNS void AS
 $BODY$ DECLARE 
-ici_userid character varying(64);
+ici_userid varchar(64);
 BEGIN 	
  
     
@@ -190,13 +190,13 @@ END;$BODY$
 
 
 
--- Function: objectQualifier_prov_findusersbyemail(character varying, character varying, integer, integer)
+-- Function: objectQualifier_prov_findusersbyemail(varchar, varchar, integer, integer)
 
---DROP FUNCTION objectQualifier_prov_findusersbyemail(character varying, character varying, integer, integer);
+--DROP FUNCTION objectQualifier_prov_findusersbyemail(varchar, varchar, integer, integer);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_findusersbyemail(
-i_applicationname character varying, 
-i_emailaddress character varying, 
+i_applicationname varchar, 
+i_emailaddress varchar, 
 i_pageindex integer, 
 i_pagesize integer,
 IN i_newguid uuid)
@@ -232,13 +232,13 @@ END;$BODY$
 
 
 
--- Function: objectQualifier_prov_findusersbyname(character varying, character varying, integer, integer)
+-- Function: objectQualifier_prov_findusersbyname(varchar, varchar, integer, integer)
 
---DROP FUNCTION objectQualifier_prov_findusersbyname(character varying, character varying, integer, integer);
+--DROP FUNCTION objectQualifier_prov_findusersbyname(varchar, varchar, integer, integer);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_findusersbyname(
-i_applicationname character varying, 
-i_username character varying, 
+i_applicationname varchar, 
+i_username varchar, 
 i_pageindex integer, 
 i_pagesize integer,
 IN i_newguid uuid)
@@ -280,12 +280,12 @@ END;$BODY$
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
 
 
--- Function: objectQualifier_prov_getallusers(character varying, integer, integer)
+-- Function: objectQualifier_prov_getallusers(varchar, integer, integer)
 
--- DROP FUNCTION objectQualifier_prov_getallusers(character varying, integer, integer);
+-- DROP FUNCTION objectQualifier_prov_getallusers(varchar, integer, integer);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_getallusers(
-i_applicationname character varying,
+i_applicationname varchar,
  i_pageindex integer, 
  i_pagesize integer,
 IN i_newguid uuid)
@@ -326,16 +326,16 @@ $BODY$
 --GO
 
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
--- Function: objectQualifier_prov_resetpassword(character varying, character varying, character varying, character varying, character varying, integer, integer, timestamp with time zone)
+-- Function: objectQualifier_prov_resetpassword(varchar, varchar, varchar, varchar, varchar, integer, integer, timestamp with time zone)
 
--- DROP FUNCTION objectQualifier_prov_resetpassword(character varying, character varying, character varying, character varying, character varying, integer, integer, timestamp with time zone);
+-- DROP FUNCTION objectQualifier_prov_resetpassword(varchar, varchar, varchar, varchar, varchar, integer, integer, timestamp with time zone);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_resetpassword(
-i_applicationname character varying, 
-i_username character varying, 
-i_password character varying, 
-i_passwordsalt character varying, 
-i_passwordformat character varying, 
+i_applicationname varchar, 
+i_username varchar, 
+i_password varchar, 
+i_passwordsalt varchar, 
+i_passwordformat varchar, 
 i_maxinvalidattempts integer, 
 i_passwordattemptwindow integer, 
 i_currenttimeutc timestamp with time zone,
@@ -359,13 +359,13 @@ $BODY$
   COST 100;
 --GO
 
- -- Function: objectQualifier_prov_GetUser(character varying, character varying, character varying, boolean)
+ -- Function: objectQualifier_prov_GetUser(varchar, varchar, varchar, boolean)
 
--- DROP FUNCTION objectQualifier_prov_GetUser(character varying, character varying, character varying, boolean);
+-- DROP FUNCTION objectQualifier_prov_GetUser(varchar, varchar, varchar, boolean);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_getuser(
-i_applicationname character varying, 
-i_username character varying, 
+i_applicationname varchar, 
+i_username varchar, 
 i_userkey uuid, 
 i_userisonline boolean,
 IN i_newguid uuid)
@@ -410,15 +410,15 @@ END;$BODY$
 
 
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
--- Function: objectQualifier_prov_updateuser(character varying, character varying, character varying, character varying, text, boolean, timestamp with time zone, timestamp with time zone, boolean)
+-- Function: objectQualifier_prov_updateuser(varchar, varchar, varchar, varchar, text, boolean, timestamp with time zone, timestamp with time zone, boolean)
 
--- DROP FUNCTION objectQualifier_prov_updateuser(character varying, character varying, character varying, character varying, text, boolean, timestamp with time zone, timestamp with time zone, boolean);
+-- DROP FUNCTION objectQualifier_prov_updateuser(varchar, varchar, varchar, varchar, text, boolean, timestamp with time zone, timestamp with time zone, boolean);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_updateuser(
-i_applicationname character varying, 
+i_applicationname varchar, 
 i_userkey uuid, 
-i_username character varying, 
-i_email character varying, 
+i_username varchar, 
+i_email varchar, 
 i_comment text, 
 i_isapproved boolean, 
 i_lastlogin timestamp with time zone, 
@@ -472,13 +472,13 @@ END;$BODY$
 --GO
 
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
--- Function: objectQualifier_prov_unlockuser(character varying, character varying)
+-- Function: objectQualifier_prov_unlockuser(varchar, varchar)
 
--- DROP FUNCTION objectQualifier_prov_unlockuser(character varying, character varying);
+-- DROP FUNCTION objectQualifier_prov_unlockuser(varchar, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_unlockuser(
-i_applicationname character varying, 
-i_username character varying,
+i_applicationname varchar, 
+i_username varchar,
 IN i_newguid uuid)
   RETURNS void AS
 $BODY$
@@ -498,12 +498,12 @@ END;$BODY$
 --GO
 
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
--- Function: objectQualifier_prov_getnumberofusersonline(character varying, integer, timestamp with time zone)
+-- Function: objectQualifier_prov_getnumberofusersonline(varchar, integer, timestamp with time zone)
 
--- DROP FUNCTION objectQualifier_prov_getnumberofusersonline(character varying, integer, timestamp with time zone);
+-- DROP FUNCTION objectQualifier_prov_getnumberofusersonline(varchar, integer, timestamp with time zone);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_getnumberofusersonline(
-i_applicationname character varying, 
+i_applicationname varchar, 
 i_timewindow integer, 
 i_currenttimeutc timestamp with time zone,
 IN i_newguid uuid)
@@ -513,7 +513,7 @@ $BODY$DECLARE ici_activitydate timestamp with time zone;
      dd interval;
      
 BEGIN 
- dd := CAST(CAST(i_timewindow AS character varying) || ' minute' AS interval); 
+ dd := CAST(CAST(i_timewindow AS varchar) || ' minute' AS interval); 
        ici_activitydate:= i_currenttimeutc - dd ; 	
  	SELECT COUNT(1) INTO ici_numberactive 
  	FROM databaseSchema.objectQualifier_prov_membership m 
@@ -532,13 +532,13 @@ $BODY$
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
 
 
--- Function: objectQualifier_prov_getusernamebyemail(character varying, character varying)
+-- Function: objectQualifier_prov_getusernamebyemail(varchar, varchar)
 
--- DROP FUNCTION objectQualifier_prov_getusernamebyemail(character varying, character varying);
+-- DROP FUNCTION objectQualifier_prov_getusernamebyemail(varchar, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_getusernamebyemail(
-i_applicationname character varying, 
-i_email character varying,
+i_applicationname varchar, 
+i_email varchar,
 IN i_newguid uuid)
   RETURNS SETOF databaseSchema.objectQualifier_prov_getusernamebyemail_return_type AS
 $BODY$DECLARE 
@@ -566,14 +566,14 @@ $BODY$
 -- #############################################################################
 
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
- -- Function: objectQualifier_prov_role_addusertorole(character varying, character varying, character varying)
+ -- Function: objectQualifier_prov_role_addusertorole(varchar, varchar, varchar)
 
--- DROP FUNCTION objectQualifier_prov_role_addusertorole(character varying, character varying, character varying);
+-- DROP FUNCTION objectQualifier_prov_role_addusertorole(varchar, varchar, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_role_addusertorole(
-i_applicationname character varying, 
-i_username character varying, 
-i_rolename character varying,
+i_applicationname varchar, 
+i_username varchar, 
+i_rolename varchar,
 IN i_newguid uuid)
   RETURNS void AS
 $BODY$DECLARE 
@@ -610,13 +610,13 @@ END;$BODY$
   --GO 
 
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
--- Function: objectQualifier_prov_role_createrole(character varying, character varying)
+-- Function: objectQualifier_prov_role_createrole(varchar, varchar)
 
--- DROP FUNCTION objectQualifier_prov_role_createrole(character varying, character varying);
+-- DROP FUNCTION objectQualifier_prov_role_createrole(varchar, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_role_createrole(
-i_applicationname character varying, 
-i_rolename character varying,
+i_applicationname varchar, 
+i_rolename varchar,
 IN i_newguid uuid,
 IN i_newroleguid uuid)
   RETURNS void AS
@@ -636,13 +636,13 @@ END;$BODY$
   COST 100;
 --GO
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
--- Function: databaseSchema.objectQualifier_prov_role_deleterole(character varying, character varying, boolean)
+-- Function: databaseSchema.objectQualifier_prov_role_deleterole(varchar, varchar, boolean)
 
--- DROP FUNCTION databaseSchema.objectQualifier_prov_role_deleterole(character varying, character varying, boolean);
+-- DROP FUNCTION databaseSchema.objectQualifier_prov_role_deleterole(varchar, varchar, boolean);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_role_deleterole(
-i_applicationname character varying, 
-i_rolename character varying, 
+i_applicationname varchar, 
+i_rolename varchar, 
 i_deleteonlyifroleisempty boolean,
 IN i_newguid uuid)
   RETURNS integer AS
@@ -673,13 +673,13 @@ $BODY$
 --GO
 
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
- -- Function: objectQualifier_prov_role_exists(character varying, character varying)
+ -- Function: objectQualifier_prov_role_exists(varchar, varchar)
 
--- DROP FUNCTION objectQualifier_prov_role_exists(character varying, character varying);
+-- DROP FUNCTION objectQualifier_prov_role_exists(varchar, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_role_exists(
-i_applicationname character varying, 
-i_rolename character varying,
+i_applicationname varchar, 
+i_rolename varchar,
 IN i_newguid uuid)
   RETURNS integer AS
 $BODY$
@@ -693,13 +693,13 @@ END;$BODY$
   COST 100;
   --GO
 
--- Function: objectQualifier_prov_role_getroles(character varying, character varying)
+-- Function: objectQualifier_prov_role_getroles(varchar, varchar)
 
--- DROP FUNCTION objectQualifier_prov_role_getroles(character varying, character varying);
+-- DROP FUNCTION objectQualifier_prov_role_getroles(varchar, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_role_getroles(
-i_applicationname character varying, 
-i_username character varying,
+i_applicationname varchar, 
+i_username varchar,
 IN i_newguid uuid)
   RETURNS SETOF databaseSchema.objectQualifier_prov_role_getroles_return_type AS
 $BODY$DECLARE ici_applicationid uuid;
@@ -739,18 +739,18 @@ END;$BODY$
   ROWS 1000;  
 --GO
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
--- Function: objectQualifier_prov_role_removeuserfromrole(character varying, character varying, character varying)
+-- Function: objectQualifier_prov_role_removeuserfromrole(varchar, varchar, varchar)
 
--- DROP FUNCTION objectQualifier_prov_role_removeuserfromrole(character varying, character varying, character varying);
+-- DROP FUNCTION objectQualifier_prov_role_removeuserfromrole(varchar, varchar, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_role_removeuserfromrole(
-i_applicationname character varying, 
-i_username character varying, 
-i_rolename character varying,
+i_applicationname varchar, 
+i_username varchar, 
+i_rolename varchar,
 IN i_newguid uuid)
   RETURNS void AS
 $BODY$DECLARE 
-ici_iserid character varying(64);
+ici_iserid varchar(64);
 ici_roleid uuid;
 ici_applicationid uuid;
 
@@ -781,13 +781,13 @@ END;$BODY$
 
 
 
- -- Function: objectQualifier_prov_role_findusersinrole(character varying, character varying)
+ -- Function: objectQualifier_prov_role_findusersinrole(varchar, varchar)
 
--- DROP FUNCTION objectQualifier_prov_role_findusersinrole(character varying, character varying);
+-- DROP FUNCTION objectQualifier_prov_role_findusersinrole(varchar, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_role_findusersinrole(
-i_applicationname character varying, 
-i_rolename character varying,
+i_applicationname varchar, 
+i_rolename varchar,
 IN i_newguid uuid)
   RETURNS SETOF databaseSchema.objectQualifier_prov_role_findusersinrole_return_type AS
 $BODY$DECLARE ici_roleid uuid;
@@ -816,14 +816,14 @@ $BODY$
   COST 100; 
 --GO
 
- -- Function: objectQualifier_prov_role_isuserinrole(character varying, character varying, character varying)
+ -- Function: objectQualifier_prov_role_isuserinrole(varchar, varchar, varchar)
 
--- DROP FUNCTION objectQualifier_prov_role_isuserinrole(character varying, character varying, character varying);
+-- DROP FUNCTION objectQualifier_prov_role_isuserinrole(varchar, varchar, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_role_isuserinrole(
-i_applicationname character varying, 
-i_username character varying, 
-i_rolename character varying,
+i_applicationname varchar, 
+i_username varchar, 
+i_rolename varchar,
 IN i_newguid uuid)
   RETURNS SETOF databaseSchema.objectQualifier_prov_role_isuserinrole_return_type AS
 $BODY$DECLARE 
@@ -850,12 +850,12 @@ END;$BODY$
 -- ################ Profiles Create Procedures ####################################
 -- #############################################################################
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
--- Function: objectQualifier_prov_profile_deleteinactive(character varying, timestamp with time zone)
+-- Function: objectQualifier_prov_profile_deleteinactive(varchar, timestamp with time zone)
 
--- DROP FUNCTION objectQualifier_prov_profile_deleteinactive(character varying, timestamp with time zone);
+-- DROP FUNCTION objectQualifier_prov_profile_deleteinactive(varchar, timestamp with time zone);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_profile_deleteinactive(
-i_applicationname character varying, 
+i_applicationname varchar, 
 i_inactivesincedate timestamp with time zone,
 IN i_newguid uuid)
   RETURNS integer AS
@@ -877,18 +877,18 @@ END;$BODY$
 --GO
 
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
--- Function: objectQualifier_prov_profile_deleteprofiles(character varying, character varying)
+-- Function: objectQualifier_prov_profile_deleteprofiles(varchar, varchar)
 
--- DROP FUNCTION objectQualifier_prov_profile_deleteprofiles(character varying, character varying);
+-- DROP FUNCTION objectQualifier_prov_profile_deleteprofiles(varchar, varchar);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_profile_deleteprofiles(
-i_applicationname character varying, 
-i_usernames character varying,
+i_applicationname varchar, 
+i_usernames varchar,
 IN i_newguid uuid)
   RETURNS integer AS
 $BODY$     DECLARE     
       ici_applicationid uuid;
-      ici_username     character varying(256);
+      ici_username     varchar(256);
       ici_currentpos   integer :=1;
       ici_nextpos      integer;
       ici_numdeleted   integer :=0;
@@ -941,15 +941,15 @@ $BODY$
 --GO
 
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
- -- Function: objectQualifier_prov_profile_getprofiles(character varying, integer, integer, character varying, timestamp with time zone)
+ -- Function: objectQualifier_prov_profile_getprofiles(varchar, integer, integer, varchar, timestamp with time zone)
 
- -- DROP FUNCTION objectQualifier_prov_profile_getprofiles(character varying, integer, integer, character varying, timestamp with time zone);
+ -- DROP FUNCTION objectQualifier_prov_profile_getprofiles(varchar, integer, integer, varchar, timestamp with time zone);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_profile_getprofiles(
-i_applicationname character varying, 
+i_applicationname varchar, 
 i_pageindex integer, 
 i_pagesize integer, 
-i_usernametomatch character varying, 
+i_usernametomatch varchar, 
 i_inactivesincedate timestamp with time zone,
 IN i_newguid uuid)
   RETURNS SETOF databaseSchema.objectQualifier_prov_profile_getprofiles_return_type AS
@@ -1000,10 +1000,10 @@ END LOOP;
 
 
 /* PROVIDER TABLE SCRIPT BY VZ_TEAM */
- -- Function: objectQualifier_prov_profile_getnumberinactiveprofiles(character varying, timestamp with time zone)
+ -- Function: objectQualifier_prov_profile_getnumberinactiveprofiles(varchar, timestamp with time zone)
  
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_profile_getnumberinactiveprofiles(
-i_applicationname character varying, 
+i_applicationname varchar, 
 i_inactivesincedate timestamp with time zone,
 IN i_newguid uuid)
   RETURNS integer AS

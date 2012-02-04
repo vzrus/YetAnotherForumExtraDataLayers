@@ -1,57 +1,8 @@
-﻿-- This scripts for PostgreSQL Yet Another Forum http://sourceforge.net/projects/yafdotnet/
--- were created by vzrus from vz-team http://sourceforge.net/projects/yaf-datalayers/
--- They are distributed under terms of GPL licence as in http://www.fsf.org/licensing/licenses/gpl.html
--- Copyright vzrus(c) 2009
+﻿-- This scripts for PostgreSQL Yet Another Forum https://github.com/vzrus/YetAnotherForumExtraDataLayers http://sourceforge.net/projects/yafdotnet/
+-- were created by vzrus from vz-team  https://github.com/vzrus
+-- They are distributed under terms of GPLv2 licence only as in http://www.fsf.org/licensing/licenses/gpl.html
+-- Copyright vzrus(c) 2009-2012
 
--- SET search_path = databaseSchema, pg_catalog;
--- SET default_tablespace = '';
--- SET default_with_oids = false;
--- SET client_encoding = 'UTF8';
--- SET standard_conforming_strings = off;
--- SET check_function_bodies = false;
--- SET client_min_messages = warning;
--- SET escape_string_warning = off;
-
-  -- create db with template1
-  --from superuser name
- -- CREATE LANGUAGE 'plpgsql' HANDLER plpgsql_call_handler  LANCOMPILER 'PL/pgSQL';
-  --                        
-  -- execute from shell createlang plpgsql youdatabasename
--- DROP SCHEMA databaseSchema CASCADE ;
--- CREATE SCHEMA databaseSchema  AUTHORIZATION granteeName;
-CREATE OR REPLACE FUNCTION objectQualifier_check_or_create_schema
-(
-	varchar(100)
-) returns void 
-as '
-declare
-    _schemename alias for $1;    
-begin
-	
-if not exists(select 1 FROM pg_namespace WHERE pg_namespace.nspname=_schemename)  then
-	EXECUTE ''CREATE SCHEMA '' || _schemename || ''  AUTHORIZATION  '' || current_user || '';'';
-end if;
-return; 
-end'
- LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
-  COST 100;
-  --GO
-
-
-SELECT objectQualifier_check_or_create_schema('databaseSchema');
-DROP FUNCTION objectQualifier_check_or_create_schema(varchar(100));
---GO
-   
--- Function: databaseSchema.objectQualifier_int_to_bool_helper(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_int_to_bool_helper(integer);
-
--- A set of custom helper functions
-
-
--- Function: databaseSchema.objectQualifier_int_to_bool_helper(integer)
-
--- DROP FUNCTION databaseSchema.objectQualifier_int_to_bool_helper(integer);
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_int_to_bool_helper(reqvalue double precision)
   RETURNS boolean AS
@@ -64,38 +15,6 @@ END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100;
 --GO
-/* CREATE OR REPLACE FUNCTION public.uuid_generate_v1()
- RETURNS uuid
- AS '$libdir/uuid-ossp', 'uuid_generate_v1'
- VOLATILE SECURITY DEFINER STRICT LANGUAGE C; 
- ALTER FUNCTION public.uuid_generate_v1() OWNER TO granteeName; */
-
-/* CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_uuid_generate_v1()
- RETURNS uuid
- AS '$libdir/uuid-ossp', 'uuid_generate_v1'
- VOLATILE SECURITY DEFINER STRICT LANGUAGE C; 
-*/
-
-
--- GRANT ALL ON FUNCTION databaseSchema.objectQualifier_uuid_generate_v1() TO databaseOwner;
-/* CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_uuid_generate_v1()
- RETURNS uuid AS
- 'SELECT public.uuid_generate_v1()' 
- VOLATILE SECURITY DEFINER STRICT LANGUAGE sql;
-GRANT ALL ON FUNCTION databaseSchema.objectQualifier_uuid_generate_v1() TO granteeName;
-
- 
-GRANT EXECUTE ON FUNCTION databaseSchema.objectQualifier_uuid_generate_v1() TO databaseOwner; 
-
-GRANT EXECUTE ON FUNCTION databaseSchema.objectQualifier_uuid_generate_v1() TO granteeName; 
-
-GRANT EXECUTE ON FUNCTION pg_database_size(name) TO granteeName;
-
-GRANT EXECUTE ON FUNCTION pg_size_pretty(bigint) TO granteeName;
-
-GRANT EXECUTE ON FUNCTION pg_postmaster_start_time() TO granteeName;
-
-*/
 
 -- This is helper function which drops all types. Don't forget to remove it in the end 
 -- It was put here to ensure that it will be ready before any type creation
