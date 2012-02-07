@@ -535,7 +535,7 @@ CREATE TABLE IF NOT EXISTS {databaseName}.{objectQualifier}Topic
 	   `UserName` VARCHAR(128) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL,
 	   `Posted` DATETIME NOT NULL,
 	   `Topic` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NOT NULL,
-	   `Status` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NOT NULL,
+	   `Status` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL,
 	   `Styles` VARCHAR(255) NULL,
 	   `Description` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL,
 	   `Views` INT NOT NULL,
@@ -916,6 +916,13 @@ IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
   AND COLUMN_NAME='Status' LIMIT 1) THEN
   ALTER TABLE  {databaseName}.{objectQualifier}Topic ADD  `Status` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL AFTER `Topic`;
   END IF;
+  
+  IF  EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  (TABLE_NAME='{objectQualifier}Topic' OR TABLE_NAME=LOWER('{objectQualifier}Topic')) 
+  AND COLUMN_NAME='Status' LIMIT 1) THEN
+  ALTER TABLE {databaseName}.{objectQualifier}Topic CHANGE `Status` `Status`  VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL;
+  END IF; 
  
 -- Rank Table
 IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
