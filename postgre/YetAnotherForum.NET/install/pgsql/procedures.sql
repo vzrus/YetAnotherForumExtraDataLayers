@@ -10013,10 +10013,10 @@ $BODY$DECLARE
 BEGIN
  	IF (i_filter IS TRUE) THEN 	
  		IF ici_UserName IS NOT NULL THEN
- 			ici_UserName := '%' || ici_UserName || '%';  
+ 			ici_UserName := '.*' || ici_UserName || '.*';  
  		END IF;
- 		if (ici_displayname is not null) THEN
-			ici_displayname := '%' || ici_displayname || '%';  
+ 		IF (ici_displayname is not null) THEN
+			ici_displayname := '.*' || ici_displayname || '.*';  
 		END IF;		
 
  FOR _rec IN
@@ -10065,9 +10065,9 @@ BEGIN
  		WHERE 
  			a.boardid = i_boardid AND
  			((ici_UserName IS NOT NULL and a.name 
- 			LIKE ici_UserName) OR 
+ 			~* ici_UserName) OR 
  			(i_Email IS NOT NULL and a.email LIKE i_email) 
- 			or (ici_displayname is not null and a.displayname like ici_displayname) 
+ 			or (ici_displayname is not null and a.displayname ~* ici_displayname) 
 			or (i_notificationtype is not null and a.notificationtype = i_notificationtype) or
 			(i_dailydigest is not null and a.dailydigest = i_dailydigest))	
  		ORDER BY
@@ -10580,9 +10580,8 @@ $BODY$DECLARE
 			 ici_firstselectjoined timestampTZ ;
 			 ici_firstselectposts integer;
 BEGIN 
-
    -- get total number of users in the db
-   select count(a.userid) INTO ici_user_totalrowsnumber
+   SELECT count(a.userid) INTO ici_user_totalrowsnumber
     from databaseSchema.objectQualifier_user a 
 	  join databaseSchema.objectQualifier_rank b 
 	  on b.rankid=a.rankid
@@ -10595,17 +10594,17 @@ BEGIN
 		(i_rankid is null or a.rankid=i_rankid) AND
 		a.isguest IS FALSE 
 			AND
-		LOWER(a.displayname) LIKE CASE 
-			WHEN (i_beginswith is false AND i_literals IS NOT NULL AND LENGTH(i_literals) > 0) THEN '%' || LOWER(i_literals) || '%' 
-			WHEN (i_beginswith is true AND i_literals IS NOT NULL AND LENGTH(i_literals) > 0) THEN LOWER(i_literals) || '%'
-			ELSE '%' END  
+		a.displayname ~* CASE 
+			WHEN (i_beginswith is false AND i_literals IS NOT NULL AND LENGTH(i_literals) > 0) THEN ('.*' || i_literals || '.*') 
+			WHEN (i_beginswith is true AND i_literals IS NOT NULL AND LENGTH(i_literals) > 0) THEN (i_literals || '.*')
+			ELSE '.*' END  
 		and
 		(a.numposts >= (case 
-        when i_numpostscompare = 3 then  i_numposts end) 
+        when i_numpostscompare = 3 THEN  i_numposts end) 
 		OR a.numposts <= (case 
-        when i_numpostscompare = 2 then i_numposts end) OR
+        when i_numpostscompare = 2 THEN i_numposts end) OR
 		a.numposts = (case 
-        when i_numpostscompare = 1 then i_numposts end)) 
+        when i_numpostscompare = 1 THEN i_numposts end)) 
 		order by 1;
 
 				
@@ -10615,7 +10614,7 @@ BEGIN
     ici_pageupperbound= i_pagesize -1 + ici_pagelowerbound;    
 
    
-    for _rec in select
+    FOR _rec in SELECT 
 	  		a.userid,    
             a.boardid,    
             a.provideruserkey,    
@@ -10650,7 +10649,7 @@ BEGIN
             COALESCE(CAST(SIGN(a.flags & 16) AS integer)>0,false) AS isactiveexcluded,
 			b.name AS RankName,
 			(case(i_stylednicks)
-			when true then  COALESCE(( SELECT f.style FROM databaseSchema.objectQualifier_usergroup e 
+			when true THEN  COALESCE(( SELECT f.style FROM databaseSchema.objectQualifier_usergroup e 
 			join databaseSchema.objectQualifier_group f on f.groupid=e.groupid WHERE e.userid=a.userid AND LENGTH(f.style) > 2 ORDER BY f.sortorder limit 1), b.style)  
 			else ''	 end) AS "Style",
 			ici_user_totalrowsnumber 
@@ -10664,55 +10663,55 @@ BEGIN
 		(i_rankid is null or a.rankid=i_rankid) AND
 		a.isguest IS FALSE 
 			AND
-		LOWER(a.displayname) LIKE CASE 
-			WHEN (i_beginswith is false AND i_literals IS NOT NULL AND LENGTH(i_literals) > 0) THEN '%' || LOWER(i_literals) || '%' 
-			WHEN (i_beginswith is true AND i_literals IS NOT NULL AND LENGTH(i_literals) > 0) THEN LOWER(i_literals) || '%'
-			ELSE '%' END  
+		a.displayname ~* CASE 
+			WHEN (i_beginswith is false AND i_literals IS NOT NULL AND LENGTH(i_literals) > 0) THEN ('.*' || i_literals || '.*') 
+			WHEN (i_beginswith is true AND i_literals IS NOT NULL AND LENGTH(i_literals) > 0) THEN (i_literals || '.*')
+			ELSE '.*' END  
         and
 		(a.numposts >= (case 
-        when i_numpostscompare = 3 then  i_numposts end) 
+        when i_numpostscompare = 3 THEN  i_numposts end) 
 		OR a.numposts <= (case 
-        when i_numpostscompare = 2 then i_numposts end) OR
+        when i_numpostscompare = 2 THEN i_numposts end) OR
 		a.numposts = (case 
-        when i_numpostscompare = 1 then i_numposts end)) 
+        when i_numpostscompare = 1 THEN i_numposts end)) 
     ORDER BY  (case 
-        when i_sortname = 0 then a.name 
+        when i_sortname = 0 THEN a.name 
         else null  end) DESC,
 		(case 
-        when i_sortname = 1 then a.name 
+        when i_sortname = 1 THEN a.name 
         else null  end) ASC, 
 		(case 
-        when i_sortrank = 0 then a.rankid 
+        when i_sortrank = 0 THEN a.rankid 
         else null  end) DESC,
 		(case 
-        when i_sortrank = 1 then a.rankid 
+        when i_sortrank = 1 THEN a.rankid 
         else null  end) ASC,		
 		(case 
-        when i_sortjoined = 0 then a.joined 
+        when i_sortjoined = 0 THEN a.joined 
         else null  end) DESC,
 		(case 
-        when i_sortjoined = 1 then a.joined 
+        when i_sortjoined = 1 THEN a.joined 
         else null  end) ASC,
 		(case 
-        when i_sortlastvisit = 0 then a.lastvisit 
+        when i_sortlastvisit = 0 THEN a.lastvisit 
         else null  end) DESC,
 		(case 
-        when i_sortlastvisit = 1 then a.lastvisit 
+        when i_sortlastvisit = 1 THEN a.lastvisit 
         else null  end) ASC,
 		(case
-		 when i_sortposts = 0 then a.numposts 
+		 when i_sortposts = 0 THEN a.numposts 
         else null  end) DESC, 
    		(case
-		 when i_sortposts = 1 then a.numposts 
+		 when i_sortposts = 1 THEN a.numposts 
         else null  end) ASC 
 		LOOP
 		ici_counter := ici_counter+1;	
-		if ici_counter > ici_pageupperbound then 
+		IF ici_counter > ici_pageupperbound THEN 
 		exit;
-		end if;
-		if ici_counter >= ici_pagelowerbound then  
+		END IF;
+		IF ici_counter >= ici_pagelowerbound THEN  
 		RETURN NEXT _rec;
-		end if;
+		END IF;
 		
 		END LOOP;  
   
