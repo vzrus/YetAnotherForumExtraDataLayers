@@ -1,2 +1,2 @@
-Copyright (ñ) 2006-2011 Vladimir Zakharov (aka vzrus) 
+Copyright (ñ) 2006-2012 Vladimir Zakharov (aka vzrus) 
 GPLv2 only

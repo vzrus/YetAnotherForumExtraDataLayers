@@ -9891,6 +9891,8 @@ BEGIN
     DELETE FROM databaseSchema.objectQualifier_checkemail WHERE userid = i_userid;
     DELETE FROM databaseSchema.objectQualifier_watchtopic WHERE userid = i_userid;
     DELETE FROM databaseSchema.objectQualifier_watchforum WHERE userid = i_userid;
+	DELETE FROM databaseSchema.objectQualifier_topicreadtracking WHERE userid = i_userid;
+	DELETE FROM databaseSchema.objectQualifier_forumreadtracking  WHERE userid = i_userid;
     DELETE FROM databaseSchema.objectQualifier_usergroup WHERE userid = i_userid;  
     DELETE FROM  databaseSchema.objectQualifier_userforum WHERE userID = i_userid; 
     DELETE FROM databaseSchema.objectQualifier_ignoreuser WHERE userid = i_userid;

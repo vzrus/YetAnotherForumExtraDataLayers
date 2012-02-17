@@ -9214,6 +9214,8 @@ BEGIN
     DELETE FROM {databaseName}.{objectQualifier}CheckEmail WHERE UserID = i_UserID;
     DELETE FROM {databaseName}.{objectQualifier}WatchTopic WHERE UserID = i_UserID;
     DELETE FROM {databaseName}.{objectQualifier}WatchForum WHERE UserID = i_UserID;
+	DELETE FROM {databaseName}.{objectQualifier}TopicReadTracking WHERE UserID = i_UserID;
+    DELETE FROM {databaseName}.{objectQualifier}ForumReadTracking WHERE UserID = i_UserID;	
     DELETE FROM {databaseName}.{objectQualifier}UserGroup WHERE UserID = i_UserID;
     /*ABOT CHANGED
     Delete UserForums entries Too*/
