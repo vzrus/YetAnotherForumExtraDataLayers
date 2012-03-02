@@ -279,6 +279,15 @@ INDEX `IX_{databaseName}_{objectQualifier}Registry_Name` (`BoardID`, `Name`);
 
 END IF;
 
+/*Reputation*/
+IF (SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS S WHERE S.TABLE_SCHEMA='{databaseName}' AND S.INDEX_NAME='IX_{databaseName}_{objectQualifier}ReputationVote_FU_TU' AND S.TABLE_NAME='{objectQualifier}ReputationVote' AND (S.COLUMN_NAME='ReputationFromUserID' OR  S.COLUMN_NAME='ReputationToUserID')) < 2 THEN
+
+ALTER TABLE {databaseName}.{objectQualifier}ReputationVote 
+ADD
+INDEX `IX_{databaseName}_{objectQualifier}ReputationVote_FU_TU` (`ReputationFromUserID`, `ReputationToUserID`);
+
+END IF;
+
 /*Smiley*/
 
 IF (SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS S WHERE S.TABLE_SCHEMA='{databaseName}' AND S.INDEX_NAME='IX_{databaseName}_{objectQualifier}Smiley' AND S.TABLE_NAME='{objectQualifier}smiley' AND (S.COLUMN_NAME='BoardID' OR  S.COLUMN_NAME='Code')) < 2 THEN

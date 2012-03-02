@@ -3266,23 +3266,26 @@ namespace YAF.Classes.Data
         
         #region yaf_Message
 
-        static public DataTable post_list(
-        object topicId,
-        object authorUserID,
-        object updateViewCount,
-        bool showDeleted,
-        bool styledNicks,
-        DateTime sincePostedDate,
-        DateTime toPostedDate,
-        DateTime sinceEditedDate,
-        DateTime toEditedDate,
-        int pageIndex,
-        int pageSize,
-        int sortPosted,
-        int sortEdited,
-        int sortPosition,
-        bool showThanks,
-        int messagePosition)
+        public static DataTable post_list(
+           [NotNull] object topicId,
+           object currentUserID,
+           [NotNull] object authorUserID,
+           [NotNull] object updateViewCount,
+                                         bool showDeleted,
+                                         bool styledNicks,
+                                         bool showReputation,
+                                         DateTime sincePostedDate,
+                                         DateTime toPostedDate,
+                                         DateTime sinceEditedDate,
+                                         DateTime toEditedDate,
+                                         int pageIndex,
+                                         int pageSize,
+                                         int sortPosted,
+                                         int sortEdited,
+                                         int sortPosition,
+                                         bool showThanks,
+                                         int messagePosition)
+
         {
             DataTable dtt;
             int rowNumber = 0;
@@ -3323,7 +3326,9 @@ namespace YAF.Classes.Data
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
 
+                        cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = currentUserID;
                         cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = styledNicks;
+                        cmd.Parameters.Add("i_ShowReputation", MySqlDbType.Byte).Value = showReputation;
                         cmd.Parameters.Add("i_post_totalrowsnumber", MySqlDbType.Int32).Value =
                             dtt.Rows[rowNumber]["PostTotalRowsNumber"];
                         cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = dtt.Rows[rowNumber]["PageIndex"];
@@ -3342,6 +3347,7 @@ namespace YAF.Classes.Data
                         cmd.Parameters.Add("i_FirstSelectEdited", MySqlDbType.DateTime).Value =
                             dtt.Rows[rowNumber]["i_FirstSelectEdited"];
                         cmd.Parameters.Add("i_ShowDeleted", MySqlDbType.Byte).Value = showDeleted;
+                        cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 
 
                         return MsSqlDbAccess.Current.GetData(cmd);
@@ -3353,10 +3359,10 @@ namespace YAF.Classes.Data
                     using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("post_list_result"))
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
-
+                        cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = currentUserID;
                         cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = styledNicks;
-                        cmd.Parameters.Add("i_post_totalrowsnumber", MySqlDbType.Int32).Value =
-                            1;
+                        cmd.Parameters.Add("i_ShowReputation", MySqlDbType.Byte).Value = showReputation;
+                        cmd.Parameters.Add("i_post_totalrowsnumber", MySqlDbType.Int32).Value = 1;
                         cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = (int)pageIndex + 1;
                         cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
                         cmd.Parameters.Add("i_TopicID", MySqlDbType.Int32).Value = topicId;
@@ -3373,7 +3379,7 @@ namespace YAF.Classes.Data
                         cmd.Parameters.Add("i_FirstSelectEdited", MySqlDbType.DateTime).Value =
                              DateTime.UtcNow;
                         cmd.Parameters.Add("i_ShowDeleted", MySqlDbType.Byte).Value = showDeleted;
-
+                        cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 
                         return MsSqlDbAccess.Current.GetData(cmd);
                     }
@@ -6033,7 +6039,7 @@ namespace YAF.Classes.Data
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void topic_move(object topicID, object forumID, object showMoved)
+        static public void topic_move(object topicID, object forumID, object showMoved, object linkDays)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "topic_move" ) )
 			{
@@ -6042,6 +6048,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add( "i_TopicID", MySqlDbType.Int32 ).Value = topicID;
 				cmd.Parameters.Add( "i_ForumID", MySqlDbType.Int32 ).Value = forumID;
                 cmd.Parameters.Add( "i_ShowMoved", MySqlDbType.Byte ).Value = showMoved;
+                cmd.Parameters.Add("i_LinkDays", MySqlDbType.Int32).Value = linkDays;
 				
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -8397,15 +8404,17 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public void user_addpoints(object userID, object points)
+        public static void user_addpoints([NotNull] object userID, [CanBeNull] object fromUserID, [NotNull] object points)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_addpoints" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				
                 cmd.Parameters.Add( "i_UserID", MySqlDbType.Int32 ).Value = userID;
+                cmd.Parameters.Add("i_FromUserID", MySqlDbType.Int32).Value = userID;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                 cmd.Parameters.Add( "i_Points", MySqlDbType.Int32 ).Value = points;
-				
+
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
@@ -8423,14 +8432,16 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public void user_removepoints(object userID, object points)
+        static public void user_removepoints([NotNull] object userID, [CanBeNull] object fromUserID, [NotNull] object points)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "user_removepoints" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				
-                cmd.Parameters.Add( "i_UserID", MySqlDbType.Int32 ).Value = userID;
-                cmd.Parameters.Add( "i_Points", MySqlDbType.Int32 ).Value = points;
+
+                cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userID;
+                cmd.Parameters.Add("i_FromUserID", MySqlDbType.Int32).Value = userID;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
+                cmd.Parameters.Add("i_Points", MySqlDbType.Int32).Value = points;
 				
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}

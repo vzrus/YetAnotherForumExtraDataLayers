@@ -425,6 +425,8 @@ DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}user_ignoredlist;
 --GO
 DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}user_removeignoreduser;
 --GO
+DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}user_savestyle;
+--GO
 DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}user_isuserignored;
 --GO
 DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}user_deleteold;
@@ -962,7 +964,7 @@ CREATE  PROCEDURE {databaseName}.{objectQualifier}active_list(
                        CAST(SIGN(c.Flags & 8) AS SIGNED) AS IsCrawler,		
                        {databaseName}.{objectQualifier}biginttobool(CAST(SIGN(c.Flags & 16) AS SIGNED)) AS IsHidden,                      
                       (case(i_StyledNicks)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(a.UserID)  
+	        when 1 then  a.UserStyle  
 	        else ''	 end) AS  Style,	 
                       1 AS UserCount,
                       c.Login,
@@ -1001,7 +1003,7 @@ CREATE  PROCEDURE {databaseName}.{objectQualifier}active_list(
                        CAST(SIGN(c.Flags & 8) AS SIGNED) AS IsCrawler,		
                         {databaseName}.{objectQualifier}biginttobool(CAST(SIGN(c.Flags & 16) AS SIGNED)) AS IsHidden,                      
                       (case(i_StyledNicks)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(a.UserID)  
+	        when 1 then   a.UserStyle
 	        else ''	 end) AS  Style,	 
                       1 AS UserCount,
                       c.Login,
@@ -1044,7 +1046,7 @@ CREATE  PROCEDURE {databaseName}.{objectQualifier}active_list(
                        CAST(SIGN(c.Flags & 8) AS SIGNED) AS IsCrawler,		
                        {databaseName}.{objectQualifier}biginttobool(CAST(SIGN(c.Flags & 16) AS SIGNED)) AS IsHidden,                      
                       (case(i_StyledNicks)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(a.UserID)  
+	        when 1 then   a.UserStyle  
 	        else ''	 end) AS  Style,	 
                       1 AS UserCount,
                       c.Login,
@@ -1101,7 +1103,7 @@ begin
                         IFNULL(SIGN(a.Flags & 8)>0,false) AS IsCrawler,
                         IFNULL(SIGN(a.Flags & 16)>0,false) AS IsHidden,
                       (case(i_StyledNicks)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(a.UserID)  
+	        when 1 then   a.UserStyle
 	        else ''	 end) AS  Style,	 
                       1 AS UserCount,
                       c.Login,
@@ -1144,7 +1146,7 @@ begin
                         IFNULL(SIGN(a.Flags & 8)>0,false) AS IsCrawler,
                         IFNULL(SIGN(a.Flags & 16)>0,false) AS IsHidden,
                       (case(i_StyledNicks)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(a.UserID)  
+	        when 1 then   a.UserStyle 
 	        else ''	 end) AS  Style,	 
                       1 AS UserCount,
                       c.Login,
@@ -1189,7 +1191,7 @@ begin
                         IFNULL(SIGN(a.Flags & 8)>0,false) AS IsCrawler,
                         IFNULL(SIGN(a.Flags & 16)>0,false) AS IsHidden,
                       (case(i_StyledNicks)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(a.UserID)  
+	        when 1 then   a.UserStyle  
 	        else ''	 end) AS  Style,	 
                       1 AS UserCount,
                       c.Login,
@@ -1230,7 +1232,7 @@ b.Name AS UserName,
 IFNULL(CAST(SIGN(b.Flags & 16) AS SIGNED),false) AS IsHidden,
 IFNULL(CAST(SIGN(b.Flags & 8) AS SIGNED),false) AS IsCrawler,
 (case(i_StyledNicks)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(a.UserID)  
+	        when 1 then   b.UserStyle  
 	        else ''	 end) AS  Style,
 (SELECT COUNT(ac.UserID) from
 		{databaseName}.{objectQualifier}Active ac  where ac.UserID = a.UserID and ac.ForumID = i_ForumID) AS UserCount ,
@@ -1263,7 +1265,7 @@ b.Name AS UserName,
 IFNULL(CAST(SIGN(b.Flags & 16) AS SIGNED),false) AS IsHidden,
 IFNULL(CAST(SIGN(b.Flags & 8) AS SIGNED),false) AS IsCrawler,
  (case(i_StyledNicks)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(a.UserID)  
+	        when 1 then   b.UserStyle  
 	        else ''	 end) AS  Style,
 
 	   (SELECT COUNT(ac.UserID) from
@@ -2016,16 +2018,8 @@ WHERE  c.BoardID = i_BoardID AND (a.Flags & 8) <> 8) AS Topics,
 1 AS LastPostInfoID,
 a.Posted AS LastPost,
 a.UserID AS LastUserID,
-e.Name AS LastUser,
-/* case(i_StyledNicks)
-			when 1 then  IFNULL(
-			(SELECT g.Style FROM {databaseName}.{objectQualifier}UserGroup ug 
-		    join {databaseName}.{objectQualifier}Group g 
-			on g.GroupID=ug.GroupID WHERE ug.UserID=e.UserID 
-			AND LENGTH(g.Style) > 2 ORDER BY g.SortOrder LIMIT 1), 
-			r.Style)
-	        else ''	 end)  AS LastUserStyle	*/	
-(case(i_StyledNicks) when 1 then  IFNULL(s.Style, r.Style)  
+e.Name AS LastUser,	
+(case(i_StyledNicks) when 1 then   e.UserStyle  
 	        else ''	 end)  AS LastUserStyle		
 FROM     {databaseName}.{objectQualifier}Message a
 JOIN {databaseName}.{objectQualifier}Topic b
@@ -2059,6 +2053,8 @@ SELECT
 		NULL AS LastUser,
 		'' AS LastUserStyle ;
 END IF;
+-- can be anyway in a place with very low update rate
+DELETE FROM {databaseName}.{objectQualifier}Topic WHERE TopicMovedID IS NOT NULL AND  LinkDays < UTC_TIMESTAMP();
 END;
 --GO
 
@@ -2807,7 +2803,7 @@ DECLARE  itmpTopicID INT;
    DECLARE EXIT HANDLER FOR NOT FOUND BEGIN END;
    LOOP
            FETCH topic_cursor INTO itmpTopicID;           
-           CALL {databaseName}.{objectQualifier}topic_move(itmpTopicID, i_ForumNewID , 0);
+           CALL {databaseName}.{objectQualifier}topic_move(itmpTopicID, i_ForumNewID , 0, -1);
    END LOOP;          
    END;
            CLOSE topic_cursor;
@@ -3151,7 +3147,7 @@ select
  		{databaseName}.{objectQualifier}forum_posts(b.ForumID) AS Posts, 				
  		CAST(x.ReadAccess AS signed) AS ReadAccess,
  		b.LastTopicID AS LTID,
- 		b.LastPosted AS LP,
+ 		b.LastPosted AS LP,		
  		{databaseName}.{objectQualifier}forum_lasttopic(b.ForumID,i_UserID,b.LastTopicID,b.LastPosted) AS LastTopicID
   
  		/* {databaseName}.{objectQualifier}forum_lasttopic(b.ForumID,i_UserID,b.LastTopicID,b.LastPosted) AS LastTopicID,
@@ -3196,12 +3192,12 @@ select
  		t.LastMessageID AS LastMessageID,
 		t.LastMessageFlags,
 		t.TopicMovedID,
- 		t.LastUserID AS LastUserID,
+ 		t.LastUserID AS LastUserID,		
  		t.Topic AS LastTopicName,
 		t.Status AS LastTopicStatus,
 		t.Styles AS LastTopicStyles,
-			(case(i_StyledNicks)
-			when 1 then  {databaseName}.{objectQualifier}get_userstyle(t.LastUserID)  
+				(case(i_StyledNicks)
+			when 1 then (select usr.UserStyle from {databaseName}.{objectQualifier}User usr where usr.UserID = t.LastUserID LIMIT 1)
 			else ''	 end)  AS 	Style,		
  		COALESCE(t.LastUserName,(SELECT u2.Name
              FROM   {databaseName}.{objectQualifier}User u2
@@ -3337,20 +3333,25 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}forum_moderatelist(i_BoardID IN
  END;
 --GO
 
-
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
  CREATE  PROCEDURE {databaseName}.{objectQualifier}forum_moderators(i_StyledNicks TINYINT(1)) 
  BEGIN
  DECLARE bf0 TINYINT(1) DEFAULT 0;
  DECLARE bf1 TINYINT(1) DEFAULT 1;
  	SELECT
- 		CAST(a.ForumID AS UNSIGNED) AS ForumID, 
+ 		CAST(a.ForumID AS UNSIGNED) AS ForumID,
+		f.Name AS ForumName, 
  		a.GroupID AS ModeratorID, 
  		b.Name AS ModeratorName,
-		'' AS Style,	
+		b.Name AS ModeratorDisplayName,
+		'' AS ModeratorEmail,
+		'' AS ModeratorAvatar,
+		{databaseName}.{objectQualifier}biginttobool(0) as ModeratorAvatarImage,
+		b.Style AS Style,	
  		bf1 AS IsGroup 
  	FROM
- 		{databaseName}.{objectQualifier}ForumAccess a
+ 		{databaseName}.{objectQualifier}Forum f 
+		INNER JOIN {databaseName}.{objectQualifier}ForumAccess a ON a.ForumID = f.ForumID
  		INNER JOIN {databaseName}.{objectQualifier}Group b ON b.GroupID = a.GroupID
  		INNER JOIN {databaseName}.{objectQualifier}AccessMask c ON c.AccessMaskID = a.AccessMaskID
  	WHERE
@@ -3359,11 +3360,16 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}forum_moderatelist(i_BoardID IN
  		(c.Flags & 64)<>0
  	UNION ALL
  	SELECT 
- 	    CAST(acc.ForumID AS UNSIGNED) AS ForumID,  		 
+ 	    CAST(acc.ForumID AS UNSIGNED) AS ForumID, 
+		f.Name AS ForumName, 		 
  		usr.UserID AS ModeratorID, 
  		usr.Name AS ModeratorName,
+		usr.DisplayName AS ModeratorDisplayName,
+		usr.Email AS ModeratorEmail,
+		COALESCE(usr.Avatar, '') AS ModeratorAvatar,
+		(select {databaseName}.{objectQualifier}biginttobool(1) from {databaseName}.{objectQualifier}User x where x.UserID=usr.UserID and x.AvatarImage is not null) AS ModeratorAvatarImage,		
 		case(i_StyledNicks)
-			when 1 then  {databaseName}.{objectQualifier}get_userstyle(usr.UserID)  
+			when 1 then  usr.UserStyle  
 			else ''	 end AS Style,	
  		bf0 AS IsGroup
  		 	FROM
@@ -3382,8 +3388,8 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}forum_moderatelist(i_BoardID IN
  			GROUP BY
  				a.UserID,x.ForumID		
  		) acc ON usr.UserID = acc.UserID
-		JOIN {databaseName}.{objectQualifier}Rank r
-		ON r.RankID = usr.RankID
+		JOIN    {databaseName}.{objectQualifier}Forum f 
+		ON f.ForumID = acc.ForumID
  	WHERE
  		acc.ModeratorAccess<>0
  	ORDER BY
@@ -3397,12 +3403,18 @@ END;
  DECLARE bf1 TINYINT(1) DEFAULT 1;
  	SELECT
  		a.ForumID AS ForumID, 
+		f.Name AS ForumName, 
  		a.GroupID AS ModeratorID,
-		b.Name AS ModeratorName, 		
-		'' AS Style, 		
+		b.Name AS ModeratorName, 
+		b.Name AS ModeratorDisplayName, 
+		'' AS ModeratorEmail,
+		'' AS ModeratorAvatar,
+		{databaseName}.{objectQualifier}biginttobool(0) as ModeratorAvatarImage,		
+		b.Style AS Style, 		
  		bf1 AS IsGroup 
  	FROM
- 		{databaseName}.{objectQualifier}ForumAccess a
+ 		{databaseName}.{objectQualifier}Forum f 
+		INNER JOIN {databaseName}.{objectQualifier}ForumAccess a ON a.ForumID = f.ForumID
  		INNER JOIN {databaseName}.{objectQualifier}Group b ON b.GroupID = a.GroupID
  		INNER JOIN {databaseName}.{objectQualifier}AccessMask c ON c.AccessMaskID = a.AccessMaskID
  	WHERE
@@ -3414,18 +3426,24 @@ END;
  		ModeratorName asc;
 END;
 --GO
+
  CREATE  PROCEDURE {databaseName}.{objectQualifier}forum_moderators_2(i_StyledNicks TINYINT(1)) 
  BEGIN
  DECLARE bf0 TINYINT(1) DEFAULT 0; 
 SELECT DISTINCT
 r.ForumID  AS ForumID,
+f.Name AS ForumName, 
 r.UserID as ModeratorID,
-(SELECT Name FROM  {databaseName}.{objectQualifier}User u WHERE u.UserID=r.UserID) AS ModeratorName,
+u.Name AS ModeratorName,
+u.DisplayName AS ModeratorDisplayName,
+u.Email AS ModeratorEmail,
+COALESCE(u.Avatar, '') AS ModeratorAvatar,
+{databaseName}.{objectQualifier}biginttobool(IFNULL((select x.UserID from {databaseName}.{objectQualifier}User x where x.UserID=u.UserID and x.AvatarImage is not null),0)) AS ModeratorAvatarImage,			
 case(i_StyledNicks)
-			when 1 then  {databaseName}.{objectQualifier}get_userstyle(r.UserID)  
+			when 1 then  u.UserStyle
 			else ''	 end AS Style,
 bf0 AS IsGroup
-FROM (SELECT * FROM (SELECT 
+FROM {databaseName}.{objectQualifier}User u INNER JOIN (SELECT * FROM (SELECT 
 ForumID,UserID,ModeratorAccess 
 FROM
  {databaseName}.{objectQualifier}vaccessfull1  
@@ -3442,31 +3460,13 @@ FROM
  FROM
  {databaseName}.{objectQualifier}vaccessfull3  
   WHERE ModeratorAccess<>0  AND AdminGroup = 0) AS t3  
-   ) r ;
+   ) r 
+   ON r.UserID = u.UserID  
+   JOIN    {databaseName}.{objectQualifier}Forum f 
+	ON f.ForumID = r.ForumID;
 END;
  --GO
- create procedure {databaseName}.{objectQualifier}moderators_team_list (i_StyledNicks TINYINT(1)) 
-BEGIN
-DECLARE falsebool TINYINT(1) DEFAULT 0;
-		select
-		a.ForumID AS ForumID, 
-		e.UserID AS ModeratorID, 
-		e.Name AS ModeratorName,	
-		(case(i_StyledNicks)
-			when 1 then b.Style  
-			else ''	 end) AS Style,						
-		falsebool AS IsGroup
-	from
-		{databaseName}.{objectQualifier}ForumAccess a 
-		INNER JOIN {databaseName}.{objectQualifier}Group b  ON b.GroupID = a.GroupID
-		INNER JOIN {databaseName}.{objectQualifier}AccessMask c  ON c.AccessMaskID = a.AccessMaskID
-		INNER JOIN {databaseName}.{objectQualifier}UserGroup d  on d.GroupID=a.GroupID
-		INNER JOIN {databaseName}.{objectQualifier}User e  on e.UserID=d.UserID
-	where
-		(b.Flags & 1)<> 1 and
-		(c.Flags & 64)=64;
-END;
---GO
+
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
  CREATE PROCEDURE {databaseName}.{objectQualifier}forum_resync
  	(i_BoardID INT,i_ForumID INT)
@@ -4096,7 +4096,8 @@ END;
                    JOIN {databaseName}.{objectQualifier}Category b
                      ON b.CategoryID = a.CategoryID
             WHERE  b.BoardID = i_BoardID;
-         END IF;
+         END IF; 
+	    CALL {databaseName}.{objectQualifier}user_savestyle(null, i_GroupID);
         SELECT i_GroupID AS GroupID; 
     END;
 --GO
@@ -6414,11 +6415,11 @@ END;
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
 CREATE PROCEDURE {databaseName}.{objectQualifier}post_list
-                 (i_TopicID INT,
+                 (i_TopicID INT,				
 				 i_AuthorUserID INT,
 				 i_UpdateViewCount SMALLINT,
 				 i_ShowDeleted TINYINT(1),
-				 i_StyledNicks TINYINT(1),
+				 i_StyledNicks TINYINT(1),				
 				 i_SincePostedDate datetime,
 				 i_ToPostedDate datetime,
 				 i_SinceEditedDate datetime,
@@ -6548,8 +6549,7 @@ CAST(? AS SIGNED) AS PageIndex
         when ? = 2 then m.Edited end) DESC,
 		(case
         when ? = 1 then m.Edited end) ASC LIMIT 1 OFFSET ?';
-
-		SET @ii2_StyledNicks = i_StyledNicks;
+		
         SET @iici2_post_totalrowsnumber = ici_post_totalrowsnumber;
         SET @ii2_PageIndex = i_PageIndex;
 		SET @ii2_PageSize =  i_PageSize;
@@ -6582,18 +6582,7 @@ CAST(? AS SIGNED) AS PageIndex
 		@ii_SortPosted,
 		@ii_SortEdited, 
 		@ii_SortEdited,
-		@ici_offfirstselectrownum;
-
-		/* @ii_SortPosted, 
-		@iici_firstselectposted, 
-		@ii_SortPosted, 
-		@iici_firstselectposted, 
-		@ii_SortPosted, 
-		@ii_SortPosition, 
-		@ii_SortPosted, 
-		@ii_SortPosted,
-		@ii_SortEdited, 
-		@ii_SortEdited; */
+		@ici_offfirstselectrownum;		
 		 
 		DEALLOCATE PREPARE plist2;
 			 		
@@ -6606,7 +6595,9 @@ END;
 --GO
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
 CREATE PROCEDURE {databaseName}.{objectQualifier}post_list_result
-(i_StyledNicks TINYINT(1),
+( i_PageUserID INT,
+  i_StyledNicks TINYINT(1),
+  i_ShowReputation TINYINT(1),
  i_post_totalrowsnumber INT,
  i_PageIndex int, 
  i_PageSize int,
@@ -6615,13 +6606,14 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}post_list_result
  i_SortPosted int, 
  i_SortEdited int,
  i_SortPosition int,	
-i_SincePostedDate datetime, 
-i_ToPostedDate datetime, 
-i_SinceEditedDate datetime, 
-i_ToEditedDate datetime, 
-i_FirstSelectPosted datetime,
-i_FirstSelectEdited datetime,
-i_ShowDeleted TINYINT(1)
+ i_SincePostedDate datetime, 
+ i_ToPostedDate datetime, 
+ i_SinceEditedDate datetime, 
+ i_ToEditedDate datetime, 
+ i_FirstSelectPosted datetime,
+ i_FirstSelectEdited datetime,
+ i_ShowDeleted TINYINT(1),
+ i_UTCTIMESTAMP datetime
 )
 BEGIN 
   
@@ -6661,6 +6653,10 @@ BEGIN
 		b.Signature,
 		b.NumPosts AS Posts,
 		b.Points,
+		(CASE (?) WHEN 1 THEN CAST(IFNULL((select VoteDate 
+		from {databaseName}.{objectQualifier}ReputationVote repVote 
+		where repVote.ReputationToUserID=b.UserID and repVote.ReputationFromUserID = ? LIMIT 1), null) as datetime) 
+		ELSE (?) END) AS ReputationVoteDate,		
 		d.Views,
 		d.ForumID,
 		c.Name AS RankName,		
@@ -6668,11 +6664,7 @@ BEGIN
 		-- i_StyledNicks
 		(case(?)
 			when 1 then  
-			IFNULL(
-			(SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=b.UserID 
-		AND char_length(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1),
-		    c.Style)  
+			b.UserStyle 
 			else '''' end) as Style, 
 		IFNULL(m.Edited,m.Posted) AS Edited,
 		IFNULL((select 1 from {databaseName}.{objectQualifier}Attachment x 
@@ -6734,7 +6726,9 @@ BEGIN
         when ? = 2 then m.Edited end) DESC,
 		(case 
         when ? = 1 then m.Edited end) ASC LIMIT ?'; 
-
+		SET @ii_ShowReputation = i_ShowReputation;
+		SET @ii_PageUserID = i_PageUserID;
+		SET @ii_UTCTIMESTAMP = i_UTCTIMESTAMP;
 		SET @ii_StyledNicks = i_StyledNicks;
         SET @iici_post_totalrowsnumber = i_post_totalrowsnumber;
         SET @ii_PageIndex = i_PageIndex;
@@ -6747,7 +6741,10 @@ BEGIN
 		SET @ii_SortEdited = i_SortEdited;
 		SET @ii_PageSize =  i_PageSize;
 		SET @ii_ShowDeleted =  i_ShowDeleted;
-        EXECUTE plist1 USING 
+        EXECUTE plist1 USING
+		@ii_ShowReputation,
+		@ii_PageUserID,
+		@ii_UTCTIMESTAMP,
 		@ii_StyledNicks, 
 		@iici_post_totalrowsnumber, 
 		@ii_PageIndex, 
@@ -6883,7 +6880,9 @@ BEGIN
  	ELSE 
  		INSERT INTO {databaseName}.{objectQualifier}Rank(BoardID,`Name`,Flags,MinPosts,RankImage,PMLimit,Style,SortOrder,Description,UsrSigChars,UsrSigBBCodes,UsrSigHTMLTags,UsrAlbums,UsrAlbumImages)
  		VALUES(i_BoardID,i_Name,ici_Flags,i_MinPosts,i_RankImage,i_PMLimit,i_Style,i_SortOrder,i_Description,i_UsrSigChars,i_UsrSigBBCodes,i_UsrSigHTMLTags,i_UsrAlbums,i_UsrAlbumImages);
+		SET i_RankID = LAST_INSERT_ID();
  	END IF;
+	CALL {databaseName}.{objectQualifier}user_savestyle(null, i_RankID);
 END;
 --GO
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
@@ -7027,10 +7026,11 @@ PREPARE stmt_shsl FROM 'SELECT
 		sh.ShoutBoxMessageID,
 		sh.`Date`,
 		(case(?) 
-	        when 1 then {databaseName}.{objectQualifier}get_userstyle(sh.UserID)  
+	        when 1 then usr.UserStyle  
 	        else ?	end ) AS Style    
 	FROM
 		{databaseName}.{objectQualifier}ShoutboxMessage sh
+		JOIN {databaseName}.{objectQualifier}User usr ON usr.UserID = sh.UserID
 		WHERE 
 		sh.BoardID = ?
 	ORDER BY sh.Date DESC LIMIT ?';
@@ -7038,7 +7038,7 @@ PREPARE stmt_shsl FROM 'SELECT
     EXECUTE stmt_shsl USING @limit_shsl_style,@limit_shsl_emptystyle, @limit_shsl_boardid, @limit_shsl;
     DEALLOCATE PREPARE stmt_shsl;         
     END;
---GO
+--GO 
 
 CREATE PROCEDURE {databaseName}.{objectQualifier}shoutbox_savemessage(
     i_BoardId int,
@@ -7403,10 +7403,10 @@ BEGIN
  	    where mes2.TopicID = IFNULL(c.TopicMovedID,c.TopicID) 
  	    AND mes2.Position = 0) AS FirstMessage,
  	     (case(?)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(c.UserID)  
+	        when 1 then  b.UserStyle 
 	        else ''''	 end) AS  StarterStyle,
 	    (case(?)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(c.LastUserID)  
+	        when 1 then   (SELECT usr.UserStyle FROM  {databaseName}.{objectQualifier}User usr WHERE usr.UserID=c.LastUserID)  
 	        else ''''	 end ) AS LastUserStyle,
 	    (case(?)
 		     when 1 then
@@ -7640,10 +7640,10 @@ BEGIN
  	    where mes2.TopicID = IFNULL(c.TopicMovedID,c.TopicID) 
  	    AND mes2.Position = 0) AS FirstMessage,
  	     (case(?)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(c.UserID)  
+	        when 1 then  b.UserStyle  
 	        else ''''	 end) AS  StarterStyle,
 	    (case(?)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(c.LastUserID)  
+	        when 1 then   (SELECT usr.UserStyle FROM  {databaseName}.{objectQualifier}User usr WHERE usr.UserID=c.LastUserID)  
 	        else ''''	 end ) AS LastUserStyle,
 	    (case(?)
 		     when 1 then
@@ -8214,16 +8214,10 @@ BEGIN
 			d.Flags AS ForumFlags,
 			(SELECT CAST(Message as char(1000)) FROM {databaseName}.{objectQualifier}Message mes2 where mes2.TopicID = IFNULL(c.TopicMovedID,c.TopicID) AND mes2.Position = 0 LIMIT 1) AS FirstMessage,
 		    (case(?)
-			when 1 then  IFNULL((SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		    join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=c.UserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), 
-			(select r.Style from {databaseName}.{objectQualifier}User usr 
-			join {databaseName}.{objectQualifier}Rank r ON r.RankID = usr.RankID  where usr.UserID=c.UserID))  
+			when 1 then  b.UserStyle
 			else ''''	 end) AS StarterStyle,
 		 	(case(?)
-			when 1 then  IFNULL((SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		    join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=c.LastUserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), 
-			(select r.Style from {databaseName}.{objectQualifier}User usr 
-			join {databaseName}.{objectQualifier}Rank r ON r.RankID = usr.RankID  where usr.UserID=c.LastUserID))  
+			when 1 then   (SELECT usr.UserStyle FROM  {databaseName}.{objectQualifier}User usr WHERE usr.UserID=c.LastUserID)  
 			else ''''	 end) AS LastUserStyle,
 			(case(?)
 		     when 1 then
@@ -8447,16 +8441,10 @@ BEGIN
 			d.Flags AS ForumFlags,
 			 (SELECT CAST(Message as char(1000)) FROM {databaseName}.{objectQualifier}Message mes2 where mes2.TopicID = IFNULL(c.TopicMovedID,c.TopicID) AND mes2.Position = 0 LIMIT 1) AS FirstMessage,		    
 			(case(?)
-			when 1 then  IFNULL((SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		    join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=c.UserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), 
-			(select r.Style from {databaseName}.{objectQualifier}User usr 
-			join {databaseName}.{objectQualifier}Rank r ON r.RankID = usr.RankID  where usr.UserID=c.UserID))  
+			when 1 then  b.UserStyle 
 			else ''''	 end) AS StarterStyle,
 		 	(case(?)
-			when 1 then  IFNULL((SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		    join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=c.LastUserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), 
-			(select r.Style from {databaseName}.{objectQualifier}User usr 
-			join {databaseName}.{objectQualifier}Rank r ON r.RankID = usr.RankID  where usr.UserID=c.LastUserID))  
+			when 1 then   (SELECT usr.UserStyle FROM  {databaseName}.{objectQualifier}User usr WHERE usr.UserID=c.LastUserID)   
 			else '''' end) AS LastUserStyle,			
 			(case(?)
 		     when 1 then
@@ -8603,10 +8591,10 @@ BEGIN
                  WHERE mes2.TopicID = IFNULL(c.TopicMovedID,c.TopicID)
                  AND mes2.Position = 0 ORDER BY mes2.TopicID LIMIT 1) AS FirstMessage,
         (case(i_StyledNicks)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(c.UserID)  
+	        when 1 then  b.UserStyle 
 	        else ''	 end) AS  StarterStyle,
 	    (case(i_StyledNicks)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(c.LastUserID)  
+	        when 1 then   (SELECT usr.UserStyle FROM  {databaseName}.{objectQualifier}User usr WHERE usr.UserID=c.LastUserID) 
 	        else ''	 end ) AS LastUserStyle,
 	    (case(i_FindLastRead)
 		     when 1 then
@@ -8662,10 +8650,10 @@ BEGIN
                  WHERE mes2.TopicID = IFNULL(c.TopicMovedID,c.TopicID)
                  AND mes2.Position = 0 ORDER BY mes2.TopicID LIMIT 1) AS FirstMessage,
         (case(i_StyledNicks)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(c.UserID)  
+	        when 1 then  b.UserStyle
 	        else ''	 end) AS  StarterStyle,
 	    (case(i_StyledNicks)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(c.LastUserID)  
+	        when 1 then   (SELECT usr.UserStyle FROM  {databaseName}.{objectQualifier}User usr WHERE usr.UserID=c.LastUserID) 
 	        else ''	 end ) AS LastUserStyle,
 	    (case(i_FindLastRead)
 		     when 1 then
@@ -8716,7 +8704,7 @@ END;
 
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
-CREATE procedure {databaseName}.{objectQualifier}topic_move(i_TopicID INT,i_ForumID INT,i_ShowMoved TINYINT(1)) 
+CREATE procedure {databaseName}.{objectQualifier}topic_move(i_TopicID INT,i_ForumID INT,i_ShowMoved TINYINT(1), i_LinkDays INT) 
 BEGIN
      DECLARE ici_OldForumID INT;
  
@@ -8727,8 +8715,8 @@ BEGIN
 	  -- delete an old link if exists
 	 DELETE FROM {databaseName}.{objectQualifier}Topic WHERE TopicMovedID = i_TopicID;	
          /*create a moved message*/
-         INSERT INTO {databaseName}.{objectQualifier}Topic(ForumID,UserID,UserName,Posted,Topic,Views,Flags,Priority,PollID,TopicMovedID,LastPosted,NumPosts)
-         SELECT ForumID,UserID,UserName,Posted,Topic,0,Flags,Priority,PollID,i_TopicID,LastPosted,0
+         INSERT INTO {databaseName}.{objectQualifier}Topic(ForumID,UserID,UserName,Posted,Topic,Views,Flags,Priority,PollID,TopicMovedID,LastPosted,NumPosts, LinkDays)
+         SELECT ForumID,UserID,UserName,Posted,Topic,0,Flags,Priority,PollID,i_TopicID,LastPosted,0, DATE_ADD( UTC_TIMESTAMP(), INTERVAL i_LinkDays day )  
          FROM {databaseName}.{objectQualifier}Topic WHERE TopicID = i_TopicID;
      END IF;
  
@@ -9004,13 +8992,22 @@ end;
 
      /* STORED PROCEDURE CREATED BY VZ-TEAM */     
      CREATE  PROCEDURE {databaseName}.{objectQualifier}user_addpoints(
-     i_UserID INT,
-     i_Points INT)
+     i_UserID INT,i_FromUserID INT, i_UTCTIMESTAMP datetime,i_Points int)
      BEGIN
+	 declare i_VoteDate datetime;
      UPDATE {databaseName}.{objectQualifier}User
      SET    Points = Points + i_Points
      WHERE  UserID = i_UserID;
-     END;
+	 IF i_FromUserID IS NOT NULL THEN		
+	set i_VoteDate = (select VoteDate from {databaseName}.{objectQualifier}ReputationVote where ReputationFromUserID=i_FromUserID AND ReputationToUserID=i_UserID LIMIT 1);
+	IF i_VoteDate is not null then    
+		  update {databaseName}.{objectQualifier}ReputationVote set VoteDate=i_UTCTIMESTAMP where VoteDate = i_VoteDate AND ReputationFromUserID=i_FromUserID AND ReputationToUserID=i_UserID;	
+	ELSE	 
+		  insert into {databaseName}.{objectQualifier}ReputationVote(ReputationFromUserID,ReputationToUserID,VoteDate)
+		  values (i_FromUserID, i_UserID, i_UTCTIMESTAMP);	 
+	END IF;
+	END IF;
+    END;
      
 --GO
 
@@ -9215,7 +9212,8 @@ BEGIN
     DELETE FROM {databaseName}.{objectQualifier}WatchTopic WHERE UserID = i_UserID;
     DELETE FROM {databaseName}.{objectQualifier}WatchForum WHERE UserID = i_UserID;
 	DELETE FROM {databaseName}.{objectQualifier}TopicReadTracking WHERE UserID = i_UserID;
-    DELETE FROM {databaseName}.{objectQualifier}ForumReadTracking WHERE UserID = i_UserID;	
+    DELETE FROM {databaseName}.{objectQualifier}ForumReadTracking WHERE UserID = i_UserID;
+	DELETE FROM {databaseName}.{objectQualifier}ReputationVote WHERE ReputationFromUserID = i_UserID;
     DELETE FROM {databaseName}.{objectQualifier}UserGroup WHERE UserID = i_UserID;
     /*ABOT CHANGED
     Delete UserForums entries Too*/
@@ -9477,8 +9475,7 @@ BEGIN
  			a.Culture AS CultureUser,			
  			b.Name AS RankName,
  			(case(i_StyledNicks)
-	          when 1 then  IFNULL(( SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		     join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=a.UserID AND char_length(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), b.Style)  
+	          when 1 then a.UserStyle
 	        else ''	 end) AS Style, 
  			IFNULL(a.Flags & 1,0) AS IsHostAdmin,
  			IFNULL(a.Flags & 4,0) AS IsGuest, 
@@ -9505,8 +9502,7 @@ BEGIN
  			a.Culture AS CultureUser, 
  			b.Name AS RankName,
  			(case(i_StyledNicks)
-	          when 1 then  IFNULL(( SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		     join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=a.UserID AND char_length(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), b.Style)  
+	          when 1 then  a.UserStyle
 	        else ''	 end) AS Style, 
  			IFNULL(a.Flags & 1,0) AS IsHostAdmin,                     
  			IFNULL(a.Flags & 4,0) AS IsGuest, 			
@@ -9532,8 +9528,7 @@ BEGIN
  			a.Culture AS CultureUser,
  			b.Name AS RankName,	
  			(case(i_StyledNicks)
-	          when 1 then  IFNULL(( SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		     join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=a.UserID AND char_length(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), b.Style)  
+	          when 1 then  a.UserStyle
 	        else ''	 end) AS Style, 
  			IFNULL(a.Flags & 1,0) AS IsHostAdmin,            
  			IFNULL(a.Flags & 4,0) AS IsGuest,	
@@ -9789,9 +9784,7 @@ begin
 				 b.RankID,
 				 b.Name AS RankName,
 				 (case(?)
-				 when 1 then  IFNULL(( SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-			     join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=a.UserID 
-			     AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), b.Style)   
+				 when 1 then  a.UserStyle
 			     else '''' end) AS Style,
 			    {databaseName}.{objectQualifier}biginttoint(?) as TotalCount
 			     from {databaseName}.{objectQualifier}User a 
@@ -10010,8 +10003,7 @@ BEGIN
 			  a.Culture AS CultureUser,
 			  b.Name AS RankName,
  			(case(i_StyledNicks)
-	          when 1 then  IFNULL(( SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		     join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=a.UserID AND char_length(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), b.Style)  
+	          when 1 then  a.UserStyle
 	        else ''	 end) AS Style,  			
  			-- {databaseName}.{objectQualifier}biginttoint(IFNULL(a.Flags & 4,0)) AS IsGuest,
  			DATEDIFF(UTC_TIMESTAMP(),a.Joined)+1 AS NumDays,
@@ -10044,8 +10036,7 @@ BEGIN
 			a.Culture AS CultureUser,						
  			b.Name AS RankName,
  			(case(i_StyledNicks)
-	          when 1 then  IFNULL(( SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		     join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=a.UserID AND char_length(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), b.Style)  
+	          when 1 then  a.UserStyle
 	        else ''	 end) AS Style,
 			{databaseName}.{objectQualifier}biginttobool (IFNULL(a.Flags & 4,0)) AS IsGuest, 
  			IFNULL(a.Flags & 1,0) AS IsHostAdmin,                     
@@ -10074,11 +10065,7 @@ BEGIN
 			a.Culture AS CultureUser,				
  			b.Name AS RankName,	
  			(case(i_StyledNicks)
-	          when 1 then  IFNULL(( SELECT f.Style 
-	          FROM {databaseName}.{objectQualifier}UserGroup e 
-		     join {databaseName}.{objectQualifier}Group f 
-		     on f.GroupID=e.GroupID WHERE e.UserID=a.UserID 
-		     AND char_length(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), b.Style)  
+	          when 1 then  a.UserStyle
 	        else ''	 end) AS Style, 
 			{databaseName}.{objectQualifier}biginttobool (IFNULL(a.Flags & 4,0)) AS IsGuest,
  			IFNULL(a.Flags & 1,0) AS IsHostAdmin,            
@@ -10117,9 +10104,7 @@ begin
 			r.RankID,						
 			r.Name AS RankName,
 			(case(i_StyledNicks)
-			when 1 then  IFNULL(( SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-			join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=a.UserID 
-			AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), r.Style) 
+			when 1 then  a.UserStyle
 			else ''	 end) AS Style,  
 			(DATEDIFF(a.Joined, UTC_TIMESTAMP())+1) AS NumDays,
 			(select count(1) from {databaseName}.{objectQualifier}Message x where (x.Flags & 24)=16) as NumPostsForum,
@@ -10365,10 +10350,23 @@ END;
 --GO
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
-CREATE PROCEDURE {databaseName}.{objectQualifier}user_removepoints (i_UserID INT,i_Points INT) 
-BEGIN
-	UPDATE {databaseName}.{objectQualifier}User SET Points = Points - i_Points WHERE UserID = i_UserID;
-END;
+     CREATE  PROCEDURE {databaseName}.{objectQualifier}user_removepoints(
+     i_UserID INT,i_FromUserID INT, i_UTCTIMESTAMP datetime,i_Points int)
+     BEGIN
+	 declare i_VoteDate datetime;
+     UPDATE {databaseName}.{objectQualifier}User
+     SET    Points = Points + i_Points
+     WHERE  UserID = i_UserID;
+	 IF i_FromUserID IS NOT NULL THEN		
+	set i_VoteDate = (select VoteDate from {databaseName}.{objectQualifier}ReputationVote where ReputationFromUserID=i_FromUserID AND ReputationToUserID=i_UserID LIMIT 1);
+	IF i_VoteDate is not null then    
+		  update {databaseName}.{objectQualifier}ReputationVote set VoteDate=i_UTCTIMESTAMP where VoteDate = i_VoteDate AND ReputationFromUserID=i_FromUserID AND ReputationToUserID=i_UserID;	
+	ELSE	 
+		  insert into {databaseName}.{objectQualifier}ReputationVote(ReputationFromUserID,ReputationToUserID,VoteDate)
+		  values (i_FromUserID, i_UserID, i_UTCTIMESTAMP);	 
+	END IF;
+	END IF;
+    END;
 --GO
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
@@ -11177,9 +11175,7 @@ PREPARE stmt_tl FROM 'SELECT
 		t.Posted,	
  		IFNULL(t.LastUserName,(SELECT `Name` from {databaseName}.{objectQualifier}User x WHERE x.UserID = t.LastUserID)) AS LastUserName,
  	    (case(?)
-	          when 1 then  IFNULL(( SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=t.LastUserID AND char_length(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), ( SELECT r.Style FROM {databaseName}.{objectQualifier}User u 
-		join {databaseName}.{objectQualifier}Rank r on r.RankID=u.RankID WHERE u.UserID=t.LastUserID AND char_length(r.Style) > 2))  
+	          when 1 then   (SELECT usr.UserStyle FROM  {databaseName}.{objectQualifier}User usr WHERE usr.UserID=t.LastUserID)  
 	        else ?	end) AS LastUserStyle,	
 	    (case(?)
 		     when 1 then
@@ -12125,10 +12121,10 @@ BEGIN
 		d.Flags AS ForumFlags,
 		(SELECT `Message` FROM {databaseName}.{objectQualifier}Message mes2 where mes2.TopicID = IFNULL(c.TopicMovedID,c.TopicID) AND mes2.Position = 0) AS FirstMessage,
 		(case(?)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(c.UserID)  
+	        when 1 then  b.UserStyle 
 	        else ''''	 end) AS StarterStyle,
 	    (case(?)
-	        when 1 then  {databaseName}.{objectQualifier}get_userstyle(c.LastUserID)  
+	        when 1 then   (SELECT usr.UserStyle FROM  {databaseName}.{objectQualifier}User usr WHERE usr.UserID=c.LastUserID)  
 	        else ''''	 end) AS LastUserStyle,
 	    (case(?)
 		     when 1 then
@@ -12827,11 +12823,7 @@ begin
     ((usr.Flags & 16) = 16) AS IsHidden,
     (CASE(i_StyledNicks)
                 WHEN 1 THEN
-                        IFNULL((SELECT G.Style
-                         FROM {databaseName}.{objectQualifier}UserGroup AS UG
-                              JOIN {databaseName}.{objectQualifier}Group G on G.GroupID=UG.GroupID
-                              WHERE UG.UserID=usr.UserID AND CHAR_LENGTH(G.Style) > 2 
-                              ORDER BY G.SortOrder LIMIT 1), '')
+                        usr.UserStyle
                 ELSE ''
             END) AS Style
     FROM {databaseName}.{objectQualifier}User AS usr
@@ -13090,16 +13082,10 @@ BEGIN
 		d.Flags as ForumFlags,
 		(SELECT CAST(Message as char(1000)) FROM {databaseName}.{objectQualifier}Message mes2 where mes2.TopicID = IFNULL(c.TopicMovedID,c.TopicID) AND mes2.Position = 0 limit 1) as FirstMessage,
 	    (case(?)
-			when 1 then  IFNULL((SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		    join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=c.UserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder limit 1), 
-			(select r.Style from {databaseName}.{objectQualifier}User usr 
-			join {databaseName}.{objectQualifier}Rank r ON r.RankID = usr.RankID  where usr.UserID=c.UserID))  
+			when 1 then  b.UserStyle
 			else ''''	 end) as  StarterStyle,
 		(case(?)
-			when 1 then  IFNULL((SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		    join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=c.LastUserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder limit 1), 
-			(select r.Style from {databaseName}.{objectQualifier}User usr 
-			join {databaseName}.{objectQualifier}Rank r ON r.RankID = usr.RankID  where usr.UserID=c.LastUserID))  
+			when 1 then   (SELECT usr.UserStyle FROM  {databaseName}.{objectQualifier}User usr WHERE usr.UserID=c.LastUserID)   
 			else ''''	 end) as LastUserStyle,
 	    (case(?)
 		     when 1 then
@@ -13458,16 +13444,10 @@ BEGIN
         IFNULL(SIGN(c.Flags & 8)>0,false) AS IsDeleted,
 		(SELECT  CAST(Message as CHAR(1000)) FROM {databaseName}.{objectQualifier}Message mes2 where mes2.TopicID = IFNULL(c.TopicMovedID,c.TopicID) AND mes2.Position = 0 LIMIT 1) AS FirstMessage,
 	    (case(?)
-			when 1 then  IFNULL((SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		    join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=c.UserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), 
-			(select r.Style from {databaseName}.{objectQualifier}User usr 
-			join {databaseName}.{objectQualifier}Rank r ON r.RankID = usr.RankID  where usr.UserID=c.UserID))  
+			when 1 then   b.UserStyle
 			else '''' end) AS StarterStyle,
 		(case(?)
-			when 1 then  IFNULL((SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
-		    join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=c.LastUserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), 
-			(select r.Style from {databaseName}.{objectQualifier}User usr 
-			join {databaseName}.{objectQualifier}Rank r ON r.RankID = usr.RankID  where usr.UserID=c.LastUserID))  
+			when 1 then   (SELECT usr.UserStyle FROM  {databaseName}.{objectQualifier}User usr WHERE usr.UserID=c.LastUserID)  
 			else '''' end) AS LastUserStyle,
 	    (case(?)
 		     when 1 then
@@ -13534,6 +13514,43 @@ BEGIN
 		DEALLOCATE PREPARE tlist1;
 END;
 --GO
+
+create procedure {databaseName}.{objectQualifier}user_savestyle(i_GroupID int, i_RankID int) 
+begin
+  declare _usridtmp int; 
+	declare _styletmp varchar(255);
+	declare _rankidtmp int;    
+      
+        declare c cursor for
+        select UserID,UserStyle,RankID from {databaseName}.{objectQualifier}User;   
+-- loop thru users to sync styles
+ if (i_GroupID is not null or i_RankID is not null or not exists (select 1 from {databaseName}.{objectQualifier}User where UserStyle IS NOT NULL LIMIT 1)) THEN
+   
+       
+        open c;
+        BEGIN	
+        DECLARE EXIT HANDLER FOR NOT FOUND BEGIN END; 
+		LOOP
+		    FETCH c into _usridtmp,_styletmp,_rankidtmp;
+              
+		UPDATE {databaseName}.{objectQualifier}User  
+		SET UserStyle = IFNULL((SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
+			join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID 
+			WHERE e.UserID=_usridtmp AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), 
+			(SELECT r.Style FROM {databaseName}.{objectQualifier}Rank r where RankID = _rankidtmp LIMIT 1)) 
+        WHERE UserID = _usridtmp ;		  	 
+        
+		END LOOP;
+        END;
+        close c;	   
+   end if;
+end;
+--GO
+CALL {databaseName}.{objectQualifier}user_savestyle (null,null);
+--GO
+
+
+
 /* create procedure {databaseName}.{objectQualifier}topic_unanswered(i_BoardID int,i_PageUserID int,i_Since datetime,i_CategoryID int, i_StyledNicks tinyint(1),	i_FindLastRead tinyint(1)) 
 begin
 		select

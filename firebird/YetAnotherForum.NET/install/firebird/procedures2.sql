@@ -284,10 +284,10 @@ FOR
                  WHERE mes2.TOPICID = COALESCE(c.TOPICMOVEDID,c.TOPICID) 
                  AND mes2."POSITION" = 0 ORDER BY mes2.TOPICID) AS "FirstMessage",				
       (case(:I_STYLEDNICKS)
-	        when 1 then (SELECT * FROM objQual_GET_USERSTYLE(c.USERID))  
+	        when 1 then (SELECT FIRST 1 usr.USERSTYLE FROM objQual_USER usr WHERE usr.USERID = c.USERID) 
 	        else (SELECT '' FROM RDB$DATABASE)	 end),
 	    (case(:I_STYLEDNICKS)
-	        when 1 then (SELECT * FROM objQual_GET_USERSTYLE(c.LASTUSERID))  
+	        when 1 then (SELECT FIRST 1 usr.USERSTYLE FROM objQual_USER usr WHERE usr.USERID = c.LASTUSERID)  
 	        else (SELECT '' FROM RDB$DATABASE)	 end),
 		(case(:I_FINDLASTUNREAD)
 		     when 1 then
@@ -532,10 +532,10 @@ FOR
                  WHERE mes2.TOPICID = COALESCE(c.TOPICMOVEDID,c.TOPICID) 
                  AND mes2."POSITION" = 0 ORDER BY mes2.TOPICID) AS "FirstMessage",
         (case(:I_STYLEDNICKS)
-	        when 1 then (SELECT * FROM objQual_GET_USERSTYLE(c.USERID))  
+	        when 1 then b.USERSTYLE  
 	        else (SELECT '' FROM RDB$DATABASE)	 end),
 	    (case(:I_STYLEDNICKS)
-	        when 1 then (SELECT * FROM objQual_GET_USERSTYLE(c.LASTUSERID))  
+	        when 1 then (SELECT FIRST 1 usr.USERSTYLE FROM objQual_USER usr WHERE usr.USERID = c.LASTUSERID) 
 	        else (SELECT '' FROM RDB$DATABASE)	 end),
 		(case(:I_FINDLASTUNREAD)
 		     when 1 then
@@ -750,10 +750,10 @@ FOR SELECT
 		where mes2.TOPICID = COALESCE(c.TOPICMOVEDID,c.TOPICID) 
 		AND mes2."POSITION" = 0) AS "FirstMessage",
 			case(:I_STYLEDNICKS)
-			when 1 then (SELECT * FROM objQual_GET_USERSTYLE(c.USERID))  
+			when 1 then b.USERSTYLE 
 			else (SELECT '' FROM RDB$DATABASE)	 end,	
 		case(:I_STYLEDNICKS)
-		when 1 then  (SELECT * FROM objQual_GET_USERSTYLE(c.LASTUSERID))  
+		when 1 then  (SELECT FIRST 1 usr.USERSTYLE FROM objQual_USER usr WHERE usr.USERID = c.LASTUSERID) 
 		else (SELECT '' FROM RDB$DATABASE)	 end,
 		(case(:I_FINDLASTUNREAD)
 		     when 1 then
@@ -976,10 +976,10 @@ FOR SELECT
 		where mes2.TOPICID = COALESCE(c.TOPICMOVEDID,c.TOPICID) 
 		AND mes2."POSITION" = 0) AS "FirstMessage",
 			case(:I_STYLEDNICKS)
-			when 1 then (SELECT * FROM objQual_GET_USERSTYLE(c.USERID))  
+			when 1 then b.USERSTYLE
 			else (SELECT '' FROM RDB$DATABASE)	 end,	
 		case(:I_STYLEDNICKS)
-		when 1 then  (SELECT * FROM objQual_GET_USERSTYLE(c.LASTUSERID))  
+		when 1 then  (SELECT FIRST 1 usr.USERSTYLE FROM objQual_USER usr WHERE usr.USERID = c.LASTUSERID) 
 		else (SELECT '' FROM RDB$DATABASE)	 end,
 		(case(:I_FINDLASTUNREAD)
 		     when 1 then
@@ -1200,16 +1200,10 @@ FOR SELECT
 		d.FLAGS,
 		(SELECT FIRST 1 CAST(mes2.MESSAGE as varchar(1000)) FROM objQual_MESSAGE mes2 where mes2.TOPICID = COALESCE(c.TOPICMOVEDID,c.TOPICID) AND mes2."POSITION" = 0),
 	    (case(:I_STYLEDNICKS)
-			when 1 then  COALESCE((SELECT FIRST 1 f.STYLE FROM objQual_USERGROUP e 
-		    join objQual_GROUP f on f.GroupID=e.GroupID WHERE e.UserID=c.UserID AND CHAR_LENGTH(f.STYLE) > 2 ORDER BY f.SortOrder), 
-			(select r.STYLE from objQual_USER usr 
-			join objQual_RANK r ON r.RankID = usr.RankID  where usr.UserID=c.UserID))  
+			when 1 then  b.USERSTYLE 
 			else ''	 end) as StarterStyle ,
 		(case(:I_STYLEDNICKS)
-			when 1 then  COALESCE((SELECT FIRST 1 f.STYLE FROM objQual_USERGROUP e 
-		    join objQual_GROUP f on f.GroupID=e.GroupID WHERE e.UserID=c.LastUserID AND CHAR_LENGTH(f.STYLE) > 2 ORDER BY f.SortOrder), 
-			(select r.STYLE from objQual_USER usr 
-			join objQual_RANK r ON r.RankID = usr.RankID  where usr.UserID=c.LastUserID))  
+			when 1 then  (SELECT FIRST 1 usr.USERSTYLE FROM objQual_USER usr WHERE usr.USERID = c.LASTUSERID)
 			else ''	 end) as LastUserStyle,
 	   (case(:I_FINDLASTUNREAD)
 		     when 1 then
@@ -1431,16 +1425,10 @@ FOR SELECT
 		d.FLAGS,
 		(SELECT FIRST 1 CAST(MESSAGE as varchar(1000)) FROM objQual_MESSAGE mes2 where mes2.TOPICID = COALESCE(c.TOPICMOVEDID,c.TOPICID) AND mes2."POSITION" = 0),
 	    (case(:I_STYLEDNICKS)
-			when 1 then  COALESCE((SELECT FIRST 1 f.STYLE FROM objQual_USERGROUP e 
-		    join objQual_GROUP f on f.GROUPID=e.GROUPID WHERE e.USERID=c.USERID AND CHAR_LENGTH(f.STYLE) > 2 ORDER BY f.SortOrder), 
-			(select r.STYLE from objQual_USER usr 
-			join objQual_RANK r ON r.RankID = usr.RankID  where usr.USERID=c.USERID))  
+			when 1 then  b.USERSTYLE
 			else ''	 end),
 		(case(:I_STYLEDNICKS)
-			when 1 then  COALESCE((SELECT FIRST 1 f.STYLE FROM objQual_USERGROUP e 
-		    join objQual_GROUP f on f.GROUPID=e.GROUPID WHERE e.USERID=c.LASTUSERID AND CHAR_LENGTH(f.STYLE) > 2 ORDER BY f.SortOrder), 
-			(select r.STYLE from objQual_USER usr 
-			join objQual_RANK r ON r.RankID = usr.RankID  where usr.USERID=c.LASTUSERID))  
+			when 1 then  (SELECT FIRST 1 usr.USERSTYLE FROM objQual_USER usr WHERE usr.USERID = c.LASTUSERID)
 			else ''	 end),
 	    (case(:I_FINDLASTUNREAD)
 		     when 1 then
@@ -1657,10 +1645,10 @@ FOR SELECT
 		d.FLAGS AS ForumFlags,
 		(SELECT FIRST 1 CAST(MESSAGE as varchar(1000)) FROM objQual_MESSAGE mes2 where mes2.TOPICID = COALESCE(c.TOPICMOVEDID,c.TOPICID) AND mes2."POSITION" = 0) AS FirstMessage,
 		(case(:I_STYLEDNICKS)
-			when 1 then  (SELECT * FROM objQual_GET_USERSTYLE(c.USERID))  
+			when 1 then  b.USERSTYLE 
 			else ''	 end) AS StarterStyle,
 		(case(:I_STYLEDNICKS)
-			when 1 then  (SELECT * FROM objQual_GET_USERSTYLE(c.LASTUSERID))  
+			when 1 then (SELECT usr.USERSTYLE FROM objQual_USER usr WHERE usr.USERID = c.LASTUSERID)
 			else ''	 end) AS LastUserStyle,
 	    (case(:I_FINDLASTUNREAD)
 		     when 1 then

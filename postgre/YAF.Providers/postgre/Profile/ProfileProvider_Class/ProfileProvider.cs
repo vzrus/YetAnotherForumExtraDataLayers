@@ -168,7 +168,7 @@ namespace YAF.Providers.Profile
 					int size;
 
 					// parse custom provider data...
-					GetDbTypeAndSizeFromString( property.Attributes ["CustomProviderData"].ToString(), out dbType, out size );
+					DB.GetDbTypeAndSizeFromString( property.Attributes ["CustomProviderData"].ToString(), out dbType, out size );
 
 					// default the size to 256 if no size is specified
                     // default the size to 256 if no size is specified
@@ -212,9 +212,9 @@ namespace YAF.Providers.Profile
 					int size;
 
 					// parse custom provider data...
-					GetDbTypeAndSizeFromString( value.Property.Attributes ["CustomProviderData"].ToString(), out dbType, out size );
+					DB.GetDbTypeAndSizeFromString( value.Property.Attributes ["CustomProviderData"].ToString(), out dbType, out size );
 
-                    if (dbType == NpgsqlTypes.NpgsqlDbType.Varchar && size == -1)
+                    if (dbType == NpgsqlDbType.Varchar && size == -1)
                     {
                         size = 256;
                     }
@@ -239,47 +239,6 @@ namespace YAF.Providers.Profile
 				_propertiesSetup = true;
 			}
 		}
-
-		private bool GetDbTypeAndSizeFromString( string providerData, out NpgsqlTypes.NpgsqlDbType dbType, out int size )
-		{
-			size = -1;
-			dbType = NpgsqlTypes.NpgsqlDbType.Varchar;
-
-			if ( String.IsNullOrEmpty( providerData ) )
-			{
-				return false;
-			}
-
-			// split the data
-			string [] chunk = providerData.Split( new char [] { ';' } );
-        
-            // first item is the column name...
-            string columnName = chunk[0];
-            // vzrus addon convert values from mssql types...
-            if (chunk[1].IndexOf("varchar") >= 0)
-            { chunk[1] = "Varchar"; }
-            if (chunk[1].IndexOf("int") >= 0)
-            { chunk[1] = "Integer"; }
-            if (chunk[1].IndexOf("DateTime") >= 0)
-            { chunk[1] = "Timestamp"; }			
-		
-
-			// get the datatype and ignore case...
-			dbType = ( NpgsqlTypes.NpgsqlDbType )Enum.Parse( typeof( NpgsqlTypes.NpgsqlDbType ), chunk [1], true );
-
-			if ( chunk.Length > 2 )
-			{
-				// handle size...
-				if ( !Int32.TryParse( chunk [2], out size ) )
-				{
-					throw new ArgumentException( "Unable to parse as integer: " + chunk [2] );
-				}
-			}
-
-			return true;
-		}
-
-		
 
 		private ProfileInfoCollection GetProfileAsCollection( ProfileAuthenticationOption authenticationOption, int pageIndex, int pageSize, object userNameToMatch, object inactiveSinceDate, out int totalRecords )
 		{

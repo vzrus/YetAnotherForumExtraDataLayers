@@ -598,6 +598,112 @@ namespace YAF.Classes.Data
 
 		
 		#region Forum
+
+        static public DataTable forum_ns_getchildren_anyuser(int boardid, int categoryid, int forumid, int userid, bool notincluded, bool immediateonly, string indentchars)
+        {
+            using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand("forum_ns_getchildren_anyuser"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardid;
+                cmd.Parameters.Add(new NpgsqlParameter("i_categoryid", NpgsqlDbType.Integer)).Value = categoryid;
+                cmd.Parameters.Add(new NpgsqlParameter("i_forumid", NpgsqlDbType.Integer)).Value = forumid;
+                cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userid;
+                cmd.Parameters.Add(new NpgsqlParameter("i_notincluded", NpgsqlDbType.Boolean)).Value = notincluded;
+                cmd.Parameters.Add(new NpgsqlParameter("i_immediateonly", NpgsqlDbType.Boolean)).Value = immediateonly;
+
+                DataTable dt = MsSqlDbAccess.Current.GetData(cmd);
+                DataTable sorted = dt.Clone();
+                bool forumRow = false;
+                foreach (DataRow row in dt.Rows)
+                {
+                    DataRow newRow = sorted.NewRow();
+                    newRow.ItemArray = row.ItemArray;
+                    newRow = row;
+
+                    int currentIndent = (int)row["Level"];
+                    string sIndent = "";
+
+                    for (int j = 0; j < currentIndent; j++)
+                        sIndent += "--";
+                    if (currentIndent == 1 && !forumRow)
+                    {
+                        newRow["ForumID"] = currentIndent;
+                        newRow["Title"] = string.Format(" -{0} {1}", sIndent, row["CategoryName"]);
+                        forumRow = true;
+                    }
+                    else
+                    {
+                        newRow["ForumID"] = currentIndent;
+                        newRow["Title"] = string.Format(" -{0} {1}", sIndent, row["Title"]);
+                        forumRow = false;
+                    }
+
+
+                    // import the row into the destination
+
+
+
+
+                    sorted.Rows.Add(newRow);
+                }
+                return sorted;
+            }
+        }
+
+        static public DataTable forum_ns_getchildren_activeuser(int boardid, int categoryid, int forumid, int userid, bool notincluded, bool immediateonly, string indentchars)
+        {
+            using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand("forum_ns_getchildren_activeuser"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardid;
+                cmd.Parameters.Add(new NpgsqlParameter("i_categoryid", NpgsqlDbType.Integer)).Value = categoryid;
+                cmd.Parameters.Add(new NpgsqlParameter("i_forumid", NpgsqlDbType.Integer)).Value = forumid;
+                cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userid;
+                cmd.Parameters.Add(new NpgsqlParameter("i_notincluded", NpgsqlDbType.Boolean)).Value = notincluded;
+                cmd.Parameters.Add(new NpgsqlParameter("i_immediateonly", NpgsqlDbType.Boolean)).Value = immediateonly;
+
+                DataTable dt = MsSqlDbAccess.Current.GetData(cmd);
+                DataTable sorted = dt.Clone();
+                int categoryId = 0;
+                foreach (DataRow row in dt.Rows)
+                {
+                    DataRow newRow = sorted.NewRow();
+                    newRow.ItemArray = row.ItemArray;
+
+                    int currentIndent = (int)row["Level"];
+                    string sIndent = "";
+
+                    for (int j = 0; j < currentIndent; j++)
+                        sIndent += "--";
+                    if (categoryId != (int)row["CategoryID"])
+                    {
+                        DataRow newRow1 = sorted.NewRow();
+                        newRow["ForumID"] = currentIndent;
+                        newRow["Title"] = string.Format(" -{0} {1}", sIndent, row["CategoryName"]);
+                        sorted.Rows.Add(newRow1);
+                        categoryId = (int)row["CategoryID"];
+                    }
+                    else
+                    {
+                        newRow["ForumID"] = currentIndent;
+                        newRow["Title"] = string.Format(" -{0} {1}", sIndent, row["Title"]);
+                    }
+
+
+                    // import the row into the destination
+
+
+
+
+                    sorted.Rows.Add(newRow);
+                }
+                return sorted;
+
+            }
+        }
+
         /// <summary>
         /// Listes all forums accessible to a user
         /// </summary>
@@ -611,7 +717,17 @@ namespace YAF.Classes.Data
 
         static public DataTable forum_listall_sorted( object boardId, object userId)
         {
-            return forum_listall_sorted(boardId, userId, null, false, 0);
+            if (!MsSqlDbAccess.LargeForumTree)
+            {
+
+
+                return forum_listall_sorted(boardId, userId, null, false, 0);
+            }
+            else
+            {
+                // return forum_listall_sorted(boardId, userId, null, false, 0);
+                return forum_ns_getchildren_activeuser((int)boardId, 0, 0, (int)userId,false,false,"-");
+            }
         }
 
         static public DataTable forum_listall_sorted( object boardId, object userId, int[] forumidExclusions)
@@ -701,6 +817,7 @@ namespace YAF.Classes.Data
                         cmd.Parameters.Add(new NpgsqlParameter("i_iscrawler", NpgsqlDbType.Boolean)).Value = isCrawler;
                         cmd.Parameters.Add(new NpgsqlParameter("i_ismobiledevice", NpgsqlDbType.Boolean)).Value = isMobileDevice;
                         cmd.Parameters.Add(new NpgsqlParameter("i_donttrack", NpgsqlDbType.Boolean)).Value = donttrack;
+                        cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
  
 						dt1 = MsSqlDbAccess.Current.GetData(cmd, false);
 						return dt1.Rows[0];
@@ -739,244 +856,244 @@ namespace YAF.Classes.Data
 		/// <param name="fid"></param>
 		/// <param name="UserID">ID of user</param>
 		/// <returns>Results</returns>
-        static public DataTable GetSearchResult(string toSearchWhat, string toSearchFromWho, SearchWhatFlags searchFromWhoMethod, SearchWhatFlags searchWhatMethod, int forumIDToStartAt, int userId, int boardId, int maxResults, bool useFullText, bool searchDisplayName)
-        {
-            // New access
-            /*  if (toSearchWhat == "*")
-              {
-                  toSearchWhat = string.Empty;
-              }
+        static public DataTable GetSearchResult( string toSearchWhat, string toSearchFromWho, SearchWhatFlags searchFromWhoMethod, SearchWhatFlags searchWhatMethod, int forumIDToStartAt, int userId, int boardId, int maxResults, bool useFullText, bool searchDisplayName)
+		{
+           // New access
+          /*  if (toSearchWhat == "*")
+            {
+                toSearchWhat = string.Empty;
+            }
 
-              IEnumerable<int> forumIds = new List<int>();
-
-              if (forumIDToStartAt != 0)
-              {
-                  forumIds = ForumListAll(boardId, userID, forumIDToStartAt).Select(f => f.ForumID ?? 0).Distinct();
-              }
-
-              string searchSql = new SearchBuilder().BuildSearchSql(toSearchWhat, toSearchFromWho, searchFromWhoMethod, searchWhatMethod, userID, searchDisplayName, boardId, maxResults, useFullText, forumIds);
-
-              using (SqlCommand cmd = MsSqlDbAccess.GetCommand(searchSql, true))
-              {
-                  return MsSqlDbAccess.Current.GetData(cmd);
-              } */
-
-
-            if (toSearchWhat == "*")
-                toSearchWhat = "";
-            string forumIDs = "";
-            string limitString = "";
-            string orderString = "";
+            IEnumerable<int> forumIds = new List<int>();
 
             if (forumIDToStartAt != 0)
             {
-                DataTable dt = forum_listall_sorted(boardId, userId, null, false, forumIDToStartAt);
-                foreach (DataRow dr in dt.Rows)
-                    forumIDs = forumIDs + Convert.ToInt32(dr["ForumID"]).ToString() + ",";
-                forumIDs = forumIDs.Substring(0, forumIDs.Length - 1);
+                forumIds = ForumListAll(boardId, userID, forumIDToStartAt).Select(f => f.ForumID ?? 0).Distinct();
             }
 
-            // fix quotes for SQL insertion...
-            toSearchWhat = toSearchWhat.Replace("'", "''").Trim();
-            toSearchFromWho = toSearchFromWho.Replace("'", "''").Trim();
+            string searchSql = new SearchBuilder().BuildSearchSql(toSearchWhat, toSearchFromWho, searchFromWhoMethod, searchWhatMethod, userID, searchDisplayName, boardId, maxResults, useFullText, forumIds);
 
-            string searchSql = (maxResults == 0) ? "SELECT" : ("SELECT DISTINCT ");
-            if (maxResults > 0)
-            { limitString += String.Format(" LIMIT {0} ", maxResults.ToString()); }
+            using (SqlCommand cmd = MsSqlDbAccess.GetCommand(searchSql, true))
+            {
+                return MsSqlDbAccess.Current.GetData(cmd);
+            } */
+			
+
+			if (toSearchWhat == "*")
+				toSearchWhat = "";
+			string forumIDs = "";
+			string limitString = "";
+			string orderString = "";
+
+			if (forumIDToStartAt != 0)
+			{
+                DataTable dt = forum_listall_sorted(boardId, userId, null, false, forumIDToStartAt);
+				foreach (DataRow dr in dt.Rows)
+					forumIDs = forumIDs + Convert.ToInt32(dr["ForumID"]).ToString() + ",";
+				forumIDs = forumIDs.Substring(0, forumIDs.Length - 1);
+			}
+
+			// fix quotes for SQL insertion...
+			toSearchWhat = toSearchWhat.Replace("'", "''").Trim();
+			toSearchFromWho = toSearchFromWho.Replace("'", "''").Trim();
+
+			string searchSql = (maxResults == 0) ? "SELECT" : ("SELECT DISTINCT ");
+			if (maxResults > 0)
+			{ limitString += String.Format(" LIMIT {0} ", maxResults.ToString());  }
 
             searchSql += " a.forumid, a.topicid, a.topic, b.userid, COALESCE(c.username, b.name) as Name, c.messageid as \"MessageID\", c.posted, c.message as \"Message\", c.flags ";
-            searchSql += "FROM " + (Config.SchemaName.IsSet() ? Config.SchemaName : "public") +
-                "." + Config.DatabaseObjectQualifier + "topic a LEFT JOIN " +
+			searchSql += "FROM " + (Config.SchemaName.IsSet() ? Config.SchemaName : "public") +
+				"." + Config.DatabaseObjectQualifier + "topic a LEFT JOIN " +
                 (Config.SchemaName.IsSet() ? Config.SchemaName : "public") + "." + Config.DatabaseObjectQualifier +
                 "message c ON a.topicid = c.topicid LEFT JOIN " + (Config.SchemaName.IsSet() ? Config.SchemaName : "public") + "." + Config.DatabaseObjectQualifier +
                 "user b ON c.userid = b.userid join " + (Config.SchemaName.IsSet() ? Config.SchemaName : "public") + "." + Config.DatabaseObjectQualifier
-                + "vaccess x ON x.forumid=a.forumid ";
-            searchSql += String.Format(@"WHERE x.readaccess<>0 AND x.userid={0} AND c.isapproved IS TRUE AND a.topicmovedid IS NULL AND a.isdeleted IS FALSE AND c.isdeleted IS FALSE ", userId);
-            orderString += "ORDER BY a.forumid ";
+				+ "vaccess x ON x.forumid=a.forumid ";
+			searchSql += String.Format(@"WHERE x.readaccess<>0 AND x.userid={0} AND c.isapproved IS TRUE AND a.topicmovedid IS NULL AND a.isdeleted IS FALSE AND c.isdeleted IS FALSE ", userId);
+			orderString += "ORDER BY a.forumid ";
+			
 
+			string[] words;
+			bool bFirst;
 
-            string[] words;
-            bool bFirst;
+			if (!String.IsNullOrEmpty(toSearchFromWho))
+			{
+				searchSql += "AND (";
+				bFirst = true;                
 
-            if (!String.IsNullOrEmpty(toSearchFromWho))
-            {
-                searchSql += "AND (";
-                bFirst = true;
-
-                // generate user search sql...
-                switch (searchFromWhoMethod)
-                {
-                    case SearchWhatFlags.AllWords:
-                        words = toSearchFromWho.Split(' ');
-                        foreach (string word in words)
-                        {
-                            if (!bFirst) searchSql += " AND "; else bFirst = false;
+				// generate user search sql...
+				switch (searchFromWhoMethod)
+				{
+					case SearchWhatFlags.AllWords:
+						words = toSearchFromWho.Split(' ');
+						foreach (string word in words)
+						{
+							if (!bFirst) searchSql += " AND "; else bFirst = false;
                             searchSql += string.Format(" ((c.username IS NULL AND b.name ~* '.*{0}.*') OR (c.username LIKE '.*{0}.*'))", word);
-
-                            if (int.TryParse(word, out userId))
-                            {
-                                searchSql +=
-                                  string.Format(" (c.userid IN ({0}))", userId);
-                            }
-                            else
-                            {
-
-                                if (searchDisplayName)
-                                {
-                                    searchSql +=
+							
+							if (int.TryParse(word, out userId))
+							{
+								searchSql +=
+								  string.Format(" (c.userid IN ({0}))", userId);
+							}
+							else
+							{
+								
+								if (searchDisplayName)
+								{
+									searchSql +=
                                   string.Format(" OR ((c.username IS NULL AND b.displayname  ~* '.*{0}.*') OR (c.username LIKE '.*{0}.*'))", word);
-                                }
-                                else
-                                {
+								}
+								else
+								{
                                     searchSql += string.Format(" OR ((c.username IS NULL AND b.name ~* '.*{0}.*') OR (c.username LIKE '.*{0}.*'))", word);
-                                }
-                            }
-                        }
-                        break;
-                    case SearchWhatFlags.AnyWords:
-                        words = toSearchFromWho.Split(' ');
-                        foreach (string word in words)
-                        {
-                            if (!bFirst) searchSql += " OR "; else bFirst = false;
+								}
+							}
+						}
+						break;
+					case SearchWhatFlags.AnyWords:
+						words = toSearchFromWho.Split(' ');
+						foreach (string word in words)
+						{
+							if (!bFirst) searchSql += " OR "; else bFirst = false;
                             searchSql += string.Format(" ((c.username IS NULL AND b.name ~* '.*{0}.*') OR (c.username ~* '.*{0}.*'))", word);
-                        }
-                        break;
-                    case SearchWhatFlags.ExactMatch:
-                        searchSql += string.Format(" ((c.username IS NULL AND b.name = '{0}' ) OR (c.username = '{0}' ))", toSearchFromWho);
+						}
+						break;
+					case SearchWhatFlags.ExactMatch:
+						searchSql += string.Format(" ((c.username IS NULL AND b.name = '{0}' ) OR (c.username = '{0}' ))", toSearchFromWho);
+						
+						if (int.TryParse(toSearchFromWho, out userId))
+						{
+							searchSql +=
+							  string.Format(" OR (c.userid IN ({0}))", userId);
+						}
+						else
+						{
+						 
+							if (searchDisplayName)
+							{
+								searchSql += string.Format(
+														  " OR ((c.username IS NULL AND b.displayname = '{0}') OR (c.username = '{0}'))", toSearchFromWho);
+							}
+							else
+							{
+								searchSql += string.Format(
+						   " ((c.username IS NULL AND b.name = '{0}') OR (c.username = '{0}'))", toSearchFromWho);
+							}
+	 
+						}
+						break;
+				}
+				searchSql += ") ";
+			}
 
-                        if (int.TryParse(toSearchFromWho, out userId))
-                        {
-                            searchSql +=
-                              string.Format(" OR (c.userid IN ({0}))", userId);
-                        }
-                        else
-                        {
 
-                            if (searchDisplayName)
-                            {
-                                searchSql += string.Format(
-                                                          " OR ((c.username IS NULL AND b.displayname = '{0}') OR (c.username = '{0}'))", toSearchFromWho);
-                            }
-                            else
-                            {
-                                searchSql += string.Format(
-                           " ((c.username IS NULL AND b.name = '{0}') OR (c.username = '{0}'))", toSearchFromWho);
-                            }
+			if (!String.IsNullOrEmpty(toSearchWhat))
+			{
+				searchSql += "AND (";
+				bFirst = true;
 
-                        }
-                        break;
-                }
-                searchSql += ") ";
-            }
+				// generate message and topic search sql...
+				switch (searchWhatMethod)
+				{
+					case SearchWhatFlags.AllWords:
+						words = toSearchWhat.Split(' ');
+						if (useFullText)
+						{
+							string ftInner = "";
 
-
-            if (!String.IsNullOrEmpty(toSearchWhat))
-            {
-                searchSql += "AND (";
-                bFirst = true;
-
-                // generate message and topic search sql...
-                switch (searchWhatMethod)
-                {
-                    case SearchWhatFlags.AllWords:
-                        words = toSearchWhat.Split(' ');
-                        if (useFullText)
-                        {
-                            string ftInner = "";
-
-                            // make the inner FULLTEXT search
-                            foreach (string word in words)
-                            {
-                                if (!bFirst) ftInner += " AND "; else bFirst = false;
-                                ftInner += String.Format(@"""{0}""", word);
-                            }
-                            // make final string...
-                            searchSql += string.Format("( CONTAINS (c.message, ' {0} ') OR CONTAINS (a.topic, ' {0} ' ) )", ftInner);
-                        }
-                        else
-                        {
-                            foreach (string word in words)
-                            {
-                                if (!bFirst) searchSql += " AND "; else bFirst = false;
+							// make the inner FULLTEXT search
+							foreach (string word in words)
+							{
+								if (!bFirst) ftInner += " AND "; else bFirst = false;
+								ftInner += String.Format(@"""{0}""", word);
+							}
+							// make final string...
+							searchSql += string.Format("( CONTAINS (c.message, ' {0} ') OR CONTAINS (a.topic, ' {0} ' ) )", ftInner);
+						}
+						else
+						{
+							foreach (string word in words)
+							{
+								if (!bFirst) searchSql += " AND "; else bFirst = false;
                                 searchSql += String.Format("(c.message ~* '.*{0}.*' OR a.topic ~* '.*{0}.*' )", word);
-                            }
-                        }
-                        break;
-                    case SearchWhatFlags.AnyWords:
-                        words = toSearchWhat.Split(' ');
+							}
+						}
+						break;
+					case SearchWhatFlags.AnyWords:
+						words = toSearchWhat.Split(' ');
 
-                        if (useFullText)
-                        {
-                            string ftInner = "";
+						if (useFullText)
+						{
+							string ftInner = "";
 
-                            // make the inner FULLTEXT search
-                            foreach (string word in words)
-                            {
-                                if (!bFirst) ftInner += " OR "; else bFirst = false;
-                                ftInner += String.Format(@"""{0}""", word);
-
-                                if (int.TryParse(word, out userId))
-                                {
-                                    searchSql +=
-                                      string.Format(" (c.UserID IN ({0}))", userId);
-                                }
-                                else
-                                {
-                                    searchSql +=
+							// make the inner FULLTEXT search
+							foreach (string word in words)
+							{
+								if (!bFirst) ftInner += " OR "; else bFirst = false;
+								ftInner += String.Format(@"""{0}""", word);
+								
+								if (int.TryParse(word, out userId))
+								{
+									searchSql +=
+									  string.Format(" (c.UserID IN ({0}))", userId);
+								}
+								else
+								{
+									searchSql +=
                                       string.Format(" ((c.Username IS NULL AND b.Name ~* '.*{0}.*') OR (c.Username ~* '.*{0}.*'))", word);
-                                }
-                            }
-                            // make final string...
-                            searchSql += string.Format("( CONTAINS (c.message, ' {0} ' ) OR CONTAINS (a.topic, ' {0} ' ) )", ftInner);
-                        }
-                        else
-                        {
-                            foreach (string word in words)
-                            {
-                                if (!bFirst) searchSql += " OR "; else bFirst = false;
+								}
+							}
+							// make final string...
+							searchSql += string.Format("( CONTAINS (c.message, ' {0} ' ) OR CONTAINS (a.topic, ' {0} ' ) )", ftInner);
+						}
+						else
+						{
+							foreach (string word in words)
+							{
+								if (!bFirst) searchSql += " OR "; else bFirst = false;
                                 searchSql += String.Format("c.message ~* '.*{0}.*'  OR a.topic LIKE '.*{0}.*' ", word);
-                            }
-                        }
-                        break;
-                    case SearchWhatFlags.ExactMatch:
-                        if (useFullText)
-                        {
-                            searchSql += string.Format("( CONTAINS (c.message, ' \"{0}\" ' ) OR CONTAINS (a.topic, ' \"{0}\" '  )", toSearchWhat);
-                        }
-                        else
-                        {
+							}
+						}
+						break;
+					case SearchWhatFlags.ExactMatch:
+						if (useFullText)
+						{
+							searchSql += string.Format("( CONTAINS (c.message, ' \"{0}\" ' ) OR CONTAINS (a.topic, ' \"{0}\" '  )", toSearchWhat);
+						}
+						else
+						{
                             searchSql += string.Format("c.message ~* '.*{0}.*'  OR a.topic LIKE '.*{0}.*'  ", toSearchWhat);
-                        }
-                        break;
-                }
-                searchSql += ") ";
-            }
+						}
+						break;
+				}
+				searchSql += ") ";
+			}
 
-            // Ederon : 6/16/2007 - forum IDs start above 0, if forum id is 0, there is no forum filtering
-            if (forumIDToStartAt > 0)
-            {
-                searchSql += string.Format("AND a.forumid IN ({0})", forumIDs);
-            }
+			// Ederon : 6/16/2007 - forum IDs start above 0, if forum id is 0, there is no forum filtering
+			if (forumIDToStartAt > 0)
+			{
+				searchSql += string.Format("AND a.forumid IN ({0})", forumIDs);
+			}
 
-            if (orderString != "") { orderString += ", "; }
-            if (!orderString.Contains("ORDER BY"))
-            {
-                searchSql += " ORDER BY ";
-            }
+			if (orderString != "") { orderString += ", "; }
+			if (!orderString.Contains("ORDER BY"))
+			{
+				searchSql += " ORDER BY ";
+			}
 
-            searchSql += orderString + "c.posted DESC ";
+			searchSql += orderString + "c.posted DESC ";
 
-            if (!orderString.Contains("LIMIT"))
-            {
-                searchSql += limitString;
-            }
+			if (!orderString.Contains("LIMIT"))
+			{
+				searchSql += limitString;
+			}
 
 
-            using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand(searchSql, true))
-            {
-                return MsSqlDbAccess.Current.GetData(cmd);
-            }
-        }
+			using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand(searchSql, true))
+			{
+				return MsSqlDbAccess.Current.GetData(cmd);
+			}
+		}
 
 		#endregion
 
@@ -1154,6 +1271,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new NpgsqlParameter("i_showcrawlers", NpgsqlDbType.Boolean)).Value = showCrawlers;
 				cmd.Parameters.Add(new NpgsqlParameter("i_interval", NpgsqlDbType.Integer)).Value = interval;
 				cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = styledNicks;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
@@ -1191,6 +1309,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new NpgsqlParameter("i_showcrawlers", NpgsqlDbType.Boolean)).Value = showCrawlers;
 				cmd.Parameters.Add(new NpgsqlParameter("i_activetime", NpgsqlDbType.Integer)).Value = activeTime;
 				cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = styledNicks;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
    
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
@@ -1413,6 +1532,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_mask", NpgsqlDbType.Varchar)).Value = Mask;
 				cmd.Parameters.Add(new NpgsqlParameter("i_reason", NpgsqlDbType.Varchar)).Value = reason;
 				cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userID;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 				
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -1474,6 +1594,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_usestylednicks", NpgsqlDbType.Boolean)).Value = useStyledNicks;
                 cmd.Parameters.Add(new NpgsqlParameter("i_shownocountposts", NpgsqlDbType.Boolean)).Value = showNoCountPosts;
                 cmd.Parameters.Add(new NpgsqlParameter("i_getdefaults", NpgsqlDbType.Boolean)).Value = false;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 
                 using (DataTable dt = MsSqlDbAccess.Current.GetData(cmd))
 				{
@@ -1617,8 +1738,11 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_ishostadmin", NpgsqlDbType.Boolean)).Value = false;
                 cmd.Parameters.Add(new NpgsqlParameter("i_newguid", NpgsqlDbType.Uuid)).Value = Guid.NewGuid();
                 cmd.Parameters.Add(new NpgsqlParameter("i_roleprefix", NpgsqlDbType.Varchar)).Value = rolePrefix;
-
-				return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));               
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+                
+                int res =  Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd)); 
+                forum__ns_recreate();
+			    return res;
 			}
 		}
 		/// <summary>
@@ -1646,13 +1770,14 @@ namespace YAF.Classes.Data
 		/// <returns>Bool value indicationg if category was deleted</returns>
         static public bool category_delete( object CategoryID)
 		{
-			using ( NpgsqlCommand cmd = MsSqlDbAccess.GetCommand( "category_delete" ) )
+		    using ( NpgsqlCommand cmd = MsSqlDbAccess.GetCommand( "category_delete" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new NpgsqlParameter("i_categoryid", NpgsqlDbType.Integer)).Value = CategoryID;
-							   
-				return ( int )MsSqlDbAccess.Current.ExecuteScalar(cmd) != 0;
+                bool res = (int)MsSqlDbAccess.Current.ExecuteScalar(cmd) != 0;
+                forum__ns_recreate();
+				return res;
 			}
 		}
 		/// <summary>
@@ -1733,12 +1858,9 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_name", NpgsqlDbType.Varchar)).Value = name;
 				cmd.Parameters.Add(new NpgsqlParameter("i_sortorder", NpgsqlDbType.Smallint)).Value = sortOrderChecked;
 				cmd.Parameters.Add(new NpgsqlParameter("i_categoryimage", NpgsqlDbType.Varchar)).Value = categoryImage;
-				
-
-			   
-				
  
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+                forum__ns_recreate();
 			}
 		}
 		#endregion
@@ -1759,7 +1881,8 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_iserid", NpgsqlDbType.Integer)).Value = userId;
 				cmd.Parameters.Add(new NpgsqlParameter("i_hash", NpgsqlDbType.Varchar)).Value = hash;
 				cmd.Parameters.Add(new NpgsqlParameter("i_email", NpgsqlDbType.Varchar)).Value = email;
-								
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
@@ -2046,7 +2169,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardID;
                 cmd.Parameters.Add(new NpgsqlParameter("i_timesincelastlogin", NpgsqlDbType.Integer)).Value = timeSinceLastLogin;
                 cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = styledNicks;
-               
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
                 return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
@@ -2103,6 +2226,7 @@ namespace YAF.Classes.Data
 
 			            MsSqlDbAccess.Current.ExecuteNonQuery(cmd_new);
 			        }
+                    forum__ns_recreate();
 			        return true;
 			    }
 			}
@@ -2291,10 +2415,7 @@ namespace YAF.Classes.Data
                 }
             }
         }
-        static private DataTable forum_sort_list(DataTable listSource, int parentID, int categoryID, int startingIndent, int[] forumidExclusions)
-        {
-            return forum_sort_list(listSource, parentID, categoryID, startingIndent, forumidExclusions, true);
-        }
+
 
         static public DataTable forum_sort_list(DataTable listSource, int parentID, int categoryID, int startingIndent, int[] forumidExclusions, bool emptyFirstRow)
         {
@@ -2375,16 +2496,31 @@ namespace YAF.Classes.Data
 		/// <param name="forumID"></param>
 		/// <returns></returns>
         static public DataTable forum_listpath( object forumID)
-		{
-			using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand("forum_listpath"))
-			{
-				cmd.CommandType = CommandType.StoredProcedure;
+        {
+            if (!MsSqlDbAccess.LargeForumTree)
+            {
 
-				cmd.Parameters.Add(new NpgsqlParameter("i_forumid", NpgsqlDbType.Integer)).Value = forumID;
-							   
-				return MsSqlDbAccess.Current.GetData(cmd);
-			}
-		}
+                using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand("forum_listpath"))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    cmd.Parameters.Add(new NpgsqlParameter("i_forumid", NpgsqlDbType.Integer)).Value = forumID;
+
+                    return MsSqlDbAccess.Current.GetData(cmd);
+                }
+            }
+            else
+            {
+                using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand("forum_ns_listpath"))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    cmd.Parameters.Add(new NpgsqlParameter("i_forumid", NpgsqlDbType.Integer)).Value = forumID;
+
+                    return MsSqlDbAccess.Current.GetData(cmd);
+                }
+            }
+        }
 		/// <summary>
 		/// Lists read topics
 		/// </summary>
@@ -2402,24 +2538,45 @@ namespace YAF.Classes.Data
 
 			if (categoryID == null) { categoryID = DBNull.Value; }
 			if (parentID == null) { parentID = DBNull.Value; }
+            if (!MsSqlDbAccess.LargeForumTree)
+            {
 
 
-			using (NpgsqlCommand cmd1 = MsSqlDbAccess.GetCommand("forum_listread"))
-			{
-				cmd1.CommandType = CommandType.StoredProcedure;
+                using (NpgsqlCommand cmd1 = MsSqlDbAccess.GetCommand("forum_listread"))
+                {
+                    cmd1.CommandType = CommandType.StoredProcedure;
 
-				cmd1.Parameters.Add("i_boardid", NpgsqlDbType.Integer).Value = boardID;
-				cmd1.Parameters.Add("i_userid", NpgsqlDbType.Integer).Value = userID;
-				cmd1.Parameters.Add("i_categoryid", NpgsqlDbType.Integer).Value = categoryID;
-				cmd1.Parameters.Add("i_parentid", NpgsqlDbType.Integer).Value = parentID;
-                cmd1.Parameters.Add("i_stylednicks", NpgsqlDbType.Boolean).Value =  useStyledNicks;
-                cmd1.Parameters.Add("i_findlastunread", NpgsqlDbType.Boolean).Value = findLastRead;
-   
-			   // dt1 = 
-				return MsSqlDbAccess.Current.GetData(cmd1, false);
-				// return dt1;
-			}                    
-		   
+                    cmd1.Parameters.Add("i_boardid", NpgsqlDbType.Integer).Value = boardID;
+                    cmd1.Parameters.Add("i_userid", NpgsqlDbType.Integer).Value = userID;
+                    cmd1.Parameters.Add("i_categoryid", NpgsqlDbType.Integer).Value = categoryID;
+                    cmd1.Parameters.Add("i_parentid", NpgsqlDbType.Integer).Value = parentID;
+                    cmd1.Parameters.Add("i_stylednicks", NpgsqlDbType.Boolean).Value = useStyledNicks;
+                    cmd1.Parameters.Add("i_findlastunread", NpgsqlDbType.Boolean).Value = findLastRead;
+
+                    // dt1 = 
+                    return MsSqlDbAccess.Current.GetData(cmd1, false);
+                    // return dt1;
+                }
+            }
+            else
+            {
+                using (NpgsqlCommand cmd1 = MsSqlDbAccess.GetCommand("forum_ns_listread"))
+                {
+                    cmd1.CommandType = CommandType.StoredProcedure;
+
+                    cmd1.Parameters.Add("i_boardid", NpgsqlDbType.Integer).Value = boardID;
+                    cmd1.Parameters.Add("i_userid", NpgsqlDbType.Integer).Value = userID;
+                    cmd1.Parameters.Add("i_categoryid", NpgsqlDbType.Integer).Value = categoryID;
+                    cmd1.Parameters.Add("i_parentid", NpgsqlDbType.Integer).Value = parentID;
+                    cmd1.Parameters.Add("i_stylednicks", NpgsqlDbType.Boolean).Value = useStyledNicks;
+                    cmd1.Parameters.Add("i_findlastunread", NpgsqlDbType.Boolean).Value = findLastRead;
+
+                    // dt1 = 
+                    return MsSqlDbAccess.Current.GetData(cmd1, false);
+                    // return dt1;
+                }
+            }
+
 /*
 			//Add extra columns to data table
 			int cntr = 0;
@@ -2635,7 +2792,10 @@ namespace YAF.Classes.Data
 				if (String.IsNullOrEmpty(resultop))
 				{ return 0; }
 				else
-				{ return long.Parse(resultop); }
+				{
+				    forum__ns_recreate();
+				    return long.Parse(resultop);
+				}
 			}
 		}
 		/// <summary>
@@ -2657,6 +2817,18 @@ namespace YAF.Classes.Data
 			}
 
 		}
+
+        /// <summary>
+        /// Recreate tree.
+        /// </summary>
+        static public void forum__ns_recreate()
+        {
+            using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand("forum_ns_recreate"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
 			   
 
 		#endregion
@@ -2788,17 +2960,6 @@ namespace YAF.Classes.Data
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public DataTable mail_list( object processId)
-		{
-			using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand("mail_list"))
-			{
-				cmd.CommandType = CommandType.StoredProcedure;
-
-				cmd.Parameters.Add(new NpgsqlParameter("i_processid", NpgsqlDbType.Integer)).Value = processId; 
-							  
-				return MsSqlDbAccess.Current.GetData(cmd);
-			}
-		}
 
     /// <summary>
     /// The mail_list.
@@ -2814,6 +2975,7 @@ namespace YAF.Classes.Data
         {
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add(new NpgsqlParameter("i_processid", NpgsqlDbType.Integer)).Value = processId;
+            cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
             return MsSqlDbAccess.Current.GetData(cmd).SelectTypedList(x => new TypedMailList(x));
         }
     }
@@ -2834,6 +2996,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_body", NpgsqlDbType.Text)).Value = body;
 				cmd.Parameters.Add(new NpgsqlParameter("i_bodyhtml", NpgsqlDbType.Text)).Value = bodyHtml;
 				cmd.Parameters.Add(new NpgsqlParameter("i_iserid", NpgsqlDbType.Integer)).Value = userId;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 							 
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -2857,6 +3020,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_subject", NpgsqlDbType.Varchar)).Value = subject;
 				cmd.Parameters.Add(new NpgsqlParameter("i_body", NpgsqlDbType.Text)).Value = body;
 				cmd.Parameters.Add(new NpgsqlParameter("i_bodyhtml", NpgsqlDbType.Text)).Value = bodyHtml;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 							  
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -2867,10 +3031,12 @@ namespace YAF.Classes.Data
 
     static public DataTable post_list( 
             object topicId, 
-            object authoruserId, 
+            object currentUserID,
+            object authorUserID, 
             object updateViewCount, 
             bool showDeleted, 
             bool styledNicks,
+            bool showReputation,
             DateTime sincePostedDate,
             DateTime toPostedDate,
             DateTime sinceEditedDate,
@@ -2891,10 +3057,12 @@ namespace YAF.Classes.Data
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new NpgsqlParameter("i_topicid", NpgsqlDbType.Integer)).Value = topicId;
-                cmd.Parameters.Add(new NpgsqlParameter("i_authoruserid", NpgsqlDbType.Integer)).Value = authoruserId;
+                cmd.Parameters.Add(new NpgsqlParameter("i_pageuserid", NpgsqlDbType.Integer)).Value = currentUserID;
+                cmd.Parameters.Add(new NpgsqlParameter("i_authoruserid", NpgsqlDbType.Integer)).Value = authorUserID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_updateviewcount", NpgsqlDbType.Smallint)).Value = updateViewCount;
 				cmd.Parameters.Add(new NpgsqlParameter("i_showdeleted", NpgsqlDbType.Boolean)).Value = showDeleted;
 				cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = styledNicks;
+                cmd.Parameters.Add(new NpgsqlParameter("i_showreputation", NpgsqlDbType.Boolean)).Value = showReputation;
                 cmd.Parameters.Add(new NpgsqlParameter("i_sinceposteddate", NpgsqlDbType.TimestampTZ)).Value = sincePostedDate;
                 cmd.Parameters.Add(new NpgsqlParameter("i_toposteddate", NpgsqlDbType.TimestampTZ)).Value = toPostedDate;
                 cmd.Parameters.Add(new NpgsqlParameter("i_sinceediteddate", NpgsqlDbType.TimestampTZ)).Value = sinceEditedDate;
@@ -2906,6 +3074,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new NpgsqlParameter("i_sortposition", NpgsqlDbType.Integer)).Value = sortPosition;
                 cmd.Parameters.Add(new NpgsqlParameter("i_showthanks", NpgsqlDbType.Boolean)).Value = showThanks;
                 cmd.Parameters.Add(new NpgsqlParameter("i_messageposition", NpgsqlDbType.Integer)).Value = messagePosition;
+                cmd.Parameters.Add("i_utctimestamp", NpgsqlDbType.TimestampTZ).Value = DateTime.UtcNow;
                
 				return MsSqlDbAccess.Current.GetData(cmd);
 				
@@ -3057,7 +3226,8 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_messageid", NpgsqlDbType.Integer)).Value = messageID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_forumid", NpgsqlDbType.Integer)).Value = forumId;
 				cmd.Parameters.Add(new NpgsqlParameter("i_subject", NpgsqlDbType.Varchar)).Value = newTopicSubj;
-			   
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+
 				return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
 				//return long.Parse(dt.Rows[0]["TopicID"].ToString());
 			}
@@ -3150,8 +3320,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_reporterid", NpgsqlDbType.Integer)).Value = userId;
 				cmd.Parameters.Add(new NpgsqlParameter("i_reporteddate", NpgsqlDbType.Timestamp)).Value = reportedDateTime;
 				cmd.Parameters.Add(new NpgsqlParameter("i_reporttext", NpgsqlDbType.Varchar)).Value = reportText;
-				
-
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
  
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -3180,7 +3349,8 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_messageflag", NpgsqlDbType.Integer)).Value = messageFlag;
 				cmd.Parameters.Add(new NpgsqlParameter("i_messageid", NpgsqlDbType.Integer)).Value = messageID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userId;
-							   
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+			   
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
@@ -3389,7 +3559,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new NpgsqlParameter("i_externalmessageid", NpgsqlDbType.Varchar)).Value = DBNull.Value;
                 cmd.Parameters.Add(new NpgsqlParameter("i_referencemessageid", NpgsqlDbType.Varchar)).Value = DBNull.Value;
                 cmd.Parameters.Add(new NpgsqlParameter("i_flags", NpgsqlDbType.Integer)).Value = flags;
-							   
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;			   
 				cmd.Parameters.Add(paramMessageID);
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				messageId = Convert.ToInt64(paramMessageID.Value);
@@ -3630,7 +3800,8 @@ namespace YAF.Classes.Data
 			 // paramOutput.Direction = ParameterDirection.Output;                  
 				cmd.Parameters.Add(new NpgsqlParameter("i_fromuserid", NpgsqlDbType.Integer)).Value = fromUserID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_messageid", NpgsqlDbType.Integer)).Value = messageID;
-						  
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+		  
 				return MsSqlDbAccess.Current.ExecuteScalar(cmd).ToString();
 			  //return paramOutput.Value.ToString();                
 			}
@@ -3673,7 +3844,8 @@ namespace YAF.Classes.Data
 
 				cmd.Parameters.Add(new NpgsqlParameter("i_messageid", NpgsqlDbType.Integer)).Value = messageID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_daystoclean", NpgsqlDbType.Integer)).Value = daysToClean;
-							   
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+			   
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
@@ -4014,7 +4186,8 @@ namespace YAF.Classes.Data
 
 				cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userId;
 				cmd.Parameters.Add(new NpgsqlParameter("i_medalid", NpgsqlDbType.Integer)).Value = medalID;
-				
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
@@ -4049,6 +4222,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_onlyribbon", NpgsqlDbType.Boolean)).Value = onlyRibbon;
 				cmd.Parameters.Add(new NpgsqlParameter("i_sortorder", NpgsqlDbType.Smallint)).Value = sortOrder;
 				cmd.Parameters.Add(new NpgsqlParameter("i_dateawarded", NpgsqlDbType.Timestamp)).Value = dateAwarded;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 				
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -4105,6 +4279,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_minutes", NpgsqlDbType.Integer)).Value = minutes;
 				cmd.Parameters.Add(new NpgsqlParameter("i_nntpforumid", NpgsqlDbType.Integer)).Value = nntpForumID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_active", NpgsqlDbType.Boolean)).Value = active;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 			   
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
@@ -4118,7 +4293,8 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_nntpforumid", NpgsqlDbType.Integer)).Value = nntpForumID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_lastmessageno", NpgsqlDbType.Integer)).Value = lastMessageNo;
 				cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userId;
-							  
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+			  
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
@@ -4136,7 +4312,8 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_forumid", NpgsqlDbType.Integer)).Value = forumID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_active", NpgsqlDbType.Boolean)).Value = active;
                 cmd.Parameters.Add(new NpgsqlParameter("i_cutoffdate", NpgsqlDbType.Boolean)).Value = cutoffdate;
-				
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
@@ -4339,6 +4516,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_subject", NpgsqlDbType.Varchar)).Value = subject;
 				cmd.Parameters.Add(new NpgsqlParameter("i_body", NpgsqlDbType.Text)).Value = body;
 				cmd.Parameters.Add(new NpgsqlParameter("i_flags", NpgsqlDbType.Integer)).Value = Flags;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 						
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -5256,6 +5434,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = useStyledNicks;
                 cmd.Parameters.Add(new NpgsqlParameter("i_showmoved", NpgsqlDbType.Boolean)).Value = showMoved;
                 cmd.Parameters.Add(new NpgsqlParameter("i_findlastread", NpgsqlDbType.Boolean)).Value = findLastRead;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 				
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
@@ -5277,6 +5456,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = useStyledNicks;
                 cmd.Parameters.Add(new NpgsqlParameter("i_showmoved", NpgsqlDbType.Boolean)).Value = showMoved;
                 cmd.Parameters.Add(new NpgsqlParameter("i_findlastread", NpgsqlDbType.Boolean)).Value = findLastRead;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 
                 return MsSqlDbAccess.Current.GetData(cmd);
             }
@@ -5304,7 +5484,7 @@ namespace YAF.Classes.Data
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-		static public void topic_move(object topicID, object forumID, object showMoved)
+		static public void topic_move(object topicID, object forumID, object showMoved, object linkDays)
 		{
 			using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand("topic_move"))
 			{
@@ -5313,7 +5493,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_topicid", NpgsqlDbType.Integer)).Value = topicID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_forumid", NpgsqlDbType.Integer)).Value = forumID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_showmoved", NpgsqlDbType.Boolean)).Value = showMoved;
-			  
+                cmd.Parameters.Add(new NpgsqlParameter("i_linkdays", NpgsqlDbType.Integer)).Value = linkDays;
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
@@ -5344,6 +5524,8 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = useStyledNicks;
                 cmd.Parameters.Add(new NpgsqlParameter("i_shownocountposts", NpgsqlDbType.Boolean)).Value = showNoCountPosts;
                 cmd.Parameters.Add(new NpgsqlParameter("i_findlastread", NpgsqlDbType.Boolean)).Value = findLastRead;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
@@ -5396,6 +5578,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new NpgsqlParameter("i_pagesize", NpgsqlDbType.Integer)).Value = pageSize;
                 cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = useStyledNicks;
                 cmd.Parameters.Add(new NpgsqlParameter("i_findlastread", NpgsqlDbType.Boolean)).Value = findLastRead;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 
                 return MsSqlDbAccess.Current.GetData(cmd);
             }
@@ -5530,7 +5713,8 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_ip", NpgsqlDbType.Varchar)).Value = ip;				
 				cmd.Parameters.Add(new NpgsqlParameter("i_posted", NpgsqlDbType.Timestamp)).Value = posted;
 				cmd.Parameters.Add(new NpgsqlParameter("i_blogpostid", NpgsqlDbType.Varchar)).Value = blogPostID;
-				cmd.Parameters.Add(new NpgsqlParameter("i_flags", NpgsqlDbType.Integer)).Value = flags; 
+				cmd.Parameters.Add(new NpgsqlParameter("i_flags", NpgsqlDbType.Integer)).Value = flags;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 			   
 				DataTable dt = MsSqlDbAccess.Current.GetData(cmd);
 				messageID = long.Parse(dt.Rows[0]["MessageID"].ToString());
@@ -5585,6 +5769,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new NpgsqlParameter("i_pagesize", NpgsqlDbType.Integer)).Value = pageSize;
                 cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = useStyledNicks;
                 cmd.Parameters.Add(new NpgsqlParameter("i_findlastread", NpgsqlDbType.Boolean)).Value = findLastRead;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 
                 return MsSqlDbAccess.Current.GetData(cmd);
             }
@@ -5707,7 +5892,8 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new NpgsqlParameter("i_pagesize", NpgsqlDbType.Integer)).Value = pageSize;
                 cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = useStyledNicks;
                 cmd.Parameters.Add(new NpgsqlParameter("i_findlastread", NpgsqlDbType.Boolean)).Value = findLastRead;
-                
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+
                 return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
@@ -5727,6 +5913,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new NpgsqlParameter("i_pagesize", NpgsqlDbType.Integer)).Value = pageSize;
                 cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = useStyledNicks;
                 cmd.Parameters.Add(new NpgsqlParameter("i_findlastread", NpgsqlDbType.Boolean)).Value = findLastRead;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 
                 return MsSqlDbAccess.Current.GetData(cmd);
             }
@@ -5772,7 +5959,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new NpgsqlParameter("i_pagesize", NpgsqlDbType.Integer)).Value = pageSize;
                 cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = useStyledNicks;
                 cmd.Parameters.Add(new NpgsqlParameter("i_findlastread", NpgsqlDbType.Boolean)).Value = findLastRead;
-                
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
                 return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
@@ -6043,6 +6230,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_groupid", NpgsqlDbType.Integer)).Value = groupID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_rankid", NpgsqlDbType.Integer)).Value = rankID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = useStyledNicks;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 				  
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
@@ -6089,7 +6277,8 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new NpgsqlParameter("i_approved", NpgsqlDbType.Boolean)).Value = approved;
                 cmd.Parameters.Add(new NpgsqlParameter("i_groupid", NpgsqlDbType.Integer)).Value = groupID;
                 cmd.Parameters.Add(new NpgsqlParameter("i_rankid", NpgsqlDbType.Integer)).Value = rankID;
-                cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = useStyledNicks;           
+                cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = useStyledNicks;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 
                 return MsSqlDbAccess.Current.GetData(cmd).AsEnumerable().Select(x => new TypedUserList(x));
             }
@@ -6285,8 +6474,7 @@ namespace YAF.Classes.Data
                         columnStr.Append(column.Settings.Name);
                         string valueParam = ":Value" + count;
                         valueStr.Append(valueParam);
-                        cmd.Parameters.AddWithValue(valueParam, values[column.Settings.Name].PropertyValue);
-
+                        cmd.Parameters.Add(valueParam, column.DataType).Value = values[column.Settings.Name].PropertyValue;
                         if ((column.DataType != NpgsqlDbType.Timestamp) || column.Settings.Name != "LastUpdatedDate" || column.Settings.Name != "LastActivity")
                         {
                             if (count > 0)
@@ -6419,10 +6607,10 @@ namespace YAF.Classes.Data
         /// </returns>
         /// <exception cref="ArgumentException">
         /// </exception>
-        private static bool GetDbTypeAndSizeFromString(string providerData, out NpgsqlTypes.NpgsqlDbType dbType, out int size)
+        public static bool GetDbTypeAndSizeFromString(string providerData, out NpgsqlDbType dbType, out int size)
         {
             size = -1;
-            dbType = NpgsqlTypes.NpgsqlDbType.Varchar;
+            dbType = NpgsqlDbType.Varchar;
 
             if (String.IsNullOrEmpty(providerData))
             {
@@ -6435,16 +6623,16 @@ namespace YAF.Classes.Data
             // first item is the column name...
             string columnName = chunk[0];
             // vzrus addon convert values from mssql types...
-            if (chunk[1].IndexOf("varchar") >= 0)
+            if (chunk[1].IndexOf("varchar", System.StringComparison.OrdinalIgnoreCase) >= 0)
             { chunk[1] = "Varchar"; }
-            if (chunk[1].IndexOf("int") >= 0)
+            if (chunk[1].IndexOf("int", System.StringComparison.OrdinalIgnoreCase) >= 0)
             { chunk[1] = "Integer"; }
-            if (chunk[1].IndexOf("DateTime") >= 0)
-            { chunk[1] = "Timestamp"; }
+            if (chunk[1].IndexOf("DateTime", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            { chunk[1] = "TimestampTZ"; }
 
-
+            
             // get the datatype and ignore case...
-            dbType = (NpgsqlTypes.NpgsqlDbType)Enum.Parse(typeof(NpgsqlTypes.NpgsqlDbType), chunk[1], true);
+            dbType = (NpgsqlDbType)Enum.Parse(typeof(NpgsqlDbType), chunk[1], true);
 
             if (chunk.Length > 2)
             {
@@ -6507,7 +6695,7 @@ namespace YAF.Classes.Data
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardId;
                 cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = useStyledNicks;
-
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
                 return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
@@ -6705,6 +6893,7 @@ namespace YAF.Classes.Data
 
 				cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardId;
 				cmd.Parameters.Add(new NpgsqlParameter("i_days", NpgsqlDbType.Integer)).Value = days;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 							   
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -6886,7 +7075,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_autowatchtopics", NpgsqlDbType.Boolean)).Value = autoWatchTopics;
 				cmd.Parameters.Add(new NpgsqlParameter("i_dstuser", NpgsqlDbType.Boolean)).Value = dSTUser;
 				cmd.Parameters.Add(new NpgsqlParameter("i_hideuser", NpgsqlDbType.Boolean)).Value = isHidden;
-               
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			   
@@ -7224,8 +7413,9 @@ namespace YAF.Classes.Data
 							cmd.Parameters.Add(new NpgsqlParameter("i_approved", NpgsqlDbType.Boolean)).Value = approved;
 							cmd.Parameters.Add(new NpgsqlParameter("i_pmnotification", NpgsqlDbType.Boolean)).Value = false;
 							cmd.Parameters.Add(new NpgsqlParameter("i_provideruserkey", NpgsqlDbType.Varchar)).Value = DBNull.Value;
+                            cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 
-							cmd.ExecuteNonQuery();
+                            cmd.ExecuteNonQuery();
 						}
 
 						trans.Commit();
@@ -7255,6 +7445,7 @@ namespace YAF.Classes.Data
 					cmd.Parameters.Add(new NpgsqlParameter("i_email", NpgsqlDbType.Varchar)).Value = email;
 					cmd.Parameters.Add(new NpgsqlParameter("i_provideruserkey", NpgsqlDbType.Varchar)).Value = providerUserKey;
 					cmd.Parameters.Add(new NpgsqlParameter("i_isapproved", NpgsqlDbType.Boolean)).Value = isApproved;
+                    cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 														 
 					return (int)MsSqlDbAccess.Current.ExecuteScalar(cmd);
 				}
@@ -7311,6 +7502,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_username", NpgsqlDbType.Varchar)).Value = userName;
 				cmd.Parameters.Add(new NpgsqlParameter("i_email", NpgsqlDbType.Varchar)).Value = email;
 				cmd.Parameters.Add(new NpgsqlParameter("i_timezone", NpgsqlDbType.Integer)).Value = timeZone;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 
 			  object o=MsSqlDbAccess.Current.ExecuteScalar(cmd);
 			  //  if ( o != DBNull.Value)
@@ -7323,14 +7515,23 @@ namespace YAF.Classes.Data
 			}
 		}
 
-		static public void user_addpoints(object userId, object points)
-		{
-			using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand("user_addpoints"))
+		/// <summary>
+        /// Add Reputation Points to the specified user id.
+        /// </summary>
+        /// <param name="userID">The user ID.</param>
+        /// <param name="fromUserID">From user ID.</param>
+        /// <param name="points">The points.</param>
+        public static void user_addpoints([NotNull] object userID, [CanBeNull] object fromUserID, [NotNull] object points)
+        {
+      using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand("user_addpoints"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
-				cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userId;
-				cmd.Parameters.Add(new NpgsqlParameter("i_points", NpgsqlDbType.Integer)).Value = points;
+                cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userID;
+                cmd.Parameters.Add("i_fromuserid", NpgsqlDbType.Integer).Value = fromUserID;
+                cmd.Parameters.Add("i_utctimestamp", NpgsqlDbType.TimestampTZ).Value = DateTime.UtcNow;
+                cmd.Parameters.Add(new NpgsqlParameter("i_points", NpgsqlDbType.Integer)).Value = points;
+
 						  
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -7349,14 +7550,23 @@ namespace YAF.Classes.Data
 			}
 		}
 
-		static public void user_removepoints(object userId, object points)
-		{
+        /// <summary>
+        /// Remove Repuatation Points from the specified user id.
+        /// </summary>
+        /// <param name="userID">The user ID.</param>
+        /// <param name="fromUserID">From user ID.</param>
+        /// <param name="points">The points.</param>
+        public static void user_removepoints([NotNull] object userID, [CanBeNull] object fromUserID, [NotNull] object points)
+        {
+
 			using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand("user_removepoints"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
-				cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userId;
-				cmd.Parameters.Add(new NpgsqlParameter("i_points", NpgsqlDbType.Integer)).Value = points;
+                cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userID;
+                cmd.Parameters.Add("i_fromuserid", NpgsqlDbType.Integer).Value = fromUserID;
+                cmd.Parameters.Add("i_utctimestamp", NpgsqlDbType.TimestampTZ).Value = DateTime.UtcNow;
+                cmd.Parameters.Add(new NpgsqlParameter("i_points", NpgsqlDbType.Integer)).Value = points;
 								
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -7517,8 +7727,9 @@ namespace YAF.Classes.Data
 
 				cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userId;
 				cmd.Parameters.Add(new NpgsqlParameter("i_forumid", NpgsqlDbType.Integer)).Value = forumID;
-				cmd.Parameters.Add(new NpgsqlParameter("i_accessmaskid", NpgsqlDbType.Integer)).Value = accessMaskID; 
-								
+				cmd.Parameters.Add(new NpgsqlParameter("i_accessmaskid", NpgsqlDbType.Integer)).Value = accessMaskID;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+				
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
@@ -7560,7 +7771,8 @@ namespace YAF.Classes.Data
 
 				cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userId;
 				cmd.Parameters.Add(new NpgsqlParameter("i_forumid", NpgsqlDbType.Integer)).Value = forumID;
-						  
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+		  
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
@@ -7644,7 +7856,8 @@ namespace YAF.Classes.Data
 
 				cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userId;
 				cmd.Parameters.Add(new NpgsqlParameter("i_topicid", NpgsqlDbType.Integer)).Value = topicID;
-				
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
@@ -7665,7 +7878,7 @@ namespace YAF.Classes.Data
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userID;
                 cmd.Parameters.Add(new NpgsqlParameter("i_topicid", NpgsqlDbType.Integer)).Value = topicID;
-
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
             }
         }
@@ -7729,7 +7942,8 @@ namespace YAF.Classes.Data
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userID;
-                cmd.Parameters.Add(new NpgsqlParameter("i_topicid", NpgsqlDbType.Integer)).Value = topicID; 
+                cmd.Parameters.Add(new NpgsqlParameter("i_topicid", NpgsqlDbType.Integer)).Value = topicID;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 
                 var tableLastRead = MsSqlDbAccess.Current.ExecuteScalar(cmd);
 
@@ -7753,6 +7967,7 @@ namespace YAF.Classes.Data
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userID;
                 cmd.Parameters.Add(new NpgsqlParameter("i_forumid", NpgsqlDbType.Integer)).Value = forumID;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
             }
         }
@@ -8285,7 +8500,8 @@ namespace YAF.Classes.Data
 														"pgsql/providers/indexes.sql",
 														"pgsql/providers/types.sql",
 														"pgsql/providers/procedures.sql",
-														"pgsql/postinstall.sql"
+														"pgsql/postinstall.sql",
+                                                        "pgsql/nestedsets.sql"
 													   };
         static public string[] ScriptList
         {
@@ -8501,6 +8717,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_userkey", NpgsqlDbType.Uuid)).Value = providerUserKey;
                 cmd.Parameters.Add(new NpgsqlParameter("i_newboardguid", NpgsqlDbType.Uuid)).Value = Guid.NewGuid();
                 cmd.Parameters.Add(new NpgsqlParameter("i_roleprefix", NpgsqlDbType.Varchar)).Value = rolePrefix;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 				
 				YAF.Classes.Data.MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 								
@@ -8573,7 +8790,8 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_message", NpgsqlDbType.Text)).Value = message;
 				cmd.Parameters.Add(new NpgsqlParameter("i_date", NpgsqlDbType.Timestamp)).Value = DBNull.Value;
 				cmd.Parameters.Add(new NpgsqlParameter("i_ip", NpgsqlDbType.Varchar)).Value = ip;
-								
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+				
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 
 				return true;
@@ -8586,6 +8804,7 @@ namespace YAF.Classes.Data
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardId;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				return true;
 			}
@@ -8714,6 +8933,7 @@ namespace YAF.Classes.Data
 				approved.Direction = ParameterDirection.Output;
 				cmd.Parameters.Add(new NpgsqlParameter("i_fromuserid",NpgsqlDbType.Integer)).Value= FromUserID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_touserid",NpgsqlDbType.Integer)).Value=ToUserID;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 				cmd.Parameters.Add(paramOutput);
 				cmd.Parameters.Add(approved);
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
@@ -8746,6 +8966,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_fromuserid", NpgsqlDbType.Integer)).Value = FromUserID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_touserid", NpgsqlDbType.Integer)).Value = ToUserID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_mutual", NpgsqlDbType.Boolean)).Value = Mutual;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 				cmd.Parameters.Add(paramOutput);
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				return paramOutput.Value.ToString();
@@ -8873,7 +9094,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = UserID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_title", NpgsqlDbType.Varchar)).Value = Title;
 				cmd.Parameters.Add(new NpgsqlParameter("i_coverimageid", NpgsqlDbType.Integer)).Value = CoverImageID;
-
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 
                 int uu = Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
 				return uu;
@@ -9036,6 +9257,8 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_filename", NpgsqlDbType.Varchar)).Value = FileName;
 				cmd.Parameters.Add(new NpgsqlParameter("i_bytes", NpgsqlDbType.Integer)).Value = Bytes;
 				cmd.Parameters.Add(new NpgsqlParameter("i_contenttype", NpgsqlDbType.Varchar)).Value = ContentType;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				int d = 1;
 			}

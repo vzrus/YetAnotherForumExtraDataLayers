@@ -58,6 +58,10 @@ IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='objectQualifier_registr
 CREATE INDEX ix_objectQualifier_registry_boardid_name ON databaseSchema.objectQualifier_registry USING btree (boardid, name);
 END IF;
 
+IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='objectQualifier_reputationvote' AND indexname='ix_objectQualifier_reputationvote_fruserid_touserid') THEN
+CREATE UNIQUE INDEX ix_objectQualifier_reputationvote_fruserid_touserid ON databaseSchema.objectQualifier_reputationvote USING btree (reputationfromuserid, reputationtouserid);
+END IF;
+
 IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='objectQualifier_smiley' AND indexname='ix_objectQualifier_smiley_boardid_code') THEN
 CREATE INDEX ix_objectQualifier_smiley_boardid_code ON databaseSchema.objectQualifier_smiley USING btree (boardid, code);
 END IF;

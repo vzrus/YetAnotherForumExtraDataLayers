@@ -547,16 +547,34 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 --GO
 CREATE TYPE databaseSchema.objectQualifier_forum_moderators_return_type AS
 (
-"ForumID" integer,
+"ForumID"  integer,
+"ForumName" varchar(255),
 "ModeratorID" integer,
-"ModeratorName" varchar(128),
+"ModeratorName" varchar(255),
+"ModeratorDisplayName" varchar(255),
+"ModeratorEmail" varchar(255),
+"ModeratorAvatar" varchar(255),
+"ModeratorAvatarImage" boolean,
 "Style" varchar(255),
 "IsGroup" boolean
-/* ,
-"ModeratorAccess" integer,
-"AdminGroup" integer */
 );
+--GO
 
+SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_moderators_team_list_return_type');
+--GO
+CREATE TYPE databaseSchema.objectQualifier_moderators_team_list_return_type AS
+(
+"ForumID"  integer,
+"ForumName" varchar(255),
+"ModeratorID" integer,
+"ModeratorName" varchar(255),
+"ModeratorDisplayName" varchar(255),
+"ModeratorEmail" varchar(255),
+"ModeratorAvatar" varchar(255),
+"ModeratorAvatarImage" boolean,
+"Style" varchar(255),
+"IsGroup" boolean
+);
 --GO
 
 SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_forum_simplelist_return_type');
@@ -1031,6 +1049,7 @@ CREATE TYPE databaseSchema.objectQualifier_post_list_type AS
  		"Signature" text,
  		"Posts" integer,
  		"Points" integer,
+		"ReputationVoteDate" timestampTZ,
 		"IsGuest" bool,
  		"Views" integer,
  		"ForumID" integer,
@@ -1295,8 +1314,8 @@ CREATE TYPE databaseSchema.objectQualifier_topic_latest_return_type AS
 "Posted"  timestampTZ,
 "LastUserName" varchar(128),
 "LastUserStyle"  varchar(255),
-"LastForumAccess" varchar(255),
-"LastTopicAccess"  varchar(255)
+"LastForumAccess" timestampTZ,
+"LastTopicAccess"  timestampTZ
 );
 --GO
 
@@ -2453,19 +2472,6 @@ CREATE TYPE databaseSchema.objectQualifier_forum_listread_tmp AS
 );
 --GO
 
-
-SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_moderators_team_list_return_type');
---GO
-CREATE TYPE databaseSchema.objectQualifier_moderators_team_list_return_type AS
-(
-"ForumID"  integer,
-"ModeratorID" integer,
-"ModeratorName" varchar(255),
-"Style" varchar(255),
-"IsGroup" boolean
-);
---GO
-
 SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_topicstatus_list_return_type');
 --GO
 CREATE TYPE databaseSchema.objectQualifier_topicstatus_list_return_type AS
@@ -2514,4 +2520,28 @@ CREATE TYPE databaseSchema.objectQualifier_album_images_by_user_rt AS
 "Downloads" integer
 );
 --GO
+
+SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_forum_ns_getsubtree_rt');
+--GO
+CREATE TYPE databaseSchema.objectQualifier_forum_ns_getsubtree_rt AS
+(
+"ForumID"  integer,
+"ParentID" integer,
+"Level" integer 
+);
+--GO
+
+SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_forum_ns_getchildren_rt');
+--GO
+CREATE TYPE databaseSchema.objectQualifier_forum_ns_getchildren_rt AS
+(
+"CategoryID"  integer,
+"CategoryName" varchar(255),
+"Title" varchar(255),
+"ForumID"  integer,
+"ParentID" integer,
+"Level" integer 
+);
+--GO
+
 

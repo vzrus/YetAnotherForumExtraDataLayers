@@ -588,7 +588,12 @@ CREATE TABLE IF NOT EXISTS {databaseName}.{objectQualifier}User
 	   `Flags` INT NOT NULL DEFAULT 0,
 	   `Points` INT NOT NULL DEFAULT 0,
 	   `IsFacebookUser` TINYINT(1) NOT NULL DEFAULT 0,
-	   `IsTwitterUser` TINYINT(1) NOT NULL DEFAULT 0, 
+	   `IsTwitterUser` TINYINT(1) NOT NULL DEFAULT 0,
+	   `UserStyle` VARCHAR(510) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL,
+	   `StyleFlags` INT NOT NULL DEFAULT 0,
+	   `IsUserStyle` TINYINT(1) NOT NULL DEFAULT 0,
+	   `IsGroupStyle` TINYINT(1) NOT NULL DEFAULT 0,
+	   `IsRankStyle` TINYINT(1) NOT NULL DEFAULT 0,
 	   PRIMARY KEY (`UserID`)
 	   )
 	   ENGINE=InnoDB DEFAULT CHARSET={databaseEncoding};
@@ -774,6 +779,13 @@ CREATE TABLE IF NOT EXISTS  {databaseName}.{objectQualifier}UserProfile
 	   ) ENGINE=InnoDB DEFAULT CHARSET={databaseEncoding};
 --GO
 
+CREATE TABLE IF NOT EXISTS  {databaseName}.{objectQualifier}ReputationVote(
+		`ReputationFromUserID`  INT NOT NULL,
+		`ReputationToUserID`	  INT NOT NULL,
+		`VoteDate`	DATETIME NOT NULL
+	) ENGINE=InnoDB DEFAULT CHARSET={databaseEncoding};
+--GO
+
 -- update procedures 
 
 DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}tables_upgrade;
@@ -904,25 +916,34 @@ IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
   AND COLUMN_NAME='Description' LIMIT 1) THEN
   ALTER TABLE  {databaseName}.{objectQualifier}Topic ADD  `Description` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL AFTER `Topic`;
   END IF;
+
    IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
   WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
   (TABLE_NAME='{objectQualifier}Topic' OR TABLE_NAME=LOWER('{objectQualifier}Topic')) 
   AND COLUMN_NAME='Styles' LIMIT 1) THEN
   ALTER TABLE  {databaseName}.{objectQualifier}Topic ADD  `Styles` VARCHAR(255) NULL AFTER `Status`;
   END IF;
+
   IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
   WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
   (TABLE_NAME='{objectQualifier}Topic' OR TABLE_NAME=LOWER('{objectQualifier}Topic')) 
   AND COLUMN_NAME='Status' LIMIT 1) THEN
   ALTER TABLE  {databaseName}.{objectQualifier}Topic ADD  `Status` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL AFTER `Topic`;
   END IF;
-  
+
   IF  EXISTS (SELECT 1 FROM information_schema.COLUMNS 
   WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
   (TABLE_NAME='{objectQualifier}Topic' OR TABLE_NAME=LOWER('{objectQualifier}Topic')) 
   AND COLUMN_NAME='Status' LIMIT 1) THEN
   ALTER TABLE {databaseName}.{objectQualifier}Topic CHANGE `Status` `Status`  VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL;
-  END IF; 
+  END IF;  
+  
+  IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  (TABLE_NAME='{objectQualifier}Topic' OR TABLE_NAME=LOWER('{objectQualifier}Topic')) 
+  AND COLUMN_NAME='LinkDays' LIMIT 1) THEN
+  ALTER TABLE  {databaseName}.{objectQualifier}Topic ADD  `LinkDays` DATETIME;
+  END IF;
  
 -- Rank Table
 IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
@@ -1138,7 +1159,42 @@ IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
   LOWER(TABLE_NAME)=LOWER('{objectQualifier}User')
   AND COLUMN_NAME='IsTwitterUser' LIMIT 1) THEN
         ALTER TABLE   {databaseName}.{objectQualifier}User ADD `IsTwitterUser` TINYINT(1) NOT NULL DEFAULT 0;
-  END IF;  
+  END IF;
+
+        IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  LOWER(TABLE_NAME)=LOWER('{objectQualifier}User')
+  AND COLUMN_NAME='UserStyle' LIMIT 1) THEN
+        ALTER TABLE   {databaseName}.{objectQualifier}User ADD `UserStyle` VARCHAR(510) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL;
+  END IF;
+
+      IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  LOWER(TABLE_NAME)=LOWER('{objectQualifier}User')
+  AND COLUMN_NAME='StyleFlags' LIMIT 1) THEN
+        ALTER TABLE   {databaseName}.{objectQualifier}User ADD `StyleFlags` INT NOT NULL DEFAULT 0;
+  END IF;
+
+        IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  LOWER(TABLE_NAME)=LOWER('{objectQualifier}User')
+  AND COLUMN_NAME='IsUserStyle' LIMIT 1) THEN
+        ALTER TABLE   {databaseName}.{objectQualifier}User ADD `IsUserStyle` TINYINT(1) NOT NULL DEFAULT 0;
+  END IF;
+
+          IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  LOWER(TABLE_NAME)=LOWER('{objectQualifier}User')
+  AND COLUMN_NAME='IsGroupStyle' LIMIT 1) THEN
+        ALTER TABLE   {databaseName}.{objectQualifier}User ADD `IsGroupStyle` TINYINT(1) NOT NULL DEFAULT 0;
+  END IF;
+
+            IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  LOWER(TABLE_NAME)=LOWER('{objectQualifier}User')
+  AND COLUMN_NAME='IsRankStyle' LIMIT 1) THEN
+        ALTER TABLE   {databaseName}.{objectQualifier}User ADD `IsRankStyle` TINYINT(1) NOT NULL DEFAULT 0;
+  END IF;    
 
   -- Message Table
       IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 

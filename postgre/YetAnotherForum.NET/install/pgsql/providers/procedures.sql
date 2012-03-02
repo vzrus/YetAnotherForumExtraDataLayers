@@ -40,7 +40,7 @@ BEGIN
   COST 100;
 --GO
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_upgrade(i_previousversion integer,  i_newversion  integer)
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_prov_upgrade(i_previousversion integer,  i_newversion  integer, i_utctimestamp timestampTZ)
   RETURNS void AS
 $BODY$
 BEGIN
@@ -50,7 +50,7 @@ IF ((i_previousversion  = 31) OR (i_previousversion  = 32)) THEN
 			SET passwordsalt='UwB5AHMAdABlAG0ALgBCAHkAdABlAFsAXQA=' 
 			WHERE passwordsalt IS NOT NULL;
 		    UPDATE databaseSchema.objectQualifier_prov_membership 
-		    SET joined=current_timestamp at time zone 'UTC' 
+		    SET joined=i_utctimestamp 
 		    WHERE joined IS NULL;		
 		END IF;
 
@@ -129,7 +129,8 @@ IN i_passwordquestion varchar,
 IN i_passwordanswer varchar, 
 IN i_isapproved boolean,
 IN i_newguid uuid,
-IN i_newuserkey uuid,  
+IN i_newuserkey uuid,
+i_utctimestamp timestampTZ,
 INOUT i_userkey uuid)
 
   RETURNS uuid AS
@@ -141,7 +142,7 @@ BEGIN
 	END IF;
 		
 	INSERT INTO databaseSchema.objectQualifier_prov_membership(userid,applicationid,username,usernamelwd,password,passwordsalt,passwordformat,email,emaillwd,passwordquestion,passwordanswer,isapproved,joined)
-		VALUES (ici_userkey,(SELECT  databaseSchema.objectQualifier_prov_createapplication(i_applicationname,i_newguid)),i_username, LOWER(i_username), i_password, i_passwordsalt, i_passwordformat, i_email, LOWER(i_email), i_passwordquestion, i_passwordanswer, i_isapproved,current_timestamp at time zone 'UTC');
+		VALUES (ici_userkey,(SELECT  databaseSchema.objectQualifier_prov_createapplication(i_applicationname,i_newguid)),i_username, LOWER(i_username), i_password, i_passwordsalt, i_passwordformat, i_email, LOWER(i_email), i_passwordquestion, i_passwordanswer, i_isapproved,i_utctimestamp);
 	
 	RETURN;
 END;$BODY$
@@ -368,7 +369,8 @@ i_applicationname varchar,
 i_username varchar, 
 i_userkey uuid, 
 i_userisonline boolean,
-IN i_newguid uuid)
+IN i_newguid uuid,
+i_utctimestamp timestampTZ)
   RETURNS SETOF databaseSchema.objectQualifier_prov_getuser_return_type AS
 $BODY$DECLARE 
 ici_applicationid uuid;
@@ -398,7 +400,7 @@ BEGIN
  	IF (i_userisonline IS TRUE) THEN 
  	-- SELECT TIMESTAMP current_timestamp at time zone 'UTC'() AT TIME ZONE utc_offset INTO i_CurrentUtc;
  		UPDATE databaseSchema.objectQualifier_prov_membership 
- 		SET lastactivity = current_timestamp at time zone 'UTC'
+ 		SET lastactivity = i_utctimestamp
  		WHERE usernamelwd = LOWER(i_username) 
  		and applicationid= ici_applicationid;
  	END IF;	 

@@ -3,6 +3,9 @@
 -- They are distributed under terms of GPLv2 licence only as in http://www.fsf.org/licensing/licenses/gpl.html
 -- Copyright vzrus(c) 2009-2012
 
+-- CREATE FUNCTION plpgsql_call_handler () RETURNS OPAQUE AS '/usr/local/pgsql/lib/plpgsql' LANGUAGE C;
+-- CREATE TRUSTED LANGUAGE plpgsql HANDLER plpgsql_call_handler;
+
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_int_to_bool_helper(reqvalue double precision)
   RETURNS boolean AS

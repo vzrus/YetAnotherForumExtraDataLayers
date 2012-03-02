@@ -93,8 +93,6 @@ FROM objQual_USER AS a;
 
 --GO
 
-
-
 CREATE VIEW objQual_VACCESS(
 USERID,
 FORUMID,

@@ -19,6 +19,9 @@ BEGIN
 		NEW.isactiveexcluded = COALESCE(CAST(SIGN(NEW.flags & 16) AS integer)>0,false);
 		new.isdst = COALESCE(CAST(SIGN(new.flags & 32) AS integer)>0,false);
 		new.isdirty = COALESCE(CAST(SIGN(new.flags & 64) AS integer)>0,false);
+		new.isuserstyle = COALESCE(CAST(SIGN(new.styleflags & 1) AS integer)>0,false);
+		new.isgroupstyle = COALESCE(CAST(SIGN(new.styleflags & 2) AS integer)>0,false);
+		new.isrankstyle = COALESCE(CAST(SIGN(new.styleflags & 4) AS integer)>0,false);
  	 return NEW;
 END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
@@ -45,6 +48,9 @@ BEGIN
 		new.isactiveexcluded = COALESCE(CAST(SIGN(new.flags & 16) AS integer)>0,false);
 		new.isdst = COALESCE(CAST(SIGN(new.flags & 32) AS integer)>0,false);
 		new.isdirty = COALESCE(CAST(SIGN(new.flags & 64) AS integer)>0,false);
+		new.isuserstyle = COALESCE(CAST(SIGN(new.styleflags & 1) AS integer)>0,false);
+		new.isgroupstyle = COALESCE(CAST(SIGN(new.styleflags & 2) AS integer)>0,false);
+		new.isrankstyle = COALESCE(CAST(SIGN(new.styleflags & 4) AS integer)>0,false);
 		RETURN new;
  	END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
@@ -196,3 +202,5 @@ CREATE TRIGGER databaseSchema_objectQualifier_tr_message_beforeinsert
 	   FOR EACH ROW
        EXECUTE PROCEDURE databaseSchema.objectQualifier_trf_message_insertflags();
 --GO
+
+

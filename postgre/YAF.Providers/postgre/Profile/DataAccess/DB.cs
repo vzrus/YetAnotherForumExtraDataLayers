@@ -360,7 +360,7 @@ namespace YAF.Providers.Profile
                         cmd.Parameters.Add(new NpgsqlParameter("i_lastupdateddate", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
                         cmd.Parameters.Add(new NpgsqlParameter("i_lastactivitydate", NpgsqlDbType.TimestampTZ)).Value = mu.LastActivityDate;
                         cmd.Parameters.Add(new NpgsqlParameter("i_applicationid", NpgsqlDbType.Uuid)).Value = GetApplicationIdFromName( appName);
-                        cmd.Parameters.Add(new NpgsqlParameter("i_isanonymous", NpgsqlDbType.Boolean)).Value = true;
+                        cmd.Parameters.Add(new NpgsqlParameter("i_isanonymous", NpgsqlDbType.Boolean)).Value = false;
                         cmd.Parameters.Add(new NpgsqlParameter("i_username", NpgsqlDbType.Varchar)).Value = mu.UserName;
                         cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Uuid)).Value = userId;
 
@@ -435,5 +435,9 @@ namespace YAF.Providers.Profile
 			}
             
         }
-	}
+        public static bool GetDbTypeAndSizeFromString(string providerData, out NpgsqlTypes.NpgsqlDbType dbType, out int size)
+        {
+            return LegacyDb.GetDbTypeAndSizeFromString(providerData, out dbType, out size);
+        }
+    }
 }

@@ -603,7 +603,8 @@ CREATE TABLE databaseSchema.objectQualifier_topic
 			 islocked                  boolean DEFAULT FALSE NOT NULL,
 			 isdeleted                 boolean DEFAULT FALSE NOT NULL,
 			 ispersistent              boolean DEFAULT FALSE NOT NULL,
-			 isquestion                boolean DEFAULT FALSE NOT NULL
+			 isquestion                boolean DEFAULT FALSE NOT NULL,
+			 linkdate                  timestampTZ
 			 ) 
 	   WITH (OIDS=withOIDs);
 END IF;
@@ -651,7 +652,12 @@ CREATE TABLE databaseSchema.objectQualifier_user
 			 iscaptchaexcluded         boolean NOT NULL  DEFAULT FALSE,
 			 isactiveexcluded          boolean NOT NULL  DEFAULT FALSE,
 			 isdst                     boolean NOT NULL  DEFAULT FALSE,
-			 isdirty                   boolean NOT NULL  DEFAULT FALSE
+			 isdirty                   boolean NOT NULL  DEFAULT FALSE,
+			 userstyle                 varchar(255),
+			 styleflags                integer DEFAULT 0 NOT NULL,
+			 isuserstyle               boolean NOT NULL  DEFAULT FALSE, 
+			 isgroupstyle              boolean NOT NULL  DEFAULT FALSE, 
+			 isrankstyle               boolean NOT NULL  DEFAULT FALSE 
 			 ) 
 	   WITH (OIDS=withOIDs);
 END IF;
@@ -914,6 +920,19 @@ CREATE TABLE databaseSchema.objectQualifier_topicstatus
 			 ) 
 	   WITH (OIDS=withOIDs);
 END IF;
+
+IF NOT EXISTS (select 1 from pg_tables 
+               where schemaname='databaseSchema' 
+			     AND tablename='objectQualifier_reputationvote' limit 1) THEN
+CREATE TABLE databaseSchema.objectQualifier_reputationvote
+             (        
+			 reputationfromuserid      integer NOT NULL,
+			 reputationtouserid        integer NOT NULL,
+			 votedate                  timestampTZ NOT NULL
+			 ) 
+	   WITH (OIDS=withOIDs);
+END IF;
+
 END;
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER STRICT
@@ -929,10 +948,27 @@ $BODY$
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_add_or_change_columns()
 RETURNS void AS
-$BODY$DECLARE i integer;
+$BODY$
 BEGIN
-i := 1;
-END ;
+     IF (NOT column_exists('databaseSchema.objectQualifier_topic','linkdate')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_topic ADD COLUMN linkdate  timestampTZ;
+     END IF;
+	 IF (NOT column_exists('databaseSchema.objectQualifier_user','userstyle')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_user ADD COLUMN userstyle  varchar(255);
+     END IF;
+	 IF (NOT column_exists('databaseSchema.objectQualifier_user','styleflags')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_user ADD COLUMN styleflags  integer DEFAULT 0 NOT NULL;
+     END IF;
+	 IF (NOT column_exists('databaseSchema.objectQualifier_user','isuserstyle')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_user ADD COLUMN isuserstyle  boolean DEFAULT FALSE NOT NULL;
+     END IF;
+	 IF (NOT column_exists('databaseSchema.objectQualifier_user','isgroupstyle')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_user ADD COLUMN isgroupstyle  boolean DEFAULT FALSE NOT NULL;
+     END IF;
+	  IF (NOT column_exists('databaseSchema.objectQualifier_user','isrankstyle')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_user ADD COLUMN isrankstyle  boolean DEFAULT FALSE NOT NULL;
+     END IF;
+	 END;	 	
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER STRICT
   COST 100;   
@@ -941,3 +977,6 @@ $BODY$
 --GO
     DROP FUNCTION databaseSchema.objectQualifier_add_or_change_columns();
 --GO
+
+
+

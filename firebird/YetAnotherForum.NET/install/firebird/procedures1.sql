@@ -1293,22 +1293,34 @@ END;
 
 create procedure objQual_FORUM_MODERATORS(I_STYLEDNICKS BOOL)
 returns ("ForumID" INTEGER, 
+         "ForumName" VARCHAR(128),  
 		"ModeratorID" INTEGER, 
 		"ModeratorName" VARCHAR(128),
+		"ModeratorDisplayName" VARCHAR(128),
+		"ModeratorEmail" varchar(255),
+        "ModeratorAvatar" varchar(255),
+        "ModeratorAvatarImage" BOOL,
 		"Style" VARCHAR(128),
 		"IsGroup" SMALLINT)
  as
 BEGIN
 	FOR SELECT * FROM (select
-		a.FORUMID AS FORUMID, 
+		a.FORUMID AS FORUMID,
+		f.NAME AS "ForumName", 
 		a.GROUPID AS "ModeratorID", 
 		b.NAME AS "ModeratorName",
+		b.NAME AS "ModeratorDisplayName",
+		(SELECT '' FROM RDB$DATABASE) AS "ModeratorEmail",
+		(SELECT '' FROM RDB$DATABASE) AS "ModeratorAvatar",
+		(SELECT CAST(0 as BOOL) FROM RDB$DATABASE) as "ModeratorAvatarImage",
 			(case(:I_STYLEDNICKS)
 			when 1 then b.STYLE  
 			else ''	 end) as Style,	
 		(SELECT 1 FROM RDB$DATABASE) AS "IsGroup"			
 	from
-		objQual_FORUMACCESS a
+	    objQual_FORUM f
+		INNER JOIN	objQual_FORUMACCESS a
+		ON a.FORUMID = f.FORUMID
 		INNER JOIN objQual_GROUP b 
 		ON b.GROUPID = a.GROUPID
 		INNER JOIN objQual_ACCESSMASK c 
@@ -1319,12 +1331,15 @@ BEGIN
 	union all
 	select 
 		access.FORUMID AS FORUMID, 
+		f.NAME as "ForumName",
 		usr.USERID AS "ModeratorID", 
 		usr.NAME AS "ModeratorName",
+		usr.DISPLAYNAME AS "ModeratorDisplayName",
+		usr.email AS "ModeratorEmail",
+		COALESCE(usr.Avatar, '') AS "ModeratorAvatar",
+		(CASE WHEN (bit_length(usr.AVATARIMAGE) > 10) THEN CAST(1 AS SMALLINT) ELSE CAST(0 AS SMALLINT) END),		
 		(case(:I_STYLEDNICKS)
-			when 1 then  COALESCE((SELECT FIRST 1 f.STYLE FROM objQual_USERGROUP e 
-		    join objQual_GROUP f on f.GROUPID=e.GROUPID WHERE e.USERID=usr.USERID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SORTORDER) , 
-			r.STYLE)  
+			when 1 then  usr.USERSTYLE
 			else ''	 end) as Style,	
 		(SELECT 0 FROM RDB$DATABASE) AS "IsGroup"
 	from
@@ -1343,53 +1358,22 @@ BEGIN
 			GROUP BY
 				a.USERID,x.FORUMID		
 		) access ON usr.USERID = access.USERID
-			JOIN objQual_RANK r
-		ON r.RANKID = usr.RANKID
+		JOIN objQual_FORUM f			
+		ON f.FORUMID = access.FORUMID			
 	where
 		access.MODERATORACCESS<>0)
 	order by
 		"IsGroup" desc,
 		"ModeratorName" asc
 		INTO
-		:"ForumID", 
+		:"ForumID",
+		:"ForumName",
 		:"ModeratorID", 
 		:"ModeratorName",
-		:"Style",
-		:"IsGroup"
-		DO SUSPEND;
-END;
---GO
-create procedure objQual_MODERATORS_TEAM_LIST(I_STYLEDNICKS INTEGER) 
-RETURNS
-(
-  "ForumID" INTEGER, 
-  "ModeratorID" INTEGER, 
-  "ModeratorName" varchar(255) CHARACTER SET UTF8,	
-  "Style"  varchar(255) CHARACTER SET UTF8,						
-  "IsGroup" BOOL
-)
-as
-BEGIN
-	FOR	select
-		a.ForumID, 
-		e.UserID, 
-		e.Name,	
-		(case(:I_STYLEDNICKS)
-			when 1 then b.STYLE  
-		else ''	 end),						
-		(select cast(0 AS integer) FROM RDB$DATABASE)	from
-		objQual_ForumAccess a 
-		INNER JOIN objQual_Group b  ON b.GroupID = a.GroupID
-		INNER JOIN objQual_AccessMask c  ON c.AccessMaskID = a.AccessMaskID
-		INNER JOIN objQual_UserGroup d  on d.GroupID=a.GroupID
-		INNER JOIN objQual_User e  on e.UserID=d.UserID
-	where
-		BIN_AND(b.Flags,1) <> 1 and
-		BIN_AND(c.Flags,64)=64
-		INTO
-		:"ForumID", 
-		:"ModeratorID", 
-		:"ModeratorName",
+		:"ModeratorDisplayName",
+		:"ModeratorEmail",
+        :"ModeratorAvatar",
+        :"ModeratorAvatarImage",
 		:"Style",
 		:"IsGroup"
 		DO SUSPEND;
@@ -1661,10 +1645,7 @@ select
 		b.REMOTEURL,		
 		(CAST(x.READACCESS as INTEGER)),
 		(case(:I_STYLEDNICKS)
-			when 1 then  COALESCE((SELECT FIRST 1 f.STYLE FROM objQual_USERGROUP e 
-		    join objQual_GROUP f on f.GROUPID=e.GROUPID WHERE e.USERID=t.LASTUSERID AND CHAR_LENGTH(f.STYLE) > 2 ORDER BY f.SORTORDER), 
-			(select r.STYLE from objQual_USER usr 
-			join objQual_RANK r ON r.RANKID = usr.RANKID  where usr.USERID=t.LASTUSERID))  
+			when 1 then  (SELECT FIRST 1 usr.USERSTYLE FROM objQual_USER usr WHERE usr.USERID = t.LASTUSERID)  
 			else (select '' from rdb$database)	 end),
 		(case(:I_FINDLASTUNREAD)
 		     when 1 then
@@ -1779,7 +1760,7 @@ BEGIN
 		(select NAME from objQual_USER x 
 		where x.USERID = t.LASTUSERID)) AS "LastUserName",
 	    case(:I_STYLEDNICKS)
-	        when 1 then  (SELECT * FROM objQual_GET_USERSTYLE(t.LASTUSERID))  
+	        when 1 then (SELECT FIRST 1 usr.USERSTYLE FROM objQual_USER usr WHERE usr.USERID = t.LASTUSERID)  
 	        else (SELECT '' FROM RDB$DATABASE)	 end,
 		(case(:I_FINDLASTUNREAD)
 		     when 1 then
@@ -1968,7 +1949,7 @@ begin
 			c.ISCRAWLER AS ISCRAWLER,
 			a.ISACTIVEEXCLUDED AS "IsHidden",
 			 CASE :I_STYLEDNICKS
-             WHEN 1 THEN  (SELECT * FROM objQual_GET_USERSTYLE(a.USERID))                      
+             WHEN 1 THEN  (SELECT FIRST 1 usr.USERSTYLE FROM objQual_USER usr WHERE usr.USERID = a.USERID)                   
               ELSE (SELECT '' FROM RDB$DATABASE)
             END,
 			/*	CASE :I_STYLEDNICKS
@@ -2027,7 +2008,7 @@ begin
 	        c.ISCRAWLER AS ISCRAWLER,
 			a.ISACTIVEEXCLUDED AS "IsHidden",
 			CASE :I_STYLEDNICKS
-            WHEN 1 THEN  (SELECT * FROM objQual_GET_USERSTYLE(a.USERID))                      
+            WHEN 1 THEN  (SELECT FIRST 1 usr.USERSTYLE FROM objQual_USER usr WHERE usr.USERID = a.USERID)                     
             ELSE (SELECT '' FROM RDB$DATABASE)
             END,
 			/*	CASE :I_STYLEDNICKS
@@ -2087,7 +2068,7 @@ begin
 	         c.ISCRAWLER AS ISCRAWLER,
 			 a.ISACTIVEEXCLUDED AS "IsHidden" ,
 			 CASE :I_STYLEDNICKS
-             WHEN 1 THEN  (SELECT * FROM objQual_GET_USERSTYLE(a.USERID))                    
+             WHEN 1 THEN  (SELECT FIRST 1 usr.USERSTYLE FROM objQual_USER usr WHERE usr.USERID = a.USERID)                    
               ELSE (SELECT '' FROM RDB$DATABASE)
             END,
 			/*	CASE :I_STYLEDNICKS
@@ -2256,7 +2237,7 @@ BEGIN
 		a.POSTED AS "LastPost",
 		a.USERID AS LASTUSERID,
 		e.NAME AS "LastUser",
-        (CASE WHEN :I_STYLEDNICKS > 0 THEN (SELECT * FROM objQual_GET_USERSTYLE(a.USERID)) ELSE '' END) AS "LastUserStyle"
+        (CASE WHEN :I_STYLEDNICKS > 0 THEN e.USERSTYLE  ELSE '' END) AS "LastUserStyle"
 		/* CASE WHEN :I_STYLEDNICKS
 			when 1 then  COALESCE(
 			( SELECT TOP 1 g.STYLE FROM FROM objQual_USERGROUP ug 
@@ -2313,6 +2294,8 @@ BEGIN
         :"LastUserStyle";
 		END
 SUSPEND;
+-- can be put in every place with slow update rate
+DELETE FROM objQual_TOPIC WHERE TOPICMOVEDID IS NOT NULL AND LINKDAYS < current_timestamp;
 END;
 --GO
 CREATE  PROCEDURE objQual_USER_ACCESSMASKS(
@@ -2897,15 +2880,6 @@ BEGIN
  	ELSE 	
  		"UserID"=ici_UserID;
  		SUSPEND; 	
-END;
---GO
-
-
-CREATE PROCEDURE objQual_USER_REMOVEPOINTS (I_USERID INTEGER,I_POINTS INTEGER) 
-AS
-BEGIN
-	UPDATE objQual_USER SET POINTS = POINTS - :I_POINTS 
-	WHERE USERID = :I_USERID;
 END;
 --GO
 
@@ -4016,3 +3990,4 @@ BEGIN
 		DO SUSPEND;
 end;
 --GO
+

@@ -79,7 +79,7 @@ namespace YAF.Providers.Membership
                 // Nonstandard args
                 cmd.Parameters.Add(new NpgsqlParameter("i_previousversion", NpgsqlDbType.Integer)).Value = previousVersion;
                 cmd.Parameters.Add(new NpgsqlParameter("i_newversion", NpgsqlDbType.Integer)).Value = newVersion;
-
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
                 _dbAccess.ExecuteNonQuery(cmd ); */
             }
 
@@ -139,6 +139,7 @@ namespace YAF.Providers.Membership
                 cmd.Parameters.Add(new NpgsqlParameter("i_isapproved", NpgsqlDbType.Boolean)).Value = isApproved;
                 cmd.Parameters.Add(new NpgsqlParameter("i_newguid", NpgsqlDbType.Uuid)).Value = Guid.NewGuid();
                 cmd.Parameters.Add(new NpgsqlParameter("i_newuserkey", NpgsqlDbType.Uuid)).Value = Guid.NewGuid();
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
                 // Input Output Parameters
                 NpgsqlParameter paramUserKey = new NpgsqlParameter("i_userkey", NpgsqlDbType.Uuid);
                 paramUserKey.Direction = ParameterDirection.InputOutput;
@@ -248,7 +249,7 @@ namespace YAF.Providers.Membership
                 cmd.Parameters.Add(new NpgsqlParameter("i_userkey", NpgsqlDbType.Uuid)).Value = providerUserKey;
                 cmd.Parameters.Add(new NpgsqlParameter("i_userisonline", NpgsqlDbType.Boolean)).Value = userIsOnline;
                 cmd.Parameters.Add(new NpgsqlParameter("i_newguid", NpgsqlDbType.Uuid)).Value = Guid.NewGuid();
-
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
                 using (DataTable dt = _dbAccess.GetData(cmd ))
                 {
                     if (dt.Rows.Count > 0)
@@ -275,7 +276,7 @@ namespace YAF.Providers.Membership
                 cmd.Parameters.Add(new NpgsqlParameter("i_userkey", NpgsqlDbType.Uuid)).Value = DBNull.Value;
                 cmd.Parameters.Add(new NpgsqlParameter("i_userisonline", NpgsqlDbType.Boolean)).Value = updateUser;
                 cmd.Parameters.Add(new NpgsqlParameter("i_newguid", NpgsqlDbType.Uuid)).Value = Guid.NewGuid();
-
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
                 return _dbAccess.GetData(cmd );
             }
 
