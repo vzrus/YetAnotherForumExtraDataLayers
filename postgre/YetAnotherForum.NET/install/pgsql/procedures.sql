@@ -9007,9 +9007,9 @@ BEGIN
  		COALESCE(t.lastusername,
  		(SELECT name FROM databaseSchema.objectQualifier_user x 
 WHERE x.userid = t.lastuserid)) AS LastUserName, 	   
-/*(case when i_stylednicks is true THEN  databaseSchema.objectQualifier_get_userstyle(t.lastuserid)  
-	        else ''	 end) */ ''  AS LastUserStyle,
-			(case(i_findlastunread)
+        (case when i_stylednicks is true THEN  (SELECT u.userstyle FROM databaseSchema.objectQualifier_user u where u.userid = t.lastuserid LIMIT 1)  
+	        else ''	 end)   AS LastUserStyle,
+		(case(i_findlastunread)
 		     when true THEN
 		       COALESCE((SELECT LastAccessDate FROM databaseSchema.objectQualifier_forumreadtracking x WHERE x.forumid=f.forumid AND x.userid = i_pageuserid), i_utctimestamp)
 		     else TIMESTAMP '-infinity'	 end) AS LastForumAccess,
@@ -9023,13 +9023,13 @@ WHERE x.userid = t.lastuserid)) AS LastUserName,
  		databaseSchema.objectQualifier_forum f ON t.forumid = f.forumid	
  	INNER JOIN
  		databaseSchema.objectQualifier_category c ON c.categoryid = f.categoryid
- 	/*LEFT OUTER JOIN
- 		databaseSchema.objectQualifier_vaccess v ON v.forumid=f.forumid*/
+ 	JOIN
+ 		databaseSchema.objectQualifier_activeaccess v ON v.forumid=f.forumid
  	WHERE
  		c.boardid = i_boardid
  		AND t.topicmovedid is NULL
- 		/* AND v.userid= i_userid 
- 		AND (v.readaccess <> 0)*/
+ 		AND v.userid= i_pageuserid 
+ 		AND (v.readaccess IS TRUE)
 	-- is not deleted
     AND t.flags & 8 <> 8
     AND t.lastposted IS NOT NULL
@@ -9037,16 +9037,9 @@ WHERE x.userid = t.lastuserid)) AS LastUserName,
     ORDER BY
     t.lastposted DESC
 LOOP   
-EXIT WHEN cntr >= i_numposts OR cntr > 1000; 
-IF (SELECT "ReadAccess" FROM databaseSchema.objectQualifier_vaccess_combo(i_pageuserid, _rec."ForumID") LIMIT 1) > 0 THEN
-IF i_stylednicks is true THEN  
-SELECT * FROM databaseSchema.objectQualifier_get_userstyle(_rec."LastUserID") 
-INTO _rec."LastUserStyle";
-END IF;
+EXIT WHEN cntr >= i_numposts OR cntr > 1000;
 RETURN NEXT _rec;
 cntr:=cntr+1;
-END IF;
-
 END LOOP;
    
     END;$BODY$

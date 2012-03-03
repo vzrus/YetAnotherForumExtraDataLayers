@@ -675,29 +675,35 @@ namespace YAF.Classes.Data
                     int currentIndent = (int)row["Level"];
                     string sIndent = "";
 
-                    for (int j = 0; j < currentIndent; j++)
-                        sIndent += "--";
-                    if (categoryId != (int)row["CategoryID"])
+
+                    if (currentIndent >= 2)
                     {
-                        DataRow newRow1 = sorted.NewRow();
-                        newRow["ForumID"] = currentIndent;
-                        newRow["Title"] = string.Format(" -{0} {1}", sIndent, row["CategoryName"]);
-                        sorted.Rows.Add(newRow1);
-                        categoryId = (int)row["CategoryID"];
-                    }
-                    else
-                    {
-                        newRow["ForumID"] = currentIndent;
-                        newRow["Title"] = string.Format(" -{0} {1}", sIndent, row["Title"]);
+                        for (int j = 0; j < currentIndent-1; j++)
+                        {
+                            sIndent += "-";
+                            if (currentIndent > 2)
+                            {
+                                sIndent += "-";
+                            }
+                        }
                     }
 
+                    if ((int)row["CategoryID"] != categoryId)
+                    {
+                        DataRow cRow = sorted.NewRow();
+                        // we add a category
+                        cRow["ForumID"] = -(int)row["CategoryID"];
+                        cRow["Title"] = string.Format(" {0}", row["CategoryName"]);
+                        categoryId = (int) row["CategoryID"];
+                        sorted.Rows.Add(cRow);
 
-                    // import the row into the destination
-
-
-
-
+                    }
+                  
+                    newRow["ForumID"] = row["ForumID"];
+                    newRow["Title"] = string.Format(" {0} {1}", sIndent, row["Title"]);
                     sorted.Rows.Add(newRow);
+
+                    
                 }
                 return sorted;
 
