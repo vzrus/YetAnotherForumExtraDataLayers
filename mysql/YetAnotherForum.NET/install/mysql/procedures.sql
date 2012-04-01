@@ -137,6 +137,8 @@ DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}forum_listSubForums;
 --GO
 DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}forum_listtopics;
 --GO
+DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}forum_maxid;
+--GO
 DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}forum_moderatelist;
 --GO
 DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}forum_moderators;
@@ -928,15 +930,16 @@ CREATE  PROCEDURE {databaseName}.{objectQualifier}active_list(
              IN i_Guests  TINYINT(1),
 			 IN i_ShowCrawlers  TINYINT(1),
              IN i_ActiveTime INT,
-             IN i_StyledNicks TINYINT(1))
+             IN i_StyledNicks TINYINT(1),
+			 IN i_UTCTIMESTAMP DATETIME)
              MODIFIES SQL DATA
   BEGIN
 
 	DELETE FROM {databaseName}.{objectQualifier}Active 
-	WHERE  (LastActive < DATE_SUB(UTC_TIMESTAMP(), INTERVAL i_ActiveTime MINUTE) OR LastActive IS NULL); 
+	WHERE  (LastActive < DATE_SUB(i_UTCTIMESTAMP, INTERVAL i_ActiveTime MINUTE) OR LastActive IS NULL); 
 	-- we don't delete guest access
 	DELETE FROM {databaseName}.{objectQualifier}ActiveAccess 
-	WHERE  (LastActive < DATE_SUB(UTC_TIMESTAMP(), INTERVAL i_ActiveTime MINUTE) OR LastActive IS NULL) 
+	WHERE  (LastActive < DATE_SUB(i_UTCTIMESTAMP, INTERVAL i_ActiveTime MINUTE) OR LastActive IS NULL) 
 	AND  IsGuestX = 0;
 	
                   
@@ -945,6 +948,7 @@ CREATE  PROCEDURE {databaseName}.{objectQualifier}active_list(
         IF i_Guests <> 0 AND i_Guests IS NOT NULL THEN
               SELECT   a.UserID,
                        a.Name AS UserName,
+					   a.DisplayName AS UserDisplayName,
                        c.IP,
                        c.SessionID,
                        c.ForumID,
@@ -971,7 +975,7 @@ CREATE  PROCEDURE {databaseName}.{objectQualifier}active_list(
                       c.LastActive,
                       c.Location,
                       c.ForumPage,
-                      TIMESTAMPDIFF(MINUTE,IFNULL(c.Login,UTC_TIMESTAMP()),IFNULL(c.LastActive,UTC_TIMESTAMP()))  AS Active,                  
+                      TIMESTAMPDIFF(MINUTE,IFNULL(c.Login,i_UTCTIMESTAMP),IFNULL(c.LastActive,i_UTCTIMESTAMP))  AS Active,                  
                       c.Browser,
                       c.Platform
               FROM     {databaseName}.{objectQualifier}User a
@@ -984,6 +988,7 @@ CREATE  PROCEDURE {databaseName}.{objectQualifier}active_list(
 	elseif (i_ShowCrawlers = 1 and i_Guests = 0) THEN		
 			        SELECT   a.UserID,
                        a.Name AS UserName,
+					   a.DisplayName AS UserDisplayName,
                        c.IP,
                        c.SessionID,
                        c.ForumID,
@@ -1010,7 +1015,7 @@ CREATE  PROCEDURE {databaseName}.{objectQualifier}active_list(
                       c.LastActive,
                       c.Location,
                       c.ForumPage,
-                      TIMESTAMPDIFF(MINUTE,IFNULL(c.Login,UTC_TIMESTAMP()),IFNULL(c.LastActive,UTC_TIMESTAMP()))  AS Active,                  
+                      TIMESTAMPDIFF(MINUTE,IFNULL(c.Login,i_UTCTIMESTAMP),IFNULL(c.LastActive,i_UTCTIMESTAMP))  AS Active,                  
                       c.Browser,
                       c.Platform	
 			   FROM     {databaseName}.{objectQualifier}User a
@@ -1027,6 +1032,7 @@ CREATE  PROCEDURE {databaseName}.{objectQualifier}active_list(
         ELSE
                     SELECT   a.UserID,
                        a.Name AS UserName,
+					   a.DisplayName AS UserDisplayName,
                        c.IP,
                        c.SessionID,
                        c.ForumID,
@@ -1053,7 +1059,7 @@ CREATE  PROCEDURE {databaseName}.{objectQualifier}active_list(
                       c.LastActive,
                       c.Location,
                       c.ForumPage,
-                      TIMESTAMPDIFF(MINUTE,IFNULL(c.Login,UTC_TIMESTAMP()),IFNULL(c.LastActive,UTC_TIMESTAMP()))  AS Active,                  
+                      TIMESTAMPDIFF(MINUTE,IFNULL(c.Login,i_UTCTIMESTAMP),IFNULL(c.LastActive,i_UTCTIMESTAMP))  AS Active,                  
                       c.Browser,
                       c.Platform
                FROM     {databaseName}.{objectQualifier}User a
@@ -1083,6 +1089,7 @@ begin
         IF (i_Guests <> 0 AND i_Guests IS NOT NULL) THEN
               SELECT   a.UserID,
                        a.Name AS UserName,
+					   a.DisplayName AS UserDisplayName,
                        c.IP,
                        c.SessionID,
                        c.ForumID,
@@ -1126,6 +1133,7 @@ begin
 	    ELSEIF (i_ShowCrawlers = 1 and i_Guests = 0) THEN
 		              SELECT   a.UserID,
                        a.Name AS UserName,
+					   a.DisplayName AS UserDisplayName,
                        c.IP,
                        c.SessionID,
                        c.ForumID,
@@ -1171,6 +1179,7 @@ begin
         ELSE
               SELECT   a.UserID,
                        a.Name AS UserName,
+					   a.DisplayName AS UserDisplayName,
                        c.IP,
                        c.SessionID,
                        c.ForumID,
@@ -1229,6 +1238,7 @@ BEGIN
 SELECT
 a.UserID AS UserID,
 b.Name AS UserName,
+b.DisplayName AS UserDisplayName,
 IFNULL(CAST(SIGN(b.Flags & 16) AS SIGNED),false) AS IsHidden,
 IFNULL(CAST(SIGN(b.Flags & 8) AS SIGNED),false) AS IsCrawler,
 (case(i_StyledNicks)
@@ -1243,6 +1253,7 @@ ON b.UserID = a.UserID
 WHERE    a.ForumID = i_ForumID
 GROUP BY
 a.UserID,
+b.DisplayName,
 b.Name,
 IsHidden,
 IsCrawler,
@@ -1262,6 +1273,7 @@ BEGIN
 
 SELECT    a.UserID AS UserID,
 b.Name AS UserName,
+b.DisplayName AS UserDisplayName,
 IFNULL(CAST(SIGN(b.Flags & 16) AS SIGNED),false) AS IsHidden,
 IFNULL(CAST(SIGN(b.Flags & 8) AS SIGNED),false) AS IsCrawler,
  (case(i_StyledNicks)
@@ -1278,6 +1290,7 @@ ON b.UserID = a.UserID
 WHERE    a.TopicID = i_TopicID
 GROUP BY
 a.UserID,
+b.DisplayName,
 b.Name,
 IsHidden,
 IsCrawler,
@@ -1340,7 +1353,7 @@ END;
 
 CREATE PROCEDURE {databaseName}.{objectQualifier}active_updatemaxstats
 (
-	i_BoardID		INT
+	i_BoardID		INT, i_UTCTIMESTAMP DATETIME
 ) 
 MODIFIES SQL DATA
 BEGIN
@@ -1381,7 +1394,7 @@ INSERT INTO {databaseName}.{objectQualifier}Registry
 `VALUE`)
 VALUES     (i_BoardID,
 CONVERT('maxuserswhen' USING {databaseEncoding}),
-CAST(UTC_TIMESTAMP() AS CHAR));
+CAST(i_UTCTIMESTAMP AS CHAR));
 	
 	ELSEIF (ici_count > ici_max)	THEN
 	
@@ -1392,7 +1405,7 @@ WHERE  BoardID = i_BoardID
 AND `Name` = CONVERT('maxusers' USING {databaseEncoding});
 
 UPDATE {databaseName}.{objectQualifier}Registry
-SET    `VALUE` = CAST(UTC_TIMESTAMP() AS CHAR)
+SET    `VALUE` = CAST(i_UTCTIMESTAMP AS CHAR)
 WHERE  BoardID = i_BoardID
 AND `Name` = CONVERT('maxuserswhen' USING {databaseEncoding});
 	END  IF;
@@ -1549,7 +1562,8 @@ i_ID      INT,
 i_BoardID INT,
 i_Mask    VARCHAR(57),
 i_Reason VARCHAR(128),
-i_UserID INT)
+i_UserID INT,
+i_UTCTIMESTAMP DATETIME)
 MODIFIES SQL DATA
 BEGIN
 DECLARE ici_ID INT DEFAULT NULL;
@@ -1567,7 +1581,7 @@ Reason,
 UserID)
 VALUES     (i_BoardID,
 i_Mask,
-UTC_TIMESTAMP(),
+i_UTCTIMESTAMP,
 i_Reason,
 i_UserID);
 END;
@@ -1679,7 +1693,8 @@ MODIFIES SQL DATA
  	i_UserEmail		    VARCHAR(255),
  	i_UserKey		    VARCHAR(64), 
  	i_IsHostAdmin	    TINYINT(1),
-	i_RolePrefix VARCHAR(128)
+	i_RolePrefix VARCHAR(128),
+	i_UTCTIMESTAMP DATETIME
  ) 
  MODIFIES SQL DATA
  BEGIN
@@ -1848,7 +1863,7 @@ MODIFIES SQL DATA
  	
  	 /*User (GUEST)*/
  	INSERT INTO {databaseName}.{objectQualifier}User(BoardID,RankID,`Name`,`DisplayName`,Password,Joined,LastVisit,NumPosts,TimeZone,Email,Flags)
- 	VALUES(l_BoardID,l_RankIDGuest,'Guest','Guest','na', UTC_TIMESTAMP(),UTC_TIMESTAMP(),0,l_TimeZone,l_ForumEmail,6);
+ 	VALUES(l_BoardID,l_RankIDGuest,'Guest','Guest','na', i_UTCTIMESTAMP,i_UTCTIMESTAMP,0,l_TimeZone,l_ForumEmail,6);
  	SET l_UserIDGuest = LAST_INSERT_ID();	
  	
  	SET l_UserFlags = 2;
@@ -1856,7 +1871,7 @@ MODIFIES SQL DATA
 
   /*User (ADMIN)*/
   INSERT INTO {databaseName}.{objectQualifier}User(BoardID,RankID,`Name`,`DisplayName`,Password, Email,ProviderUserKey, Joined,LastVisit,NumPosts,TimeZone,Flags)
-  VALUES(l_BoardID,l_RankIDAdmin,i_UserName,i_UserName,'na',i_UserEmail,i_UserKey,UTC_TIMESTAMP(),UTC_TIMESTAMP(),0,l_TimeZone,l_UserFlags);
+  VALUES(l_BoardID,l_RankIDAdmin,i_UserName,i_UserName,'na',i_UserEmail,i_UserKey,i_UTCTIMESTAMP,i_UTCTIMESTAMP,0,l_TimeZone,l_UserFlags);
   SET l_UserIDAdmin = LAST_INSERT_ID();
 
   /*UserGroup*/
@@ -1987,7 +2002,8 @@ MODIFIES SQL DATA
                      i_BoardID INT, 
 					 i_StyledNicks TINYINT(1), 
 					 i_ShowNoCountPosts TINYINT(1), 
-					 i_GetDefaults TINYINT(1))
+					 i_GetDefaults TINYINT(1),
+					 i_UTCTIMESTAMP DATETIME)
   READS SQL DATA
   BEGIN
   IF i_GetDefaults <= 0 THEN
@@ -2054,7 +2070,7 @@ SELECT
 		'' AS LastUserStyle ;
 END IF;
 -- can be anyway in a place with very low update rate
-DELETE FROM {databaseName}.{objectQualifier}Topic WHERE TopicMovedID IS NOT NULL AND  LinkDays < UTC_TIMESTAMP();
+DELETE FROM {databaseName}.{objectQualifier}Topic WHERE TopicMovedID IS NOT NULL AND LinkDays IS NOT NULL AND LinkDays < i_UTCTIMESTAMP;
 END;
 --GO
 
@@ -2399,14 +2415,15 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}checkemail_save
 (
 i_UserID INT,
 i_Hash VARCHAR(32),
-i_Email VARCHAR(128)
+i_Email VARCHAR(128),
+i_UTCTIMESTAMP DATETIME
 )
 MODIFIES SQL DATA
 BEGIN
 INSERT INTO {databaseName}.{objectQualifier}CheckEmail
 (UserID,Email,Created,Hash)
 VALUES
-(i_UserID,LOWER(i_Email),UTC_TIMESTAMP(),i_Hash);
+(i_UserID,LOWER(i_Email),i_UTCTIMESTAMP,i_Hash);
 END;
 --GO
 
@@ -2518,7 +2535,8 @@ CREATE  PROCEDURE {databaseName}.{objectQualifier}eventlog_create(
 i_UserID      INT,
 i_Source      VARCHAR(128),
 i_Description TEXT,
-i_Type        INT)
+i_Type        INT,
+i_UTCTIMESTAMP DATETIME)
 MODIFIES SQL DATA
 BEGIN
 DECLARE topLogID INT;
@@ -2534,7 +2552,7 @@ i_Description,
 i_Type);
 /*delete entries older than 10 days*/
 DELETE FROM {databaseName}.{objectQualifier}EventLog
-WHERE DATEDIFF(UTC_TIMESTAMP(),EventTime) > 10;
+WHERE DATEDIFF(i_UTCTIMESTAMP,EventTime) > 10;
        /*or if there are more then 1000*/
         IF ((SELECT COUNT(*)
              FROM   {databaseName}.{objectQualifier}eventlog) >= 1050) THEN
@@ -3202,6 +3220,9 @@ select
  		COALESCE(t.LastUserName,(SELECT u2.Name
              FROM   {databaseName}.{objectQualifier}User u2
              WHERE  u2.UserID = t.LastUserID LIMIT 1)) AS LastUser,
+        COALESCE(t.LastUserDisplayName,(SELECT u2.DisplayName
+             FROM   {databaseName}.{objectQualifier}User u2
+             WHERE  u2.UserID = t.LastUserID LIMIT 1)) AS LastUserDisplayName,
 		(case(i_FindLastRead)
 		     when 1 then
 		       (SELECT LastAccessDate FROM {databaseName}.{objectQualifier}ForumReadTracking y WHERE y.ForumID=t.ForumID AND y.UserID = i_UserID limit 1)
@@ -3290,8 +3311,10 @@ END;
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
 CREATE PROCEDURE {databaseName}.{objectQualifier}forum_listtopics(i_ForumID INT) 
 BEGIN
-SELECT * from {databaseName}.{objectQualifier}TopicSelectView
-WHERE ForumID = i_ForumID;
+SELECT t.*,IFNULL(a.Flags,0) AS Flags,
+IFNULL(SIGN(a.Flags & 8)>0,false) AS IsDeleted,
+IFNULL(SIGN(a.Flags & 1024)>0,false)  AS IsQuestion from {databaseName}.{objectQualifier}Topic t
+WHERE t.ForumID = i_ForumID;
 END;
 --GO
 
@@ -3589,13 +3612,15 @@ DECLARE ici_tmpMaxPosted3    DATETIME DEFAULT NULL;
 DECLARE ici_LastTopicID      INT;
 DECLARE ici_LastMessageID    INT;
 DECLARE ici_LastUserID       INT;
-DECLARE ici_LastUserName     VARCHAR(128);
+DECLARE ici_LastUserName     VARCHAR(255);
+DECLARE ici_LastUserDisplayName VARCHAR(255);
 
 DECLARE ici_LastPostedTmp    DATETIME;
 DECLARE ici_LastTopicIDTmp   INT;
 DECLARE ici_LastMessageIDTmp INT;
 DECLARE ici_LastUserIDTmp    INT;
-DECLARE ici_LastUserNameTmp  VARCHAR(128);
+DECLARE ici_LastUserNameTmp  VARCHAR(255);
+DECLARE ici_LastUserDisplayNameTmp  VARCHAR(255);
 
 DECLARE ici_MaxTPosted       DATETIME;
 
@@ -3614,15 +3639,16 @@ from {databaseName}.{objectQualifier}Topic
 WHERE ForumID =i_ForumID ORDER BY LastPosted DESC LIMIT 1;
 
 IF ici_LastTopicID IS NULL THEN*/
-SELECT y.Posted,y.TopicID,y.MessageID,y.UserID,y.UserName
-INTO ici_LastPosted,ici_LastTopicID,ici_LastMessageID,ici_LastUserID,ici_LastUserName
+SELECT y.Posted,y.TopicID,y.MessageID,y.UserID,y.UserName,y.UserDisplayName
+INTO ici_LastPosted,ici_LastTopicID,ici_LastMessageID,ici_LastUserID,ici_LastUserName,ici_LastUserDisplayName
 FROM
 {databaseName}.{objectQualifier}Forum z
-JOIN {databaseName}.{objectQualifier}TopicSelectView x ON z.ForumID=x.ForumID 
+JOIN {databaseName}.{objectQualifier}Topic x ON z.ForumID=x.ForumID 
 JOIN {databaseName}.{objectQualifier}Message y ON y.TopicID=x.TopicID
 WHERE x.ForumID = i_ForumID
 AND (y.Flags & 24)=16
-AND x.IsDeleted = 0
+-- is deleted
+AND SIGN(x.Flags & 8) = 0
 ORDER BY y.Posted DESC LIMIT 1;
 /*END IF; Look for it in children*/
 
@@ -3630,10 +3656,11 @@ SELECT LastPosted,
 LastTopicID,
 LastMessageID,
 LastUserID,
-LastUserName
+LastUserName,
+LastUserDisplayName
 INTO 
 
-ici_LastPostedTmp,ici_LastTopicIDTmp,ici_LastMessageIDTmp,ici_LastUserIDTmp,ici_LastUserNameTmp
+ici_LastPostedTmp,ici_LastTopicIDTmp,ici_LastMessageIDTmp,ici_LastUserIDTmp,ici_LastUserNameTmp,ici_LastUserDisplayNameTmp
 from {databaseName}.{objectQualifier}Forum
 WHERE ParentID =i_ForumID ORDER BY LastPosted DESC LIMIT 1;
 -- END IF; 
@@ -3645,7 +3672,7 @@ SET ici_LastTopicID=ici_LastTopicIDTmp;
 SET ici_LastMessageID=ici_LastMessageIDTmp;
 SET ici_LastUserID=ici_LastUserIDTmp;
 SET ici_LastUserName=ici_LastUserNameTmp;
-
+SET ici_LastUserDisplayName=ici_LastUserDisplayNameTmp;
 END IF;
 END IF;
 
@@ -3656,6 +3683,7 @@ SET ici_LastTopicID=ici_LastTopicIDTmp;
 SET ici_LastMessageID=ici_LastMessageIDTmp;
 SET ici_LastUserID=ici_LastUserIDTmp;
 SET ici_LastUserName=ici_LastUserNameTmp;
+SET ici_LastUserDisplayName=ici_LastUserDisplayNameTmp;
 
 END IF;
 
@@ -3670,7 +3698,8 @@ UPDATE {databaseName}.{objectQualifier}Forum
 				LastTopicID = ici_LastTopicID,
 				LastMessageID = ici_LastMessageID,
 				LastUserID = ici_LastUserID,
-				LastUserName = ici_LastUserName
+				LastUserName = ici_LastUserName,
+				LastUserDisplayName = ici_LastUserDisplayName
  WHERE ForumID = i_ForumID;
 
 END IF;
@@ -3731,8 +3760,9 @@ SELECT  LastPosted,
 LastTopicID,
 LastMessageID,
 LastUserID,
-LastUserName
-INTO ici_LastPosted,ici_LastTopicID,ici_LastMessageID,ici_LastUserID,ici_LastUserName
+LastUserName,
+LastUserDisplayName
+INTO ici_LastPosted,ici_LastTopicID,ici_LastMessageID,ici_LastUserID,ici_LastUserName,ici_LastUserDisplayName
 FROM {databaseName}.{objectQualifier}Forum
 WHERE LastPosted =ici_MaxTPosted ORDER BY LastPosted DESC LIMIT 1;
 
@@ -3744,7 +3774,8 @@ WHERE LastPosted =ici_MaxTPosted ORDER BY LastPosted DESC LIMIT 1;
 				LastTopicID = ici_LastTopicID,
 				LastMessageID = ici_LastMessageID,
 				LastUserID = ici_LastUserID,
-				LastUserName = ici_LastUserName                   
+				LastUserName = ici_LastUserName,
+				LastUserDisplayName = ici_LastUserDisplayName               
  	  WHERE ForumID = ici_ParentID;
 END IF;
 CALL {databaseName}.{objectQualifier}forum_updatestats(ici_ParentID);
@@ -3771,12 +3802,14 @@ SELECT  LastPosted,
 LastTopicID,
 LastMessageID,
 LastUserID,
-LastUserName
+LastUserName,
+LastUserDisplayName
 INTO ici_LastPosted,
 ici_LastTopicID,
 ici_LastMessageID,
 ici_LastUserID,
-ici_LastUserName
+ici_LastUserName,
+ici_LastUserDisplayName
 FROM {databaseName}.{objectQualifier}Forum
 WHERE LastPosted =ici_MaxTPosted ORDER BY LastPosted DESC LIMIT 1;
 END IF;
@@ -3786,7 +3819,8 @@ END IF;
 				LastTopicID = ici_LastTopicID,
 				LastMessageID = ici_LastMessageID,
 				LastUserID = ici_LastUserID,
-				LastUserName = ici_LastUserName
+				LastUserName = ici_LastUserName,
+				LastUserDisplayName = ici_LastUserDisplayName
 			WHERE
 				ForumID = ici_tmpParent
         AND ((UNIX_TIMESTAMP(LastPosted) <= UNIX_TIMESTAMP(ici_LastPosted))
@@ -3807,20 +3841,19 @@ CREATE  PROCEDURE {databaseName}.{objectQualifier}forum_updatestats(i_ForumID IN
 BEGIN
         UPDATE {databaseName}.{objectQualifier}Forum 
            SET 
- 		NumPosts = (SELECT COUNT(1) FROM {databaseName}.{objectQualifier}MessageSelectView x 
-                               JOIN {databaseName}.{objectQualifier}TopicSelectView y 
+ 		NumPosts = (SELECT COUNT(1) FROM {databaseName}.{objectQualifier}Message x 
+                               JOIN {databaseName}.{objectQualifier}Topic y 
                                   ON y.TopicID=x.TopicID 
                                    WHERE y.ForumID = i_ForumID 
-                                     AND x.IsApproved = 1 
-                                       AND x.IsDeleted = 0 
-                                         AND y.IsDeleted = 0 ),
- 		NumTopics = (SELECT COUNT(distinct x.TopicID) FROM {databaseName}.{objectQualifier}TopicSelectView x 
-                               JOIN {databaseName}.{objectQualifier}MessageSelectView y 
+                                     AND SIGN(y.Flags & 16) >= 1 
+                                       AND SIGN(y.Flags & 8) = 0 
+                                          AND SIGN(x.Flags & 8) = 0 ),
+ 		NumTopics = (SELECT COUNT(distinct x.TopicID) FROM {databaseName}.{objectQualifier}Topic x 
+                               JOIN {databaseName}.{objectQualifier}Message y 
                                   ON y.TopicID=x.TopicID 
                                    WHERE x.ForumID = i_ForumID 
-                                     AND y.IsApproved = 1 
-                                         AND y.IsDeleted = 0 
-                                           AND x.IsDeleted = 0)
+                                    AND (y.Flags & 16) > 0 AND (y.Flags & 8)= 0
+                                           AND SIGN(x.Flags & 8) = 0 )
  	WHERE ForumID=i_ForumID;
 END;
 --GO
@@ -4122,14 +4155,15 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}mail_create
  	i_ToName   VARCHAR(128),
  	i_Subject  VARCHAR(128),
  	i_Body     TEXT,
- 	i_BodyHtml TEXT
+ 	i_BodyHtml TEXT,
+	i_UTCTIMESTAMP DATETIME
  )
 
  BEGIN
  	INSERT INTO {databaseName}.{objectQualifier}Mail
  		(FromUser,FromUserName,ToUser,ToUserName,Created,Subject,Body,BodyHtml)
  	VALUES
- 		(i_From,i_FromName,i_To,i_ToName,UTC_TIMESTAMP(),i_Subject,i_Body,i_BodyHtml);	
+ 		(i_From,i_FromName,i_To,i_ToName,i_UTCTIMESTAMP,i_Subject,i_Body,i_BodyHtml);	
  END;
 --GO
 
@@ -4143,7 +4177,8 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}mail_create
  	i_Subject   VARCHAR(128),
  	i_Body      TEXT,
  	i_BodyHtml  TEXT,
- 	i_UserID    INT
+ 	i_UserID    INT,
+	i_UTCTIMESTAMP DATETIME
  )
  BEGIN
  	INSERT INTO {databaseName}.{objectQualifier}Mail(FromUser,FromUserName,ToUser,ToUserName,Created,Subject,Body,BodyHtml)
@@ -4152,7 +4187,7 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}mail_create
  		i_FROMName,
  		b.Email,
  		b.Name,
- 		UTC_TIMESTAMP(),
+ 		i_UTCTIMESTAMP,
  		i_Subject,
  		i_Body,
  		i_BodyHtml
@@ -4171,7 +4206,7 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}mail_create
  		i_FromName,
  		b.Email,
  		b.Name,
- 		UTC_TIMESTAMP(),
+ 		i_UTCTIMESTAMP,
  		i_Subject,
  		i_Body,
  		i_BodyHtml
@@ -4186,11 +4221,11 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}mail_create
  		(a.LastMail IS NULL OR UNIX_TIMESTAMP(a.LastMail) < UNIX_TIMESTAMP(b.LastVisit)) AND
  		NOT EXISTS (SELECT 1 FROM {databaseName}.{objectQualifier}WatchTopic x WHERE x.UserID=b.UserID AND x.TopicID=c.TopicID);
  
- 	UPDATE {databaseName}.{objectQualifier}WatchTopic SET LastMail = UTC_TIMESTAMP()
+ 	UPDATE {databaseName}.{objectQualifier}WatchTopic SET LastMail = i_UTCTIMESTAMP
  	WHERE TopicID = i_TopicID
  	AND UserID <> i_UserID;
  	
- 	UPDATE {databaseName}.{objectQualifier}WatchForum SET LastMail = UTC_TIMESTAMP()
+ 	UPDATE {databaseName}.{objectQualifier}WatchForum SET LastMail = i_UTCTIMESTAMP
  	WHERE ForumID = (SELECT ForumID FROM {databaseName}.{objectQualifier}Topic WHERE TopicID = i_TopicID)
  	AND UserID <> i_UserID;
 END;
@@ -4206,14 +4241,15 @@ END;
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
  CREATE PROCEDURE {databaseName}.{objectQualifier}mail_list
 (
- 	i_ProcessID INT
+ 	i_ProcessID INT,
+	i_UTCTIMESTAMP DATETIME
  )
  BEGIN
- CREATE TEMPORARY TABLE IF NOT EXISTS tmp_table55 SELECT  MailID FROM {databaseName}.{objectQualifier}Mail WHERE SendAttempt < UTC_TIMESTAMP() OR SendAttempt IS NULL ORDER BY SendAttempt desc, Created desc LIMIT 10;
+ CREATE TEMPORARY TABLE IF NOT EXISTS tmp_table55 SELECT  MailID FROM {databaseName}.{objectQualifier}Mail WHERE SendAttempt < i_UTCTIMESTAMP OR SendAttempt IS NULL ORDER BY SendAttempt desc, Created desc LIMIT 10;
  	UPDATE {databaseName}.{objectQualifier}Mail
  	SET 
  		SendTries = SendTries + 1,
- 		SendAttempt = ADDDATE(UTC_TIMESTAMP(), INTERVAL 5 MINUTE),
+ 		SendAttempt = ADDDATE(i_UTCTIMESTAMP, INTERVAL 5 MINUTE),
  		ProcessID = i_ProcessID
  	WHERE
  		MailID IN (SELECT MailID FROM tmp_table55 ORDER BY SendAttempt desc, Created desc);
@@ -4455,7 +4491,8 @@ BEGIN
  	DECLARE	ici_ParentID	INT;
  	DECLARE	ici_TopicID	INT;
  	DECLARE ici_Posted	DATETIME;
- 	DECLARE	ici_UserName	VARCHAR(128);
+ 	DECLARE	ici_UserName	VARCHAR(255);
+	DECLARE	ici_UserDisplayName	VARCHAR(255);
     DECLARE	ici_NewFlag	INT; 	
  
  	SELECT 
@@ -4464,8 +4501,9 @@ BEGIN
  		 b.ForumID,
  		 a.Posted,
  		 a.UserName,
+		 a.UserDisplayName,
  		 a.Flags
- 		INTO ici_UserID,ici_TopicID,ici_ForumID,ici_Posted,ici_UserName,ici_NewFlag
+ 		INTO ici_UserID,ici_TopicID,ici_ForumID,ici_Posted,ici_UserName,ici_UserDisplayName, ici_NewFlag
  	FROM
  		{databaseName}.{objectQualifier}Message a
  		inner join {databaseName}.{objectQualifier}Topic b on b.TopicID=a.TopicID
@@ -4482,7 +4520,7 @@ BEGIN
  	IF EXISTS(SELECT 1 FROM {databaseName}.{objectQualifier}Forum WHERE ForumID=ici_ForumID AND (Flags & 4)=0 LIMIT 1) THEN
  	
  		UPDATE {databaseName}.{objectQualifier}User set NumPosts = NumPosts + 1 where UserID = ici_UserID;
- 		/*upgrade user, i.e. promote rank if conditions allow it*/
+ 		-- upgrade user, i.e. promote rank if conditions allow it
  		CALL {databaseName}.{objectQualifier}user_upgrade (ici_UserID);
  	
  END IF;
@@ -4497,7 +4535,8 @@ BEGIN
  		LastTopicID = ici_TopicID,
  		LastMessageID = i_MessageID,
  		LastUserID = ici_UserID ,
- 		LastUserName = ici_UserName
+ 		LastUserName = ici_UserName,
+		LastUserDisplayName = ici_UserDisplayName
  	WHERE ForumID = ici_ForumID;
  	
  	WHILE ici_ParentID > 0 DO
@@ -4506,7 +4545,8 @@ BEGIN
 				LastTopicID = ici_TopicID,
 				LastMessageID = i_MessageID,
 				LastUserID = ici_UserID,
-				LastUserName = ici_UserName
+				LastUserName = ici_UserName,
+				LastUserDisplayName = ici_UserDisplayName
 			WHERE
 				ForumID = ici_ParentID
         AND ((UNIX_TIMESTAMP(LastPosted) < UNIX_TIMESTAMP(ici_Posted))
@@ -4524,8 +4564,9 @@ BEGIN
  		LastMessageID = i_MessageID,
 		LastMessageFlags = ici_NewFlag | 16,
  		LastUserID = ici_UserID,
- 		LastUserName = ici_UserName,		
- 		NumPosts = (select count(1) from {databaseName}.{objectQualifier}MessageSelectView x WHERE x.TopicID={databaseName}.{objectQualifier}Topic.TopicID and x.IsApproved = 1 and x.IsDeleted = 0)
+ 		LastUserName = ici_UserName,
+		LastUserDisplayName = ici_UserDisplayName,	
+ 		NumPosts = (select count(1) from {databaseName}.{objectQualifier}Message x WHERE x.TopicID={databaseName}.{objectQualifier}Topic.TopicID AND (x.Flags & 16) > 0 AND (x.Flags & 8) = 0)
  	WHERE TopicID = ici_TopicID;
  	
  	/*update forum stats*/
@@ -4562,7 +4603,8 @@ BEGIN
  		LastPosted = NULL,
  		LastMessageID = NULL,
  		LastUserID = NULL,
- 		LastUserName = NULL
+ 		LastUserName = NULL,
+		LastUserDisplayName = NULL
  	WHERE LastMessageID = i_MessageID;
 
  	/*UPDATE LastMessageID in Forum*/
@@ -4571,7 +4613,8 @@ BEGIN
  		LastTopicID = NULL,
  		LastMessageID = NULL,
  		LastUserID = NULL,
- 		LastUserName = NULL
+ 		LastUserName = NULL,
+		LastUserDisplayName = NULL
  	WHERE LastMessageID = i_MessageID;
  
  	SET ici_UserID = (SELECT UserID FROM {databaseName}.{objectQualifier}Message WHERE MessageID = i_MessageID);	
@@ -4592,7 +4635,7 @@ BEGIN
  	END IF;
  	
  	/* UPDATE user post count*/
- 	UPDATE {databaseName}.{objectQualifier}User SET NumPosts = (SELECT count(MessageID) FROM {databaseName}.{objectQualifier}MessageSelectView WHERE UserID = ici_UserID AND IsDeleted = 0 AND IsApproved = 1) WHERE UserID = ici_UserID;
+ 	UPDATE {databaseName}.{objectQualifier}User SET NumPosts = (SELECT count(MessageID) FROM {databaseName}.{objectQualifier}Message WHERE UserID = ici_UserID AND (Flags & 16) > 0 AND (Flags & 8)= 0) WHERE UserID = ici_UserID;
  	
  	/* Delete topic if there are no more messages*/
  	SELECT COUNT(1) INTO ici_MessageCount FROM {databaseName}.{objectQualifier}Message WHERE TopicID = ici_TopicID AND (Flags & 8)=0;
@@ -4605,7 +4648,7 @@ BEGIN
  
  	/*UPDATE topic numposts*/
  	UPDATE {databaseName}.{objectQualifier}Topic SET
- 		NumPosts = (SELECT COUNT(1) FROM {databaseName}.{objectQualifier}MessageSelectView x WHERE x.TopicID={databaseName}.{objectQualifier}Topic.TopicID and x.IsApproved = 1 and x.IsDeleted = 0)
+ 		NumPosts = (SELECT COUNT(1) FROM {databaseName}.{objectQualifier}Message x WHERE x.TopicID={databaseName}.{objectQualifier}Topic.TopicID AND (x.Flags & 16) > 0 AND (x.Flags & 8)= 0)
  	WHERE TopicID = ici_TopicID;
 END;
 --GO
@@ -4642,7 +4685,8 @@ BEGIN
  		LastPosted = NULL,
  		LastMessageID = NULL,
  		LastUserID = NULL,
- 		LastUserName = NULL
+ 		LastUserName = NULL,
+		LastUserDisplayName = NULL
  	WHERE LastMessageID = i_MessageID;
  
  	UPDATE {databaseName}.{objectQualifier}Forum 
@@ -4651,7 +4695,8 @@ BEGIN
  		LastTopicID = NULL,
  		LastMessageID = NULL,
  		LastUserID = NULL,
- 		LastUserName = NULL
+ 		LastUserName = NULL,
+		LastUserDisplayName = NULL
  	   WHERE LastMessageID = i_MessageID;
  /*get the userID for this message...*/ 	
  	 SELECT UserID INTO ici_UserID 
@@ -4672,7 +4717,7 @@ BEGIN
     AND ((Flags & 8) <> i_isDeleteAction*8);
      
      /* update num posts for user now that the delete/undelete status has been toggled...*/
-     UPDATE {databaseName}.{objectQualifier}User SET NumPosts = (SELECT count(MessageID) FROM {databaseName}.{objectQualifier}MessageSelectView WHERE UserID = ici_UserID AND IsDeleted = 0 AND IsApproved = 1) WHERE UserID = ici_UserID;
+     UPDATE {databaseName}.{objectQualifier}User SET NumPosts = (SELECT count(MessageID) FROM {databaseName}.{objectQualifier}Message WHERE UserID = ici_UserID AND (Flags & 16) > 0 AND (Flags & 8)= 0) WHERE UserID = ici_UserID;
  
  	/* Delete topic if there are no more messages*/
  	SELECT COUNT(1) INTO ici_MessageCount FROM {databaseName}.{objectQualifier}Message WHERE TopicID = ici_TopicID AND (Flags & 8)=0;
@@ -4683,7 +4728,7 @@ BEGIN
  	CALL {databaseName}.{objectQualifier}forum_updatestats (ici_ForumID);
  	/* update topic numposts*/
  	UPDATE {databaseName}.{objectQualifier}Topic set
- 		NumPosts = (select count(1) from {databaseName}.{objectQualifier}MessageSelectView x WHERE x.TopicID={databaseName}.{objectQualifier}Topic.TopicID and x.IsApproved = 1 and x.IsDeleted = 0 )
+ 		NumPosts = (select count(1) from {databaseName}.{objectQualifier}Message x WHERE x.TopicID={databaseName}.{objectQualifier}Topic.TopicID AND (x.Flags & 16) > 0 AND (x.Flags & 8)= 0 )
  	WHERE TopicID = ici_TopicID;
 END;
 --GO
@@ -4830,6 +4875,7 @@ DROP TABLE IF EXISTS tbl_msglunr ;
  		a.MessageID,
  		a.UserID,
  		b.Name AS UserName,
+		b.DisplayName AS UserDisplayName,
  		a.Message,
  		c.TopicID,
  		c.ForumID,
@@ -4874,6 +4920,7 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}message_listreported(i_ForumID 
  		b.Flags,
 		b.IsModeratorChanged,	
  		IFNULL(b.UserName,d.Name) AS UserName,
+		IFNULL(b.UserDisplayName,d.DisplayName) AS UserDisplayName,
  		b.UserID AS UserID,
  		b.Posted AS Posted,
 		b.TopicID AS TopicID,
@@ -4955,7 +5002,8 @@ IF ici_Position IS NULL THEN set ici_Position = 0; END IF;
  		LastPosted = NULL,
  		LastMessageID = NULL,
  		LastUserID = NULL,
- 		LastUserName = NULL
+ 		LastUserName = NULL,
+		LastUserDisplayName = NULL
  	WHERE LastMessageID = i_MessageID;
  
  	UPDATE {databaseName}.{objectQualifier}Forum set
@@ -4963,7 +5011,8 @@ IF ici_Position IS NULL THEN set ici_Position = 0; END IF;
  		LastTopicID = NULL,
  		LastMessageID = NULL,
  		LastUserID = NULL,
- 		LastUserName = NULL
+ 		LastUserName = NULL,
+		LastUserDisplayName = NULL
  	WHERE LastMessageID = i_MessageID;
 
  
@@ -4988,14 +5037,14 @@ IF ici_Position IS NULL THEN set ici_Position = 0; END IF;
     CALL {databaseName}.{objectQualifier}forum_updatelastpost(ici_NewForumID);
  	 /*update topic numposts*/
  	UPDATE {databaseName}.{objectQualifier}Topic SET
- 		NumPosts = (SELECT COUNT(1) from {databaseName}.{objectQualifier}MessageSelectView x 
+ 		NumPosts = (SELECT COUNT(1) from {databaseName}.{objectQualifier}Message x 
  		WHERE x.TopicID={databaseName}.{objectQualifier}Topic.TopicID 
- 		and x.IsApproved = 1 and x.IsDeleted = 0)
+ 		AND (x.Flags & 16) > 0 AND (x.Flags & 8)= 0)
  	WHERE TopicID = ici_OldTopicID;
  	UPDATE {databaseName}.{objectQualifier}Topic set
- 		NumPosts = (SELECT COUNT(1) from {databaseName}.{objectQualifier}MessageSelectView x 
+ 		NumPosts = (SELECT COUNT(1) from {databaseName}.{objectQualifier}Message x 
  		WHERE x.TopicID={databaseName}.{objectQualifier}Topic.TopicID 
- 		and x.IsApproved = 1 and x.IsDeleted = 0)
+ 		AND (x.Flags & 16) > 0 AND (x.Flags & 8)= 0)
  	WHERE TopicID = i_MoveToTopic;
  
  	CALL {databaseName}.{objectQualifier}forum_updatelastpost(ici_NewForumID);
@@ -5034,12 +5083,12 @@ END;
 CREATE PROCEDURE {databaseName}.{objectQualifier}message_listreporters(i_MessageID int, i_UserID int)
 BEGIN
 	IF i_UserID > 0 THEN
-	SELECT DISTINCTROW b.UserID, a.Name AS UserName, b.ReportedNumber, b.ReportText  
+	SELECT DISTINCTROW b.UserID, a.Name AS UserName, a.DisplayName AS UserDisplayName, b.ReportedNumber, b.ReportText  
 	FROM {databaseName}.{objectQualifier}User a,
 	{databaseName}.{objectQualifier}MessageReportedAudit b
 	WHERE a.UserID = b.UserID AND b.MessageID = i_MessageID  AND a.UserID =i_UserID ORDER BY b.Reported DESC;
 	ELSE
-	SELECT DISTINCTROW b.UserID, a.Name AS UserName, b.ReportedNumber, b.ReportText  
+	SELECT DISTINCTROW b.UserID, a.Name AS UserName, a.DisplayName AS UserDisplayName, b.ReportedNumber, b.ReportText  
 	FROM {databaseName}.{objectQualifier}User a,
 	{databaseName}.{objectQualifier}MessageReportedAudit b
 	WHERE a.UserID = b.UserID AND b.MessageID = i_MessageID ORDER BY b.Reported DESC;
@@ -5053,13 +5102,14 @@ END;
 CREATE PROCEDURE {databaseName}.{objectQualifier}message_report
 (i_MessageID INT, 
 i_ReporterID INT, 
-i_ReportedDate DATETIME, i_ReportText VARCHAR(4000)) 
+i_ReportedDate DATETIME, i_ReportText VARCHAR(4000),
+	i_UTCTIMESTAMP DATETIME) 
  BEGIN
  	IF i_ReportText IS NULL THEN SET i_ReportText = ''; END IF;
  	IF NOT EXISTS (SELECT MessageID from {databaseName}.{objectQualifier}MessageReportedAudit WHERE MessageID=i_MessageID AND UserID=i_ReporterID) THEN
- 		INSERT INTO {databaseName}.{objectQualifier}MessageReportedAudit(MessageID,UserID,Reported, ReportText) VALUES (i_MessageID,i_ReporterID,i_ReportedDate,CONCAT(CAST(UTC_TIMESTAMP() AS CHAR(40)), '??' ,i_ReportText) ); 
+ 		INSERT INTO {databaseName}.{objectQualifier}MessageReportedAudit(MessageID,UserID,Reported, ReportText) VALUES (i_MessageID,i_ReporterID,i_ReportedDate,CONCAT(CAST(i_UTCTIMESTAMP AS CHAR(40)), '??' ,i_ReportText) ); 
     ELSE
-        UPDATE {databaseName}.{objectQualifier}MessageReportedAudit SET ReportedNumber = ( CASE WHEN ReportedNumber < 2147483647 THEN  ReportedNumber  + 1 ELSE ReportedNumber END ), Reported = i_ReportedDate, ReportText = (CASE WHEN (CHAR_LENGTH(ReportText) + CHAR_LENGTH(i_ReportText ) + 255 < 4000)  THEN  CONCAT(ReportText , '|' , CAST(UTC_TIMESTAMP() AS CHAR(40)), '??' ,  i_ReportText)  ELSE ReportText END) WHERE MessageID=i_MessageID AND UserID=i_ReporterID; 
+        UPDATE {databaseName}.{objectQualifier}MessageReportedAudit SET ReportedNumber = ( CASE WHEN ReportedNumber < 2147483647 THEN  ReportedNumber  + 1 ELSE ReportedNumber END ), Reported = i_ReportedDate, ReportText = (CASE WHEN (CHAR_LENGTH(ReportText) + CHAR_LENGTH(i_ReportText ) + 255 < 4000)  THEN  CONCAT(ReportText , '|' , CAST(i_UTCTIMESTAMP AS CHAR(40)), '??' ,  i_ReportText)  ELSE ReportText END) WHERE MessageID=i_MessageID AND UserID=i_ReporterID; 
 	END IF;
 	
  	IF NOT EXISTS (SELECT MessageID FROM {databaseName}.{objectQualifier}MessageReported WHERE MessageID=i_MessageID) THEN
@@ -5093,11 +5143,11 @@ END;
 --GO
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
-CREATE PROCEDURE {databaseName}.{objectQualifier}message_reportresolve(i_MessageFlag INT, i_MessageID INT, i_UserID INT) 
+CREATE PROCEDURE {databaseName}.{objectQualifier}message_reportresolve(i_MessageFlag INT, i_MessageID INT, i_UserID INT, i_UTCTIMESTAMP DATETIME) 
  BEGIN
 
  	UPDATE {databaseName}.{objectQualifier}MessageReported
- 	SET Resolved = 1, ResolvedBy = i_UserID, ResolvedDate = UTC_TIMESTAMP()
+ 	SET Resolved = 1, ResolvedBy = i_UserID, ResolvedDate = i_UTCTIMESTAMP
  	WHERE MessageID = i_MessageID; 	
  	/* Remove Flag */
  	UPDATE {databaseName}.{objectQualifier}Message
@@ -5121,6 +5171,7 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}message_reportresolve(i_Message
 	i_ExternalMessageId varchar(255),
 	i_ReferenceMessageId varchar(255),
  	i_Flags			INT,
+	i_UTCTIMESTAMP DATETIME,
  	OUT i_MessageID	INT
  )
  BEGIN
@@ -5129,9 +5180,10 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}message_reportresolve(i_Message
         DECLARE ici_Position INT;
         DECLARE ici_Indent INT;
         DECLARE ici_temp INT;
+		DECLARE ici_OverrideDisplayName TINYINT(1);
        
  	IF i_Posted IS NULL THEN
- 		SET i_Posted = UTC_TIMESTAMP(); END IF;
+ 		SET i_Posted = i_UTCTIMESTAMP; END IF;
  
  	SELECT  x.ForumID,  y.Flags
         INTO ici_ForumID,ici_ForumFlags
@@ -5190,11 +5242,11 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}message_reportresolve(i_Message
             END IF;
          END IF;
   END IF;
- 
+    SELECT SIGN(COUNT(Name))  INTO ici_OverrideDisplayName FROM {databaseName}.{objectQualifier}User WHERE UserID = i_UserID AND Name != i_UserName;	
  	/* Add points to Users total points */
  	UPDATE {databaseName}.{objectQualifier}User SET Points = Points + 3  WHERE UserID = i_UserID;       
- 	INSERT {databaseName}.{objectQualifier}Message ( UserID, Message, TopicID, Posted, UserName, IP, ReplyTo, `Position`, Indent, Flags, BlogPostID, ExternalMessageId, ReferenceMessageId)
- 	VALUES ( i_UserID, CONVERT(i_Message USING {databaseEncoding}), i_TopicID, i_Posted, i_UserName, i_IP, i_ReplyTo, ici_Position, ici_Indent, i_Flags & ~16, i_BlogPostID, i_ExternalMessageId, i_ReferenceMessageId);
+ 	INSERT {databaseName}.{objectQualifier}Message ( UserID, Message, TopicID, Posted, UserName,UserDisplayName, IP, ReplyTo, `Position`, Indent, Flags, BlogPostID, ExternalMessageId, ReferenceMessageId)
+ 	VALUES ( i_UserID, CONVERT(i_Message USING {databaseEncoding}), i_TopicID, i_Posted, i_UserName,(CASE WHEN ici_OverrideDisplayName = 1 THEN i_UserName ELSE (SELECT DisplayName FROM {databaseName}.{objectQualifier}User WHERE UserID = i_UserID) END) ,i_IP, i_ReplyTo, ici_Position, ici_Indent, i_Flags & ~16, i_BlogPostID, i_ExternalMessageId, i_ReferenceMessageId);
 
  	SET i_MessageID = LAST_INSERT_ID();
 
@@ -5214,10 +5266,11 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}message_reportresolve(i_Message
       b.MessageID AS MessageID,
       b.UserID AS UserID,
       IFNULL(b.UserName,c.Name) AS UserName,
+	  IFNULL(b.UserDisplayName,c.DisplayName) AS UserDisplayName,
       b.Posted AS Posted,
       a.Topic AS Topic,
       a.TopicID,
-      b.Message AS Message,
+      b.Message AS `Message`,
       b.Flags AS Flags,
       b.IsModeratorChanged AS IsModeratorChanged
       FROM
@@ -5330,7 +5383,7 @@ END;
 
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
-CREATE PROCEDURE {databaseName}.{objectQualifier}nntpforum_list(i_BoardID INT,i_Minutes INT,i_NntpForumID INT,i_Active TINYINT(1)) 
+CREATE PROCEDURE {databaseName}.{objectQualifier}nntpforum_list(i_BoardID INT,i_Minutes INT,i_NntpForumID INT,i_Active TINYINT(1),i_UTCTIMESTAMP DATETIME) 
 BEGIN
  	SELECT
  		a.Name,
@@ -5355,7 +5408,7 @@ BEGIN
                 ON c.ForumID = b.ForumID
  	WHERE
  		(i_Minutes IS NULL 
-                 OR CAST(ROUND((UTC_TIMESTAMP()-b.LastUpdate)/60) AS SIGNED)>i_Minutes) AND
+                 OR CAST(ROUND((i_UTCTIMESTAMP-b.LastUpdate)/60) AS SIGNED)>i_Minutes) AND
  		(i_NntpForumID IS NULL OR b.NntpForumID=i_NntpForumID) AND
  		a.BoardID=i_BoardID AND
  		(i_Active IS NULL OR b.Active=i_Active)
@@ -5373,11 +5426,12 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}nntpforum_save(
 				 i_GroupName VARCHAR(128),
 				 i_ForumID INT,
 				 i_Active TINYINT(1), 
-				 i_DateCutoff DATETIME) 
+				 i_DateCutoff DATETIME,
+				 i_UTCTIMESTAMP DATETIME) 
 BEGIN
  	IF i_NntpForumID IS NULL THEN
  		INSERT INTO {databaseName}.{objectQualifier}NntpForum(NntpServerID,GroupName,ForumID,LastMessageNo,LastUpdate,Active, DateCutoff)
- 		VALUES(i_NntpServerID,i_GroupName,i_ForumID,0,UTC_TIMESTAMP(),i_Active, i_DateCutoff);
+ 		VALUES(i_NntpServerID,i_GroupName,i_ForumID,0,i_UTCTIMESTAMP,i_Active, i_DateCutoff);
  	ELSE
  		UPDATE {databaseName}.{objectQualifier}NntpForum SET
  			NntpServerID = i_NntpServerID,
@@ -5392,7 +5446,8 @@ END;
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
 
-CREATE PROCEDURE {databaseName}.{objectQualifier}nntpforum_update(i_NntpForumID INT,i_LastMessageNo INT,i_UserID INT) 
+CREATE PROCEDURE {databaseName}.{objectQualifier}nntpforum_update(i_NntpForumID INT,i_LastMessageNo INT,i_UserID INT,
+				 i_UTCTIMESTAMP DATETIME) 
 BEGIN
  	DECLARE	ici_ForumID	INT;
  	
@@ -5400,11 +5455,11 @@ BEGIN
  
  	UPDATE {databaseName}.{objectQualifier}NntpForum SET
  		LastMessageNo = i_LastMessageNo,
- 		LastUpdate = UTC_TIMESTAMP()
+ 		LastUpdate = i_UTCTIMESTAMP
  	WHERE NntpForumID = i_NntpForumID;
  
  	UPDATE {databaseName}.{objectQualifier}Topic SET 
- 		NumPosts = (SELECT COUNT(1) FROM {databaseName}.{objectQualifier}MessageSelectView x WHERE x.TopicID={databaseName}.{objectQualifier}Topic.TopicID AND x.IsApproved = 1 AND x.IsDeleted = 0)
+ 		NumPosts = (SELECT COUNT(1) FROM {databaseName}.{objectQualifier}Message x WHERE x.TopicID={databaseName}.{objectQualifier}Topic.TopicID AND (x.Flags & 16) > 0 AND (x.Flags & 8)= 0)
  	WHERE ForumID=ici_ForumID;
  
  	/* CALL {databaseName}.{objectQualifier}user_upgrade(i_UserID) */
@@ -5483,7 +5538,8 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}nntptopic_savemessage(
  	i_IP			VARCHAR(39),
  	i_Posted			DATETIME, 
 	i_ExternalMessageId	nvarchar(64),
-	i_ReferenceMessageId nvarchar(64)
+	i_ReferenceMessageId nvarchar(64),
+	i_UTCTIMESTAMP DATETIME
  )  
  BEGIN   
  	DECLARE	ici_ForumID	INT;
@@ -5514,8 +5570,8 @@ declare ici_ReplyTo	INT DEFAULT NULL;
  		/* thread doesn't exists */
 		if (i_ReferenceMessageId IS NULL OR i_ReferenceMessageId = 0)
 		then
- 		INSERT INTO {databaseName}.{objectQualifier}Topic(ForumID,UserID,UserName,Posted,Topic,Views,Priority,NumPosts)
- 		VALUES(ici_ForumID,i_UserID,i_UserName,i_Posted,i_Topic,0,0,0);
+ 		INSERT INTO {databaseName}.{objectQualifier}Topic(ForumID,UserID,UserName,UserDisplayName,Posted,Topic,Views,Priority,NumPosts)
+ 		VALUES(ici_ForumID,i_UserID,i_UserName,i_UserName,i_Posted,i_Topic,0,0,0);
  	    SELECT LAST_INSERT_ID() INTO ici_TopicID; 
  		INSERT INTO {databaseName}.{objectQualifier}NntpTopic(NntpForumID,Thread,TopicID)
  		VALUES (i_NntpForumID,'',ici_TopicID);
@@ -5526,7 +5582,7 @@ declare ici_ReplyTo	INT DEFAULT NULL;
 
  	IF ici_TopicID IS NOT NULL
 	then
-		CALL {databaseName}.{objectQualifier}message_save( ici_TopicID, i_UserID, i_Body, i_UserName, i_IP, i_Posted, cic_ReplyTo, NULL, i_ExternalMessageId, i_ReferenceMessageId, 17, ici_MessageID); 
+		CALL {databaseName}.{objectQualifier}message_save( ici_TopicID, i_UserID, i_Body, i_UserName, i_IP, i_Posted, cic_ReplyTo, NULL, i_ExternalMessageId, i_ReferenceMessageId, 17,i_UTCTIMESTAMP, ici_MessageID); 
 	END if;	
 
  
@@ -5777,7 +5833,7 @@ delete from {databaseName}.{objectQualifier}Active where (SessionID = i_SessionI
 			-- parameter to update active users cache if this is a new user
 			 if ici_IsGuest=0 THEN
 	
-			 CALL {databaseName}.{objectQualifier}active_updatemaxstats (i_BoardID); 
+			 CALL {databaseName}.{objectQualifier}active_updatemaxstats (i_BoardID, i_CurrentTime); 
 			END IF; 
 		END IF;
 		/*remove duplicate users*/
@@ -6072,17 +6128,18 @@ END;
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
 
-CREATE PROCEDURE {databaseName}.{objectQualifier}pmessage_prune(i_DaysRead INT,i_DaysUnread INT) 
+CREATE PROCEDURE {databaseName}.{objectQualifier}pmessage_prune(i_DaysRead INT,i_DaysUnread INT,
+				 i_UTCTIMESTAMP DATETIME) 
 BEGIN
  	DELETE FROM {databaseName}.{objectQualifier}UserPMessage
  	WHERE CAST(SIGN((`Flags` | 4)  & 1) AS SIGNED)<>0
- 	and DATEDIFF(UTC_TIMESTAMP(),
+ 	and DATEDIFF(i_UTCTIMESTAMP,
  	(SELECT x.Created FROM {databaseName}.{objectQualifier}PMessage x 
  	WHERE x.PMessageID={databaseName}.{objectQualifier}UserPMessage.PMessageID))>i_DaysRead;
  
  	DELETE FROM {databaseName}.{objectQualifier}UserPMessage
  	WHERE CAST(SIGN((`Flags` | 4)  & 1) AS SIGNED)=0
- 	and DATEDIFF(UTC_TIMESTAMP(),(SELECT Created FROM {databaseName}.{objectQualifier}PMessage x 
+ 	and DATEDIFF(i_UTCTIMESTAMP,(SELECT Created FROM {databaseName}.{objectQualifier}PMessage x 
  	WHERE x.PMessageID={databaseName}.{objectQualifier}UserPMessage.PMessageID))>i_DaysUnread;
  
  	DELETE FROM {databaseName}.{objectQualifier}PMessage
@@ -6097,14 +6154,15 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}pmessage_save(
  	i_ToUserID	INT,
  	i_Subject	VARCHAR(128),
  	i_Body		TEXT,
- 	i_Flags		INT
+ 	i_Flags		INT,
+	i_UTCTIMESTAMP DATETIME
  ) 
 BEGIN
  	DECLARE ici_PMessageID INT;
  	DECLARE ici_UserID INT;
  
  	INSERT INTO {databaseName}.{objectQualifier}PMessage(FromUserID,Created,Subject,Body,Flags)
- 	VALUES(i_FromUserID,UTC_TIMESTAMP(),i_Subject,i_Body,i_Flags);
+ 	VALUES(i_FromUserID,i_UTCTIMESTAMP,i_Subject,i_Body,i_Flags);
  
  	SET ici_PMessageID = LAST_INSERT_ID();
  	IF (i_ToUserID = 0) THEN
@@ -6379,6 +6437,7 @@ BEGIN
                 a.UserID,
                 a.Flags,                
                 IFNULL(a.UserName,b.Name) AS UserName,
+				IFNULL(a.UserDisplayName,b.Name) AS UserDisplayName,
                 b.Signature,
                 c.TopicID,
                 c.ForumID,
@@ -6646,6 +6705,7 @@ BEGIN
 		m.ExternalMessageId,
 		m.ReferenceMessageId,
 		IfNull(m.UserName,b.Name) AS UserName,
+		IfNull(m.UserDisplayName,b.DisplayName) AS DisplayName,
 		b.DisplayName,
 		b.Suspended,
 		b.Joined,
@@ -6783,6 +6843,7 @@ BEGIN
  		a.UserID,
  		a.Flags,
  		IFNULL(a.UserName,b.Name) AS UserName,
+		IFNULL(a.UserDisplayName,b.DisplayName) AS DisplayName,
  		b.Signature
  	FROM
  		{databaseName}.{objectQualifier}Message a 
@@ -7046,16 +7107,20 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}shoutbox_savemessage(
 	i_UserName		varchar(128),	
 	i_Message		text,
 	i_Date			datetime,
-	i_IP			varchar(39)
+	i_IP			varchar(39),
+	i_UTCTIMESTAMP DATETIME
 )
 BEGIN
+DECLARE ici_OverrideDisplayName TINYINT(1);
+
 	-- i_UserName def null
 	-- i_Date def null
 	IF i_Date IS NULL THEN
-		SET i_Date = UTC_TIMESTAMP();
+		SET i_Date = i_UTCTIMESTAMP;
 		END IF;
-	INSERT {databaseName}.{objectQualifier}ShoutboxMessage (BoardID, UserName, UserID, `Message`, `Date`, IP)
-	VALUES (i_BoardId, i_UserName, i_UserID, i_Message, i_Date, i_IP);
+    SELECT SIGN(COUNT(Name))  INTO ici_OverrideDisplayName FROM {databaseName}.{objectQualifier}User WHERE UserID = i_UserID AND Name != i_UserName;	
+	INSERT {databaseName}.{objectQualifier}ShoutboxMessage (BoardID, UserName,UserDisplayName, UserID, `Message`, `Date`, IP)
+	VALUES (i_BoardId, i_UserName,(CASE WHEN ici_OverrideDisplayName = 1 THEN i_UserName ELSE (SELECT DisplayName FROM {databaseName}.{objectQualifier}User WHERE UserID = i_UserID) END) ,i_UserID, i_Message, i_Date, i_IP);
 
 END;
 --GO
@@ -7101,7 +7166,7 @@ IF i_SmileyID IS NULL THEN
 		Code,
 		Icon,
 		Emoticon,
-		SortOrder = CAST(SortOrder AS SIGNED) 
+		CAST(SortOrder AS SIGNED) AS  SortOrder
 		FROM {databaseName}.{objectQualifier}Smiley WHERE SmileyID=i_SmileyID ORDER BY SortOrder;
         END IF;
 END;
@@ -7199,7 +7264,8 @@ END;
  	i_User		VARCHAR(128),
  	i_UserEmail	VARCHAR(255),
  	i_UserKey	CHAR(36),
-	i_RolePrefix VARCHAR(128)
+	i_RolePrefix VARCHAR(128),
+	i_UTCTIMESTAMP DATETIME
  	
  ) BEGIN
  	DECLARE ici_tmpValue VARCHAR(128);
@@ -7214,7 +7280,7 @@ END;
 	CALL {databaseName}.{objectQualifier}registry_save('language',i_LanguageFile,null);
 	    
  	 /*initalize new board*/
- 	CALL {databaseName}.{objectQualifier}board_create (i_Name, i_Culture, i_LanguageFile, null,null,i_User,i_UserEmail,i_UserKey,1,i_RolePrefix);
+ 	CALL {databaseName}.{objectQualifier}board_create (i_Name, i_Culture, i_LanguageFile, null,null,i_User,i_UserEmail,i_UserKey,1,i_RolePrefix,i_UTCTIMESTAMP);
  	 /*initalize required 'registry' settings*/
  	CALL {databaseName}.{objectQualifier}registry_save ('version','1',null);
  	CALL {databaseName}.{objectQualifier}registry_save ('versionName','1.0.0',null);
@@ -7373,6 +7439,7 @@ BEGIN
 		c.Description,
  		c.UserID,
  		IFNULL(c.UserName,b.Name) AS Starter,
+		IFNULL(c.UserDisplayName,b.DisplayName) AS StarterDisplay,
  		(SELECT COUNT(1) 
                       FROM {databaseName}.{objectQualifier}Message mes 
                       WHERE mes.TopicID = c.TopicID 
@@ -7387,8 +7454,9 @@ BEGIN
  		c.Views AS Views,
  		c.LastPosted AS LastPosted ,
  		c.LastUserID AS LastUserID,
- 		IFNULL(c.LastUserName,(SELECT `Name` FROM {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) AS                   LastUserName,
- 		c.LastMessageID AS LastMessageID,
+ 		IFNULL(c.LastUserName,(SELECT `Name` FROM {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) AS LastUserName,
+ 		IFNULL(c.LastUserDisplayName,(SELECT `DisplayName` FROM {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) AS LastUserDisplayName,
+		c.LastMessageID AS LastMessageID,
 		c.LastMessageFlags,
  		c.TopicID AS LastTopicID,
  		c.Flags AS TopicFlags,
@@ -7610,6 +7678,7 @@ BEGIN
 		c.Description,
  		c.UserID,
  		IFNULL(c.UserName,b.Name) AS Starter,
+		IFNULL(c.UserDisplayName,b.DisplayName) AS StarterDisplay,
  		(SELECT COUNT(1) 
                       FROM {databaseName}.{objectQualifier}Message mes 
                       WHERE mes.TopicID = c.TopicID 
@@ -7625,6 +7694,7 @@ BEGIN
  		c.LastPosted AS LastPosted,
  		c.LastUserID AS LastUserID,
  		IFNULL(c.LastUserName,(SELECT `Name` FROM {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) AS LastUserName,
+		IFNULL(c.LastUserDisplayName,(SELECT `DisplayName` FROM {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) AS LastUserDisplayName,
  		c.LastMessageID AS LastMessageID,
 		c.LastMessageFlags,
  		c.TopicID AS LastTopicID,
@@ -7802,7 +7872,8 @@ BEGIN
     CREATE PROCEDURE {databaseName}.{objectQualifier}topic_create_by_message (
     i_MessageID      INT,
     i_ForumID	INT,
-    i_Subject	VARCHAR(128)
+    i_Subject	VARCHAR(128),
+	i_UTCTIMESTAMP DATETIME
     )
     BEGIN
 
@@ -7816,7 +7887,7 @@ BEGIN
 
     /*declare i_MessageID int*/
 
-    IF ici_Posted IS NULL THEN SET ici_Posted = UTC_TIMESTAMP(); END IF;
+    IF ici_Posted IS NULL THEN SET ici_Posted = i_UTCTIMESTAMP; END IF;
 
     INSERT INTO {databaseName}.{objectQualifier}Topic(ForumID,Topic,UserID,Posted,Views,Priority,PollID,UserName,NumPosts)
     VALUES(i_ForumID,i_Subject,ici_UserID,ici_Posted,0,0,null,null,0);
@@ -7846,6 +7917,7 @@ BEGIN
     LastMessageID = NULL,
     LastUserID = NULL,
     LastUserName = NULL,
+	LastUserDisplayName = NULL,
     LastPosted = NULL
     WHERE LastMessageID IN (SELECT MessageID from  {databaseName}.{objectQualifier}Message 
     where TopicID = i_TopicID); 
@@ -7876,9 +7948,10 @@ BEGIN
     (SELECT MessageID FROM  {databaseName}.{objectQualifier}Message WHERE TopicID = i_TopicID);
     DELETE FROM {databaseName}.{objectQualifier}MessageHistory where MessageID IN (select MessageID from  {databaseName}.{objectQualifier}message where TopicID = i_TopicID);
     DELETE FROM {databaseName}.{objectQualifier}Message WHERE TopicID = i_TopicID;
-    DELETE FROM {databaseName}.{objectQualifier}WatchTopic WHERE TopicID = i_TopicID;
-    DELETE FROM {databaseName}.{objectQualifier}Topic WHERE TopicID = i_TopicID; 
+    DELETE FROM {databaseName}.{objectQualifier}WatchTopic WHERE TopicID = i_TopicID;    
+	DELETE FROM {databaseName}.{objectQualifier}TopicReadTracking WHERE TopicID = i_TopicID; 
 	DELETE FROM {databaseName}.{objectQualifier}Topic WHERE  TopicMovedID = i_TopicID;
+	DELETE FROM {databaseName}.{objectQualifier}Topic WHERE TopicID = i_TopicID; 
     DELETE FROM {databaseName}.{objectQualifier}MessageReportedAudit where MessageID IN (select MessageID from  {databaseName}.{objectQualifier}message where TopicID = i_TopicID); 
 	DELETE FROM {databaseName}.{objectQualifier}MessageReported where MessageID IN (select MessageID from  {databaseName}.{objectQualifier}message where TopicID = i_TopicID);	
     DELETE FROM {databaseName}.{objectQualifier}FavoriteTopic  WHERE TopicID = i_TopicID;
@@ -8200,12 +8273,14 @@ BEGIN
 			c.Styles,
 			c.UserID,
 			IFNULL(c.UserName,b.Name) AS Starter,
+			IFNULL(c.UserDisplayName,b.DisplayName) AS StarterDisplay,
 			(c.NumPosts - 1) AS Replies,
 			(SELECT COUNT(1) FROM {databaseName}.{objectQualifier}Message mes WHERE mes.TopicID = c.TopicID AND (mes.Flags & 8) = 8 AND (mes.Flags & 16) = 16 AND ((? IS NOT NULL AND mes.UserID = ?) OR (? IS NULL)) ) AS NumPostsDeleted,			
 			c.Views,
 			c.LastPosted,
 			c.LastUserID,
-			IFNULL(c.LastUserName,(SELECT Name FROM {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) AS LastUserName,
+			IFNULL(c.LastUserName,(SELECT x.Name FROM {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) AS LastUserName,
+			IFNULL(c.LastUserDisplayName,(SELECT x.DisplayName FROM {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) AS LastUserDisplayName,
 			c.LastMessageID,
 			c.TopicID AS LastTopicID,
 			c.Flags AS TopicFlags,
@@ -8427,12 +8502,14 @@ BEGIN
 			c.Styles,
 			c.UserID,
 			IFNULL(c.UserName,b.Name) AS Starter,
+			IFNULL(c.UserDisplayName,b.DisplayName) AS StarterDisplay,
 			(c.NumPosts - 1) AS Replies,
 			(SELECT COUNT(1) FROM {databaseName}.{objectQualifier}Message mes WHERE mes.TopicID = c.TopicID AND (mes.Flags & 8) = 8 AND (mes.Flags & 16) = 16 AND ((? IS NOT NULL AND mes.UserID = ?) OR (? IS NULL)) ) AS NumPostsDeleted,			
 			 c.Views,
 			c.LastPosted,
 			c.LastUserID,
-			IFNULL(c.LastUserName,(SELECT Name FROM {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) AS LastUserName,
+			IFNULL(c.LastUserName,(SELECT x.Name FROM {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) AS LastUserName,
+			IFNULL(c.LastUserDisplayName,(SELECT x.DisplayName FROM {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) AS LastUserDisplayName,
 			c.LastMessageID,
 			c.TopicID AS LastTopicID,
 			c.Flags AS TopicFlags,
@@ -8569,17 +8646,20 @@ BEGIN
 		c.Description,
  		c.UserID,
  		 IFNULL(c.UserName,b.Name) AS Starter,
+		  IFNULL(c.UserDisplayName,b.DisplayName) AS StarterDisplay,
  		 c.NumPosts - 1  AS Replies,
- 		(SELECT CAST(COUNT(1) AS UNSIGNED) FROM {databaseName}.{objectQualifier}MessageSelectView mes 
-                 WHERE mes.TopicID = c.TopicID AND mes.IsDeleted = 1 
-                 AND mes.IsApproved = 1 
+ 		(SELECT {databaseName}.{objectQualifier}biginttoint(COUNT(1)) FROM {databaseName}.{objectQualifier}Message mes 
+                 WHERE mes.TopicID = c.TopicID AND (mes.Flags & 8) > 0 
+                 AND (mes.Flags & 16) > 0  
                  AND ((i_UserID IS NOT NULL AND mes.UserID = i_UserID) 
                  OR (i_UserID IS NULL)) ) AS NumPostsDeleted,
  		c.Views AS `Views`,
  		c.LastPosted AS LastPosted,
  		c.LastUserID AS LastUserID,
- 		IFNULL(c.LastUserName,(select `Name` from {databaseName}.{objectQualifier}User x
+ 		IFNULL(c.LastUserName,(select x.`Name` from {databaseName}.{objectQualifier}User x
  		 where x.UserID=c.LastUserID)) AS                    LastUserName,
+		IFNULL(c.LastUserDisplayName,(select x.`DisplayName` from {databaseName}.{objectQualifier}User x
+ 		 where x.UserID=c.LastUserID)) AS                    LastUserDisplayName,
  		c.LastMessageID AS LastMessageID,
  		c.TopicID AS LastTopicID,
  		c.Flags AS TopicFlags,
@@ -8628,17 +8708,21 @@ BEGIN
 		c.Description,
  		c.UserID,
  		 IFNULL(c.UserName,b.Name) AS Starter,
+		 IFNULL(c.UserDisplayName,b.DisplayName) AS StarterDisplay,
  		 c.NumPosts - 1  AS Replies,
- 		(SELECT CAST(COUNT(1) AS UNSIGNED) FROM {databaseName}.{objectQualifier}MessageSelectView mes 
-                 WHERE mes.TopicID = c.TopicID AND mes.IsDeleted = 1 
-                 AND mes.IsApproved = 1 
+ 		(SELECT CAST(COUNT(1) AS UNSIGNED) FROM {databaseName}.{objectQualifier}Message mes 
+		         -- is deleted and approved
+                 WHERE mes.TopicID = c.TopicID AND (mes.Flags & 8) > 0 
+                 AND (mes.Flags & 16) > 0  
                  AND ((i_UserID IS NOT NULL AND mes.UserID = i_UserID) 
                  OR (i_UserID IS NULL)) ) AS NumPostsDeleted,
  		c.Views AS `Views`,
  		c.LastPosted AS LastPosted,
  		c.LastUserID AS LastUserID,
- 		IFNULL(c.LastUserName,(select `Name` from {databaseName}.{objectQualifier}User x
+ 		IFNULL(c.LastUserName,(select x.`Name` from {databaseName}.{objectQualifier}User x
  		 where x.UserID=c.LastUserID)) AS                    LastUserName,
+		 	IFNULL(c.LastUserDisplayName,(select x.`DisplayName` from {databaseName}.{objectQualifier}User x
+ 		 where x.UserID=c.LastUserID)) AS                    LastUserDisplayName,
  		c.LastMessageID AS LastMessageID,
  		c.TopicID AS LastTopicID,
  		c.Flags AS TopicFlags,
@@ -8704,10 +8788,15 @@ END;
 
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
-CREATE procedure {databaseName}.{objectQualifier}topic_move(i_TopicID INT,i_ForumID INT,i_ShowMoved TINYINT(1), i_LinkDays INT) 
+CREATE procedure {databaseName}.{objectQualifier}topic_move(i_TopicID INT,i_ForumID INT,i_ShowMoved TINYINT(1), i_LinkDays INT,
+	i_UTCTIMESTAMP DATETIME) 
 BEGIN
      DECLARE ici_OldForumID INT;
- 
+     declare ici_newTimestamp datetime;
+		if i_LinkDays > -1
+		then
+		SET ici_newTimestamp = DATE_ADD(i_UTCTIMESTAMP, INTERVAL i_LinkDays day );
+		end if;
      SELECT  ForumID INTO ici_OldForumID FROM {databaseName}.{objectQualifier}Topic WHERE TopicID = i_TopicID;
  
  IF ici_OldForumID !=i_ForumID THEN 
@@ -8715,8 +8804,8 @@ BEGIN
 	  -- delete an old link if exists
 	 DELETE FROM {databaseName}.{objectQualifier}Topic WHERE TopicMovedID = i_TopicID;	
          /*create a moved message*/
-         INSERT INTO {databaseName}.{objectQualifier}Topic(ForumID,UserID,UserName,Posted,Topic,Views,Flags,Priority,PollID,TopicMovedID,LastPosted,NumPosts, LinkDays)
-         SELECT ForumID,UserID,UserName,Posted,Topic,0,Flags,Priority,PollID,i_TopicID,LastPosted,0, DATE_ADD( UTC_TIMESTAMP(), INTERVAL i_LinkDays day )  
+         INSERT INTO {databaseName}.{objectQualifier}Topic(ForumID,UserID,UserName,UserDisplayName,Posted,Topic,Views,Flags,Priority,PollID,TopicMovedID,LastPosted,NumPosts, LinkDays)
+         SELECT ForumID,UserID,UserName,UserDisplayName,Posted,Topic,0,Flags,Priority,PollID,i_TopicID,LastPosted,0, ici_newTimestamp 
          FROM {databaseName}.{objectQualifier}Topic WHERE TopicID = i_TopicID;
      END IF;
  
@@ -8833,25 +8922,27 @@ BEGIN
      i_IP		VARCHAR(39), 
      i_Posted		DATETIME,
      i_BlogPostID	VARCHAR(128),
-     i_Flags		INT
+     i_Flags		INT,
+	 i_UTCTIMESTAMP DATETIME
      )
      BEGIN
      DECLARE ici_TopicID INT;
      DECLARE ici_MessageID INT;
- 
+     DECLARE ici_OverrideDisplayName tINYINT(1);
+
 
      IF i_Posted IS NULL THEN
-     SET i_Posted = UTC_TIMESTAMP(); END IF;
-
+     SET i_Posted = i_UTCTIMESTAMP; END IF;
+SELECT SIGN(COUNT(Name))  INTO ici_OverrideDisplayName FROM {databaseName}.{objectQualifier}User WHERE UserID = i_UserID AND Name != i_UserName;	
      /* create the topic */
-     INSERT INTO {databaseName}.{objectQualifier}Topic(ForumID,Topic,UserID,Posted,Views,Priority,UserName,NumPosts, Description, Status, Styles)
-     VALUES(i_ForumID,CONVERT(i_Subject USING {databaseEncoding}),i_UserID,i_Posted,0,i_Priority,i_UserName,0, i_Description, i_status, i_Styles);
+     INSERT INTO {databaseName}.{objectQualifier}Topic(ForumID,Topic,UserID,Posted,Views,Priority,UserName,UserDisplayName,NumPosts, Description, Status, Styles)
+     VALUES(i_ForumID,CONVERT(i_Subject USING {databaseEncoding}),i_UserID,i_Posted,0,i_Priority,i_UserName,(CASE WHEN ici_OverrideDisplayName = 1 THEN i_UserName ELSE (SELECT DisplayName FROM {databaseName}.{objectQualifier}User WHERE UserID = i_UserID) END) ,0, i_Description, i_status, i_Styles);
 
      /* get its id*/
      SET ici_TopicID = LAST_INSERT_ID();
 
      /* add message to the topic*/
-     CALL {databaseName}.{objectQualifier}message_save (ici_TopicID,i_UserID,i_Message,i_UserName,i_IP,i_Posted,NULL,NULL,i_BlogPostID, null, i_Flags,ici_MessageID);
+     CALL {databaseName}.{objectQualifier}message_save (ici_TopicID,i_UserID,i_Message,i_UserName,i_IP,i_Posted,NULL,NULL,i_BlogPostID, null, i_Flags,i_UTCTIMESTAMP,ici_MessageID);
 
      SELECT   ici_TopicID AS TopicID,  ici_MessageID AS MessageID;
      END;
@@ -8890,6 +8981,11 @@ BEGIN
                                WHERE    x.TopicID = {databaseName}.{objectQualifier}Topic.`TopicID`
                                AND (x.Flags & 24) = 16 
 							   ORDER BY Posted DESC LIMIT 1),
+               LastUserDisplayName=(SELECT   x.UserDisplayName
+                               FROM     {databaseName}.{objectQualifier}Message x
+                               WHERE    x.TopicID = {databaseName}.{objectQualifier}Topic.`TopicID`
+                               AND (x.Flags & 24) = 16 
+							   ORDER BY Posted DESC LIMIT 1),
 			   LastMessageFlags = (SELECT x.Flags FROM {databaseName}.{objectQualifier}Message x 
 			                       WHERE x.TopicID={databaseName}.{objectQualifier}Topic.TopicID 
 			                       and (x.Flags & 24)=16 
@@ -8913,6 +9009,11 @@ BEGIN
                              AND (x.Flags & 24) = 16
                              ORDER BY Posted DESC LIMIT 1),
                LastUserName = (SELECT   x.UserName
+                               FROM     {databaseName}.{objectQualifier}Message x
+                               WHERE    x.TopicID = {databaseName}.{objectQualifier}Topic.`TopicID`
+                               AND (x.Flags & 24) = 16 
+							   ORDER BY Posted DESC LIMIT 1),
+               LastUserDisplayName=(SELECT   x.UserDisplayName
                                FROM     {databaseName}.{objectQualifier}Message x
                                WHERE    x.TopicID = {databaseName}.{objectQualifier}Topic.`TopicID`
                                AND (x.Flags & 24) = 16 
@@ -9094,7 +9195,8 @@ END;
   i_DisplayName VARCHAR(128),
   i_Email VARCHAR(128),
   i_ProviderUserKey VARCHAR(64),
-  i_IsApproved TINYINT(1)) 
+  i_IsApproved TINYINT(1),
+ i_UTCTIMESTAMP DATETIME) 
 BEGIN
 /*SET NOCOUNT ON*/
  	DECLARE ici_UserID INT;
@@ -9127,7 +9229,7 @@ BEGIN
 		END IF;		
 
                   INSERT INTO {databaseName}.{objectQualifier}User(BoardID,RankID,`Name`,`DisplayName`,Password,Email,Joined,LastVisit,NumPosts,TimeZone,Flags,ProviderUserKey)
-                  VALUES(i_BoardID,ici_RankID,i_UserName,i_DisplayName,'-',i_Email,UTC_TIMESTAMP(),UTC_TIMESTAMP(),0,IFNULL((SELECT CAST(CAST(Value AS CHAR(10)) AS SIGNED) from {databaseName}.{objectQualifier}Registry where Name LIKE 'timezone' and BoardID = i_BoardID),0),ici_approvedFlag,i_ProviderUserKey);
+                  VALUES(i_BoardID,ici_RankID,i_UserName,i_DisplayName,'-',i_Email,i_UTCTIMESTAMP,i_UTCTIMESTAMP,0,IFNULL((SELECT CAST(CAST(Value AS CHAR(10)) AS SIGNED) from {databaseName}.{objectQualifier}Registry where Name LIKE 'timezone' and BoardID = i_BoardID),0),ici_approvedFlag,i_ProviderUserKey);
 
                   SET ici_UserID = LAST_INSERT_ID();
        END IF;
@@ -9167,10 +9269,11 @@ END;
 CREATE PROCEDURE {databaseName}.{objectQualifier}user_delete(i_UserID INT)
 BEGIN
  	DECLARE ici_GuestUserID	INT;
- 	DECLARE ici_UserName	VARCHAR(128);
+ 	DECLARE ici_UserName	VARCHAR(255);
+	DECLARE ici_UserDisplayName	VARCHAR(255);
  	DECLARE ici_GuestCount	INT;
  
- 	SELECT `Name` INTO ici_UserName FROM {databaseName}.{objectQualifier}User WHERE UserID=i_UserID;
+ 	SELECT `Name`, DisplayName INTO ici_UserName,ici_UserDisplayName FROM {databaseName}.{objectQualifier}User WHERE UserID=i_UserID;
  
  	SELECT 
  		 a.UserID INTO ici_GuestUserID
@@ -9192,10 +9295,10 @@ BEGIN
     IF NOT (ici_GuestUserID=i_UserID AND ici_GuestCount=1) THEN
 
 
-    UPDATE {databaseName}.{objectQualifier}Message SET UserName=ici_UserName,UserID=ici_GuestUserID WHERE UserID=i_UserID;
-    UPDATE {databaseName}.{objectQualifier}Topic SET UserName=ici_UserName,UserID=ici_GuestUserID WHERE UserID=i_UserID;
-    UPDATE {databaseName}.{objectQualifier}Topic SET LastUserName=ici_UserName,LastUserID=ici_GuestUserID WHERE LastUserID=i_UserID;
-    UPDATE {databaseName}.{objectQualifier}Forum SET LastUserName=ici_UserName,LastUserID=ici_GuestUserID WHERE LastUserID=i_UserID;
+    UPDATE {databaseName}.{objectQualifier}Message SET UserName=ici_UserName,UserDisplayName = ici_UserDisplayName,UserID=ici_GuestUserID WHERE UserID=i_UserID;
+    UPDATE {databaseName}.{objectQualifier}Topic SET UserName=ici_UserName,UserDisplayName = ici_UserDisplayName,UserID=ici_GuestUserID WHERE UserID=i_UserID;
+    UPDATE {databaseName}.{objectQualifier}Topic SET LastUserName=ici_UserName,LastUserDisplayName = ici_UserDisplayName,LastUserID=ici_GuestUserID WHERE LastUserID=i_UserID;
+    UPDATE {databaseName}.{objectQualifier}Forum SET LastUserName=ici_UserName,LastUserDisplayName = ici_UserDisplayName,LastUserID=ici_GuestUserID WHERE LastUserID=i_UserID;
 
     DELETE FROM {databaseName}.{objectQualifier}Active WHERE UserID=i_UserID;
     DELETE FROM {databaseName}.{objectQualifier}EventLog WHERE UserID=i_UserID	;
@@ -9272,9 +9375,10 @@ END;
 --GO
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */   
-    CREATE PROCEDURE {databaseName}.{objectQualifier}user_deleteold(i_BoardID INT, i_Days INT)
+    CREATE PROCEDURE {databaseName}.{objectQualifier}user_deleteold(i_BoardID INT, i_Days INT,
+ i_UTCTIMESTAMP DATETIME)
     BEGIN
-    DECLARE ici_Since DATETIME DEFAULT UTC_TIMESTAMP();
+    DECLARE ici_Since DATETIME DEFAULT i_UTCTIMESTAMP;
 
     /*set ici_Since = UTC_TIMESTAMP()*/
 
@@ -9467,7 +9571,7 @@ END;
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
 CREATE PROCEDURE {databaseName}.{objectQualifier}user_list_new
-(i_BoardID INT,i_UserID INT,i_Approved TINYINT(1),i_GroupID INT,i_RankID INT, i_StyledNicks TINYINT(1)) 
+(i_BoardID INT,i_UserID INT,i_Approved TINYINT(1),i_GroupID INT,i_RankID INT, i_StyledNicks TINYINT(1),i_UTCTIMESTAMP DATETIME) 
 BEGIN
  	IF i_UserID IS NOT NULL THEN
  		SELECT 
@@ -9479,7 +9583,7 @@ BEGIN
 	        else ''	 end) AS Style, 
  			IFNULL(a.Flags & 1,0) AS IsHostAdmin,
  			IFNULL(a.Flags & 4,0) AS IsGuest, 
- 			DATEDIFF(UTC_TIMESTAMP(),a.Joined)+1 AS NumDays, 			
+ 			DATEDIFF(i_UTCTIMESTAMP,a.Joined)+1 AS NumDays, 			
  			(SELECT COUNT(1) FROM {databaseName}.{objectQualifier}Message x WHERE (x.Flags & 24)=16) AS NumPostsForum,
  			(SELECT COUNT(1) FROM {databaseName}.{objectQualifier}User x 
                           WHERE x.UserID=a.UserID 
@@ -9964,7 +10068,8 @@ end;
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
 CREATE PROCEDURE {databaseName}.{objectQualifier}user_list
-(i_BoardID INT,i_UserID INT,i_Approved TINYINT(1),i_GroupID INT,i_RankID INT, i_StyledNicks TINYINT(1)) 
+(i_BoardID INT,i_UserID INT,i_Approved TINYINT(1),i_GroupID INT,i_RankID INT, i_StyledNicks TINYINT(1),
+	i_UTCTIMESTAMP DATETIME) 
 BEGIN
  	IF i_UserID IS NOT NULL THEN
  		SELECT
@@ -10006,7 +10111,7 @@ BEGIN
 	          when 1 then  a.UserStyle
 	        else ''	 end) AS Style,  			
  			-- {databaseName}.{objectQualifier}biginttoint(IFNULL(a.Flags & 4,0)) AS IsGuest,
- 			DATEDIFF(UTC_TIMESTAMP(),a.Joined)+1 AS NumDays,
+ 			DATEDIFF(i_UTCTIMESTAMP,a.Joined)+1 AS NumDays,
  			(SELECT COUNT(1) FROM {databaseName}.{objectQualifier}Message x WHERE (x.Flags & 24)=16) AS NumPostsForum,
  			SIGN((SELECT 1 FROM {databaseName}.{objectQualifier}User x 
                           WHERE x.UserID=a.UserID 
@@ -10095,7 +10200,8 @@ BEGIN
 END;
 --GO
 
-create procedure {databaseName}.{objectQualifier}admin_list(i_BoardID int, i_StyledNicks tinyint(1)) 
+create procedure {databaseName}.{objectQualifier}admin_list(i_BoardID int, i_StyledNicks tinyint(1),
+	i_UTCTIMESTAMP DATETIME) 
 begin
 		 select 
 			a.*,
@@ -10106,7 +10212,7 @@ begin
 			(case(i_StyledNicks)
 			when 1 then  a.UserStyle
 			else ''	 end) AS Style,  
-			(DATEDIFF(a.Joined, UTC_TIMESTAMP())+1) AS NumDays,
+			(DATEDIFF(a.Joined, i_UTCTIMESTAMP)+1) AS NumDays,
 			(select count(1) from {databaseName}.{objectQualifier}Message x where (x.Flags & 24)=16) as NumPostsForum,
 			(select count(1) from {databaseName}.{objectQualifier}User x 
 			where x.UserID=a.UserID and AvatarImage is not null) AS HasAvatarImage,
@@ -10221,7 +10327,8 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}user_medal_save(
  	i_Hide TINYINT(1),
  	i_OnlyRibbon TINYINT(1),
  	i_SortOrder TINYINT(3),
- 	i_DateAwarded DATETIME)
+ 	i_DateAwarded DATETIME,
+	i_UTCTIMESTAMP DATETIME)
 BEGIN
  
  	IF EXISTS(SELECT 1 from {databaseName}.{objectQualifier}UserMedal WHERE UserID=i_UserID AND MedalID=i_MedalID) THEN
@@ -10237,7 +10344,7 @@ BEGIN
  	
  	ELSE 
  
- 		IF (i_DateAwarded IS NULL) THEN SET i_DateAwarded = UTC_TIMESTAMP(); END IF;
+ 		IF (i_DateAwarded IS NULL) THEN SET i_DateAwarded = i_UTCTIMESTAMP; END IF;
  
  		INSERT INTO {databaseName}.{objectQualifier}UserMedal(UserID,MedalID,Message,Hide,OnlyRibbon,SortOrder,DateAwarded)
  		VALUES
@@ -10248,7 +10355,7 @@ END;
 --GO
 
  	 /* STORED PROCEDURE CREATED BY VZ-TEAM */
-CREATE PROCEDURE {databaseName}.{objectQualifier}user_nntp(i_BoardID INT,i_UserName VARCHAR(128),i_Email VARCHAR(128),i_TimeZone int) 
+CREATE PROCEDURE {databaseName}.{objectQualifier}user_nntp(i_BoardID INT,i_UserName VARCHAR(128),i_Email VARCHAR(128),i_TimeZone int, i_UTCTIMESTAMP datetime) 
 BEGIN
 DECLARE icic_UserID INT DEFAULT 0; 
 DECLARE icic_cntr INT;  
@@ -10266,7 +10373,7 @@ SELECT
  		
  IF icic_cntr < 1 OR icic_cntr IS NULL THEN 		
 
- 		CALL {databaseName}.{objectQualifier}user_save(null,i_BoardID,i_UserName,i_UserName,i_Email,i_TimeZone,null,null,null,null, null, 1, null, null, null); 		
+ 		CALL {databaseName}.{objectQualifier}user_save(null,i_BoardID,i_UserName,i_UserName,i_Email,i_TimeZone,null,null,null,null, null, 1, null, null, null,i_UTCTIMESTAMP); 		
  		SELECT MAX(UserID) INTO icic_UserID FROM {databaseName}.{objectQualifier}User;
 END IF;		
  	SELECT icic_UserID AS UserID;		
@@ -10425,11 +10532,13 @@ END;
  	i_ProviderUserKey	    VARCHAR(64),
  	i_AutoWatchTopics		TINYINT(1),
  	i_DSTUser               TINYINT(1),
-	i_HideUser              TINYINT(1))
+	i_HideUser              TINYINT(1),
+	i_UTCTIMESTAMP DATETIME)
 
 BEGIN
  	DECLARE ici_RankID INT;
  	DECLARE ici_Flags INT DEFAULT 0;
+	DECLARE ici_OldDisplayName varchar(255);
  	
  	 	             if i_DSTUser is null 
  	                  THEN 
@@ -10470,7 +10579,7 @@ BEGIN
  		WHERE (Flags & 1)<>0 AND BoardID=i_BoardID;
  
  		INSERT INTO {databaseName}.{objectQualifier}User(BoardID,RankID,`Name`,DisplayName,Password,Email,Joined,LastVisit,NumPosts,TimeZone,Flags,PMNotification,NotificationType,ProviderUserKey,AutoWatchTopics) 
-          VALUES(i_BoardID,ici_RankID,i_UserName,i_DisplayName,'-',i_Email,UTC_TIMESTAMP(),UTC_TIMESTAMP(),0,i_TimeZone,ici_Flags,i_PMNotification,i_NotificationType,i_ProviderUserKey,i_AutoWatchTopics);		
+          VALUES(i_BoardID,ici_RankID,i_UserName,i_DisplayName,'-',i_Email,i_UTCTIMESTAMP,i_UTCTIMESTAMP,0,i_TimeZone,ici_Flags,i_PMNotification,i_NotificationType,i_ProviderUserKey,i_AutoWatchTopics);		
  	
  		SET i_UserID = LAST_INSERT_ID();
  
@@ -10481,8 +10590,8 @@ BEGIN
  		where BoardID=i_BoardID and (Flags & 4)<>0;
  		-- else condition
     ELSE
-      set ici_Flags = (SELECT Flags FROM {databaseName}.{objectQualifier}User where UserID = i_UserID);	
-	 -- isdirty flag -set only		
+        SELECT Flags, DisplayName INTO ici_Flags,ici_OldDisplayName FROM {databaseName}.{objectQualifier}User where UserID = i_UserID;	
+	    -- isdirty flag -set only		
 		IF ((ici_flags & 64) <> 64) then		
 		SET ici_flags = ici_flags | 64;
 		end if;
@@ -10517,7 +10626,17 @@ BEGIN
 	Flags = (CASE WHEN ici_Flags<>Flags THEN  ici_Flags ELSE Flags END),
 	DisplayName = (CASE WHEN (i_DisplayName is not null) THEN  i_DisplayName ELSE DisplayName END),
 	Email = (CASE WHEN (i_Email is not null) THEN  i_Email ELSE Email END)					
-    WHERE UserID = i_UserID;       
+    WHERE UserID = i_UserID; 
+	  if (i_DisplayName IS NOT NULL AND COALESCE(ici_OldDisplayName,'') != COALESCE(i_DisplayName,''))
+		then
+		-- sync display names everywhere - can run a long time on large forums
+		update {databaseName}.{objectQualifier}Forum set LastUserDisplayName = i_DisplayName where LastUserID = i_UserID AND (LastUserDisplayName IS NULL OR LastUserDisplayName = ici_OldDisplayName);  
+		update {databaseName}.{objectQualifier}Topic set LastUserDisplayName = i_DisplayName where LastUserID = i_UserID AND (LastUserDisplayName IS NULL OR LastUserDisplayName = ici_OldDisplayName);
+		update {databaseName}.{objectQualifier}Topic set UserDisplayName = i_DisplayName where UserID = i_UserID AND (UserDisplayName IS NULL OR UserDisplayName = ici_OldDisplayName);
+		update {databaseName}.{objectQualifier}Message set UserDisplayName = i_DisplayName where UserID = i_UserID AND (UserDisplayName IS NULL OR UserDisplayName = ici_OldDisplayName);
+		update {databaseName}.{objectQualifier}ShoutboxMessage set UserDisplayName = I_DisplayName where UseriD = I_UserID AND (UserDisplayName IS NULL OR UserDisplayName = ici_OldDisplayName);
+		end if;
+    
 	END IF;
 			
     END;
@@ -10730,12 +10849,13 @@ END;
 --GO
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
-CREATE PROCEDURE {databaseName}.{objectQualifier}userforum_save(i_UserID INT,i_ForumID INT,i_AccessMaskID INT)
+CREATE PROCEDURE {databaseName}.{objectQualifier}userforum_save(i_UserID INT,i_ForumID INT,i_AccessMaskID INT,
+	i_UTCTIMESTAMP DATETIME)
 BEGIN
  	IF EXISTS(SELECT 1 FROM {databaseName}.{objectQualifier}UserForum WHERE UserID=i_UserID AND ForumID=i_ForumID) THEN
  		UPDATE {databaseName}.{objectQualifier}UserForum SET AccessMaskID=i_AccessMaskID WHERE UserID=i_UserID AND ForumID=i_ForumID;
 	ELSE
- 		INSERT INTO {databaseName}.{objectQualifier}UserForum(UserID,ForumID,AccessMaskID,Invited,Accepted) VALUES(i_UserID,i_ForumID,i_AccessMaskID,UTC_TIMESTAMP(),1);
+ 		INSERT INTO {databaseName}.{objectQualifier}UserForum(UserID,ForumID,AccessMaskID,Invited,Accepted) VALUES(i_UserID,i_ForumID,i_AccessMaskID,i_UTCTIMESTAMP,1);
         END IF;
 END;
 --GO
@@ -10802,7 +10922,8 @@ END;
 --GO
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
-CREATE PROCEDURE {databaseName}.{objectQualifier}watchforum_add(i_UserID INT,i_ForumID INT)
+CREATE PROCEDURE {databaseName}.{objectQualifier}watchforum_add(i_UserID INT,i_ForumID INT,
+	i_UTCTIMESTAMP DATETIME)
 BEGIN
                           
                             IF NOT EXISTS (SELECT 1 FROM {databaseName}.{objectQualifier}watchforum a
@@ -10814,7 +10935,7 @@ BEGIN
                             Created)
                             VALUES (i_ForumID,
                             i_UserID,
-                            UTC_TIMESTAMP());
+                            i_UTCTIMESTAMP);
                             END IF;
 END;
 
@@ -10849,7 +10970,8 @@ BEGIN
  		b.LastMessageID,
  		(SELECT TopicID FROM {databaseName}.{objectQualifier}Message x WHERE x.MessageID=b.LastMessageID) AS LastTopicID,
  		b.LastUserID,
- 		IFNULL(b.LastUserName,(select `Name` from {databaseName}.{objectQualifier}User x where x.UserID=b.LastUserID)) AS LastUserName
+ 		IFNULL(b.LastUserName,(select `Name` from {databaseName}.{objectQualifier}User x where x.UserID=b.LastUserID)) AS LastUserName,
+		IFNULL(b.LastUserDisplayName,(select `DisplayName` from {databaseName}.{objectQualifier}User x where x.UserID=b.LastUserID)) AS LastUserDisplayName
  	FROM
  		{databaseName}.{objectQualifier}WatchForum a
  		INNER JOIN {databaseName}.{objectQualifier}Forum b ON b.ForumID = a.ForumID
@@ -10860,11 +10982,12 @@ END;
 
 
 /* STORED PROCEDURE CREATED BY VZ-TEAM */
-CREATE PROCEDURE {databaseName}.{objectQualifier}watchtopic_add(i_UserID INT,i_TopicID INT) 
+CREATE PROCEDURE {databaseName}.{objectQualifier}watchtopic_add(i_UserID INT,i_TopicID INT,
+	i_UTCTIMESTAMP DATETIME) 
 BEGIN
         IF NOT EXISTS(SELECT 1 FROM {databaseName}.{objectQualifier}WatchTopic WHERE TopicID=i_TopicID AND UserID=i_UserID) THEN
  	INSERT INTO {databaseName}.{objectQualifier}WatchTopic(TopicID,UserID,Created)
-	VALUES (i_TopicID, i_UserID, UTC_TIMESTAMP()); 	
+	VALUES (i_TopicID, i_UserID, i_UTCTIMESTAMP); 	
         END IF; 
 END;
 --GO
@@ -10895,7 +11018,8 @@ BEGIN
  		b.LastPosted,
  		b.LastMessageID,
  		b.LastUserID,
- 		IFNULL(b.LastUserName,(SELECT `Name` FROM {databaseName}.{objectQualifier}User x WHERE x.UserID=b.LastUserID)) AS LastUserName
+ 		IFNULL(b.LastUserName,(SELECT `Name` FROM {databaseName}.{objectQualifier}User x WHERE x.UserID=b.LastUserID)) AS LastUserName,
+		IFNULL(b.LastUserDisplayName,(SELECT `DisplayName` FROM {databaseName}.{objectQualifier}User x WHERE x.UserID=b.LastUserID)) AS LastUserDisplayName
  	FROM
  		{databaseName}.{objectQualifier}WatchTopic a
  		INNER JOIN {databaseName}.{objectQualifier}Topic b ON b.TopicID = a.TopicID
@@ -11167,13 +11291,17 @@ PREPARE stmt_tl FROM 'SELECT
  		t.TopicID,
 		t.TopicMovedID,
 		t.UserID,
-		t.UserName,	
+		IFNull(t.UserName,(select x.Name from {databaseName}.{objectQualifier}User x where x.UserID = t.UserID)) AS UserName,
+		IFNull(t.UserDisplayName,(select x.DisplayName from {databaseName}.{objectQualifier}User x where x.UserID = t.UserID)) AS UserDisplayName,
+		(select x.IsGuest from {databaseName}.{objectQualifier}User x where x.UserID = t.UserID) AS StarterIsGuest,
  		t.LastMessageID,
 		t.LastMessageFlags,
  		t.LastUserID,
  		t.NumPosts, 
 		t.Posted,	
  		IFNULL(t.LastUserName,(SELECT `Name` from {databaseName}.{objectQualifier}User x WHERE x.UserID = t.LastUserID)) AS LastUserName,
+		IFNULL(t.LastUserDisplayName,(SELECT `DisplayName` from {databaseName}.{objectQualifier}User x WHERE x.UserID = t.LastUserID)) AS LastUserDisplayName,
+		(SELECT x.`IsGuest` from {databaseName}.{objectQualifier}User x WHERE x.UserID = t.LastUserID) AS LastUserIsGuest,
  	    (case(?)
 	          when 1 then   (SELECT usr.UserStyle FROM  {databaseName}.{objectQualifier}User usr WHERE usr.UserID=t.LastUserID)  
 	        else ?	end) AS LastUserStyle,	
@@ -11359,7 +11487,7 @@ PREPARE stmt_tl FROM 'SELECT
 						  ON c.CategoryID = f.CategoryID 
                           INNER JOIN {databaseName}.{objectQualifier}Forum f                          
                           ON t.ForumID = f.ForumID
-						  join [{databaseName}].[{objectQualifier}ActiveAccess] v 
+						  join {databaseName}.{objectQualifier}ActiveAccess v 
 						  on v.ForumID=f.ForumID ';
  	SET @ici_SQL = @ici_SQL 
                        + ' WHERE c.BoardID = ' + '?'
@@ -11401,12 +11529,16 @@ DECLARE ici_SQL VARCHAR(1000);
 		t.TopicID,
 		t.TopicMovedID,
 		t.UserID,
-		t.UserName,		
+		t.UserName,
+		t.UserDisplayName,	
+		(select x.IsGuest from {databaseName}.{objectQualifier}User x where x.UserID = t.UserID) AS StarterIsGuest,
 		t.LastMessageID,
 		t.LastMessageFlags,
 		t.LastUserID,	
 		t.Posted,		
-		IFNULL(t.LastUserName,(select Name from {databaseName}.{objectQualifier}User x where x.UserID = t.LastUserID)) AS LastUserName		
+		IFNULL(t.LastUserName,(select x.Name from {databaseName}.{objectQualifier}User x where x.UserID = t.LastUserID)) AS LastUserName,
+		IFNULL(t.LastUserDisplayName,(select x.DisplayName from {databaseName}.{objectQualifier}User x where x.UserID = t.LastUserID)) AS LastUserDisplayName,
+		(SELECT x.`IsGuest` from {databaseName}.{objectQualifier}User x WHERE x.UserID = t.LastUserID) AS LastUserIsGuest		
 	FROM
 	    {databaseName}.{objectQualifier}Message m 
 	INNER JOIN	
@@ -11572,13 +11704,14 @@ BEGIN
 /* Procedures for "Thanks" Mod  */
 CREATE PROCEDURE {databaseName}.{objectQualifier}message_addthanks 
 	(I_FromUserID INT,
-	I_MessageID INT)
+	I_MessageID INT,
+	i_UTCTIMESTAMP DATETIME)
 BEGIN
 DECLARE ici_ToUserID INT;
 IF not exists (SELECT ThanksID FROM {databaseName}.{objectQualifier}Thanks WHERE MessageID = I_MessageID AND ThanksFromUserID=I_FromUserID LIMIT 1) THEN
 	SET ici_ToUserID = (SELECT UserID FROM {databaseName}.{objectQualifier}Message WHERE MessageID = I_MessageID);
 	INSERT INTO {databaseName}.{objectQualifier}Thanks (ThanksFromUserID, ThanksToUserID, MessageID, ThanksDate) Values 
-								(I_FromUserID,ici_ToUserID, I_MessageID, UTC_TIMESTAMP());
+								(I_FromUserID,ici_ToUserID, I_MessageID, i_UTCTIMESTAMP);
 	SELECT Name FROM {databaseName}.{objectQualifier}User WHERE UserID=ici_ToUserID LIMIT 1;
 ELSE
 	SELECT '';
@@ -11742,7 +11875,8 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}user_viewallthanks(I_UserID int
 /* Stored procedures for Buddy feature */
 CREATE PROCEDURE {databaseName}.{objectQualifier}buddy_addrequest
     ( i_FromUserID INT,
-    i_ToUserID INT
+    i_ToUserID INT,
+	i_UTCTIMESTAMP DATETIME
     ) 
      MODIFIES SQL DATA
      BEGIN
@@ -11772,7 +11906,7 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}buddy_addrequest
                                   i_FromUserID,
                                   i_ToUserID,
                                   0,
-                                  UTC_TIMESTAMP()
+                                  i_UTCTIMESTAMP
                                 );
                         SET i_paramOutput = ( SELECT `Name`
                                              FROM   {databaseName}.{objectQualifier}User
@@ -11792,7 +11926,7 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}buddy_addrequest
                                   i_FromUserID,
                                   i_ToUserID,
                                   1,
-                                  UTC_TIMESTAMP()
+                                  i_UTCTIMESTAMP
                                 );
                         UPDATE  {databaseName}.{objectQualifier}Buddy
                         SET     Approved = 1
@@ -11818,6 +11952,7 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}buddy_approverequest
     (i_FromUserID INT,
     i_ToUserID INT,
     i_Mutual TINYINT(1),
+	  i_UTCTIMESTAMP DATETIME,
     OUT i_paramOutput VARCHAR(128))
     MODIFIES SQL DATA
     BEGIN
@@ -11853,7 +11988,7 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}buddy_approverequest
                               i_ToUserID,
                               i_FromUserID,
                               1,
-                              UTC_TIMESTAMP()
+                              i_UTCTIMESTAMP
                             );
             END IF;
 	END IF;
@@ -12102,12 +12237,14 @@ BEGIN
 		c.Description,
 		c.UserID,
 		IFNULL(c.UserName,b.Name) AS Starter,
+		IFNULL(c.UserDisplayName,b.DisplayName) AS StarterDisplay,
 		(SELECT COUNT(1) FROM {databaseName}.{objectQualifier}Message mes WHERE mes.TopicID = c.TopicID AND SIGN(mes.Flags & 8) = 1 AND SIGN(mes.Flags & 16) = 1 AND ((? IS NOT NULL AND mes.UserID = ?) OR (? IS NULL)) ) AS NumPostsDeleted,
 		(select count(1) - 1  from {databaseName}.{objectQualifier}Message x where x.TopicID=c.TopicID and (x.Flags & 8)=0) AS Replies,
 		c.Views,
 		c.LastPosted,
 		c.LastUserID,
-		IFNULL(c.LastUserName,(select Name from {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) AS LastUserName,
+		IFNULL(c.LastUserName,(select x.Name from {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) AS LastUserName,
+		IFNULL(c.LastUserDisplayName,(select x.DisplayName from {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) AS LastUserDisplayName,
 		c.LastMessageID,
 		c.LastMessageFlags AS LastMessageFlags,
 		c.TopicID AS LastTopicID,
@@ -12257,7 +12394,8 @@ CREATE procedure {databaseName}.{objectQualifier}album_save
       i_AlbumID INT,
       i_UserID INT,
       i_Title VARCHAR(255),
-      i_CoverImageID INT
+      i_CoverImageID INT,
+	  i_UTCTIMESTAMP DATETIME
     )
     MODIFIES SQL DATA
     BEGIN 
@@ -12294,7 +12432,7 @@ CREATE procedure {databaseName}.{objectQualifier}album_save
                                   i_UserID,
                                   i_Title,
                                   i_CoverImageID,
-                                  UTC_TIMESTAMP()
+                                  i_UTCTIMESTAMP
                                 );
                        SET ici_AlbumInserted = (SELECT LAST_INSERT_ID());       
                 END IF;
@@ -12383,7 +12521,8 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}album_image_save
       i_Caption VARCHAR(255),
       i_FileName VARCHAR(255),
       i_Bytes INT,
-      i_ContentType VARCHAR(50)
+      i_ContentType VARCHAR(50),
+	  i_UTCTIMESTAMP DATETIME
     )
     MODIFIES SQL DATA
     BEGIN
@@ -12408,7 +12547,7 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}album_image_save
                       i_FileName,
                       i_Bytes,
                       i_ContentType,
-                      UTC_TIMESTAMP(),
+                      i_UTCTIMESTAMP,
                       0
                     );
         END IF;
@@ -12486,6 +12625,7 @@ BEGIN
     DECLARE i_R_UsrSigBBCodes varchar(4000);
     DECLARE i_R_UsrSigHTMLTags varchar(4000); 
 
+	-- for cursors
 	DECLARE i_tmp_UsrSigChars int;
     DECLARE i_tmp_UsrSigBBCodes varchar(4000);
     DECLARE i_tmp_UsrSigHTMLTags varchar(4000);
@@ -12526,11 +12666,11 @@ BEGIN
 		SELECT CONCAT(COALESCE(CONCAT(i_R_UsrSigHTMLTags,','),''), COALESCE(i_tmp_UsrSigHTMLTags, '')) 
 		INTO i_G_UsrSigHTMLTags;		
 		else		
-		SELECT  (CASE WHEN G_UsrSigChars > COALESCE(i_tmp_UsrSigChars, 0) THEN i_G_UsrSigChars ELSE COALESCE(i_tmp_UsrSigChars, 0) END) 
+		SELECT  (CASE WHEN i_G_UsrSigChars > COALESCE(i_tmp_UsrSigChars, 0) THEN i_G_UsrSigChars ELSE COALESCE(i_tmp_UsrSigChars, 0) END) 
 		INTO i_G_UsrSigChars;
-		SELECT  CONCAT(COALESCE(CONCAT(i_tmp_UsrSigBBCodes, ','),'') + G_UsrSigBBCodes) 
+		SELECT  CONCAT(COALESCE(CONCAT(i_tmp_UsrSigBBCodes, ','),''), i_G_UsrSigBBCodes) 
 		INTO i_G_UsrSigBBCodes; 
-		SELECT CONCAT(COALESCE(CONCAT(i_tmp_UsrSigHTMLTags , ','), '') + G_UsrSigHTMLTags)
+		SELECT CONCAT(COALESCE(CONCAT(i_tmp_UsrSigHTMLTags , ','), ''), i_G_UsrSigHTMLTags)
         INTO i_G_UsrSigHTMLTags;	
 	    end if;
   END LOOP;  
@@ -12603,6 +12743,7 @@ END IF;
 		m.MessageID,
 		m.UserID,
 		IFNULL(t.UserName, u.Name) as `Name`,
+		IFNULL(t.UserDisplayName, u.DisplayName) as UserDisplayName,
 		m.Message,
 		m.Posted,
 		t.TopicID,
@@ -12640,7 +12781,7 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}messagehistory_list (i_MessageI
     
     -- we don't return Message text and ip if it's simply a user       
           
-     SELECT mh.*, m.UserID, m.UserName, t.ForumID, t.TopicID, t.Topic, IFNULL(t.UserName, u.Name) as Name, m.Posted
+     SELECT mh.*, m.UserID, m.UserName, m.UserDisplayName, t.ForumID, t.TopicID, t.Topic, m.Posted
      FROM {databaseName}.{objectQualifier}MessageHistory mh
      LEFT JOIN {databaseName}.{objectQualifier}Message m ON m.MessageID = mh.MessageID
      LEFT JOIN {databaseName}.{objectQualifier}Topic t ON t.TopicID = m.TopicID
@@ -12842,16 +12983,17 @@ begin
 end;
 --GO
 
-create procedure {databaseName}.{objectQualifier}readtopic_addorupdate(i_UserID int,i_TopicID int) 
+create procedure {databaseName}.{objectQualifier}readtopic_addorupdate(i_UserID int,i_TopicID int,
+ i_UTCTIMESTAMP DATETIME) 
 begin
 
     declare	ici_LastAccessDate	DATETIME;
 	select LastAccessDate INTO ici_LastAccessDate from {databaseName}.{objectQualifier}TopicReadTracking where UserID=i_UserID AND TopicID=i_TopicID LIMIT 1;
 	IF ici_LastAccessDate IS NOT NULL then	     
-		  update {databaseName}.{objectQualifier}TopicReadTracking set LastAccessDate=UTC_TIMESTAMP() where LastAccessDate = ici_LastAccessDate;
+		  update {databaseName}.{objectQualifier}TopicReadTracking set LastAccessDate=i_UTCTIMESTAMP where LastAccessDate = ici_LastAccessDate;
   	ELSE	  
 		  insert into {databaseName}.{objectQualifier}TopicReadTracking(UserID,TopicID,LastAccessDate)
-	      values (i_UserID, i_TopicID, UTC_TIMESTAMP());
+	      values (i_UserID, i_TopicID, i_UTCTIMESTAMP);
 	end if;
 end;
 --GO
@@ -12868,16 +13010,17 @@ begin
 end;
 --GO
 
-create procedure {databaseName}.{objectQualifier}readforum_addorupdate(i_UserID int,i_ForumID int) 
+create procedure {databaseName}.{objectQualifier}readforum_addorupdate(i_UserID int,i_ForumID int,
+ i_UTCTIMESTAMP DATETIME) 
 begin
      declare ici_LastAccessDate	DATETIME;
 	 SELECT LastAccessDate INTO ici_LastAccessDate from {databaseName}.{objectQualifier}ForumReadTracking where UserID=i_UserID AND ForumID=i_ForumID limit 1;
 	IF ici_LastAccessDate IS NULL then
 	      SELECT LastAccessDate INTO ici_LastAccessDate FROM {databaseName}.{objectQualifier}ForumReadTracking WHERE (UserID=i_UserID AND ForumID=i_ForumID);
-		  update {databaseName}.{objectQualifier}ForumReadTracking set LastAccessDate=UTC_TIMESTAMP() where LastAccessDate = ici_LastAccessDate;
+		  update {databaseName}.{objectQualifier}ForumReadTracking set LastAccessDate=i_UTCTIMESTAMP where LastAccessDate = ici_LastAccessDate;
   	ELSE	  
 		  insert into {databaseName}.{objectQualifier}ForumReadTracking(UserID,ForumID,LastAccessDate)
-	      values (i_UserID, i_ForumID, UTC_TIMESTAMP());
+	      values (i_UserID, i_ForumID, i_UTCTIMESTAMP);
 	end if;
 
 	-- Delete TopicReadTracking for forum...
@@ -13065,12 +13208,14 @@ BEGIN
 		c.Description,
 		c.UserID,
 		IFNULL(c.UserName,b.Name) as Starter,
+		IFNULL(c.UserDisplayName,b.DisplayName) as StarterDisplay,
 		(SELECT COUNT(1) FROM {databaseName}.{objectQualifier}Message mes WHERE mes.TopicID = c.TopicID AND (mes.Flags & 8) = 8 AND (mes.Flags & 16) = 16 AND ((? IS NOT NULL AND mes.UserID = ?) OR (? IS NULL)) ) as NumPostsDeleted,
 		(select count(1) from {databaseName}.{objectQualifier}Message x where x.TopicID=c.TopicID and (x.Flags & 8)<> 8) - 1 as Replies,
 		c.Views,
 		c.LastPosted,
 		c.LastUserID,
-		IFNULL(c.LastUserName,(select Name from {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) as LastUserName,
+		IFNULL(c.LastUserName,(select x.Name from {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) as LastUserName,
+		IFNULL(c.LastUserDisplayName,(select x.DisplayName from {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID)) as LastUserDisplayName,
 		c.LastMessageID as LastMessageID,
 		c.LastMessageFlags as LastMessageFlags,
 		c.TopicID as LastTopicID,
@@ -13425,12 +13570,14 @@ BEGIN
 		c.Styles,
 		c.UserID,
 		IFNULL(c.UserName,b.Name) AS Starter,
+		IFNULL(c.UserDisplayName,b.DisplayName) AS StarterDisplay,
 		(SELECT COUNT(1) FROM {databaseName}.{objectQualifier}Message mes WHERE mes.TopicID = c.TopicID AND (mes.Flags & 8) = 8  AND ((? IS NOT NULL AND mes.UserID = ?) OR (? IS NULL)) ) AS NumPostsDeleted,
 		(select count(1) from {databaseName}.{objectQualifier}Message x where x.TopicID=c.TopicID and (x.Flags & 8)=0) - 1 AS Replies,
 		c.Views,
 		c.LastPosted,
 		c.LastUserID,
-		(IFNULL(c.LastUserName,(select Name from {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID))) AS LastUserName,
+		(IFNULL(c.LastUserName,(select x.Name from {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID))) AS LastUserName,
+		(IFNULL(c.LastUserDisplayName,(select x.DisplayName from {databaseName}.{objectQualifier}User x where x.UserID=c.LastUserID))) AS LastUserDisplayName,
 		c.LastMessageID AS LastMessageID,
 		c.LastMessageFlags AS LastMessageFlags,
 		c.TopicID AS LastTopicID,
@@ -13628,3 +13775,14 @@ end;
 */
 
 --	1048576 max packet text length
+
+create procedure {databaseName}.{objectQualifier}forum_maxid(i_BoardID int) 
+begin	
+	select 
+	a.ForumID 
+	from {databaseName}.{objectQualifier}Forum a 
+	join {databaseName}.{objectQualifier}Category b 
+	on b.CategoryID=a.CategoryID 
+	where b.BoardID=i_BoardID order by a.ForumID desc;	
+end;
+--GO

@@ -1443,10 +1443,9 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
                 cmd.Parameters.Add("i_Guests", MySqlDbType.Byte).Value = guests ?? 0;
                 cmd.Parameters.Add("i_ShowCrawlers", MySqlDbType.Byte).Value = showCrawlers;
-     
                 cmd.Parameters.Add("i_ActiveTime", MySqlDbType.Int32).Value = activeTime;
-
                 cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = styledNicks;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                 
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
@@ -1721,7 +1720,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add( "i_Mask", MySqlDbType.VarChar ).Value = Mask;
                 cmd.Parameters.Add("i_Reason", MySqlDbType.VarChar).Value = reason;
                 cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userID;
-				
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
@@ -1750,6 +1749,7 @@ namespace YAF.Classes.Data
 				
                 cmd.Parameters.Add( "i_BoardID", MySqlDbType.Int32 ).Value = boardId;
                 cmd.Parameters.Add( "i_OSString", MySqlDbType.VarChar ).Value = _systemInfo;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                                
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
@@ -1770,6 +1770,7 @@ namespace YAF.Classes.Data
 		        cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNick;
 		        cmd.Parameters.Add("i_ShowNoCountPosts", MySqlDbType.Byte).Value = showNoCountPosts;
 		        cmd.Parameters.Add("i_GetDefaults", MySqlDbType.Byte).Value = 0;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 		        DataTable dt = MsSqlDbAccess.Current.GetData(cmd);
 		        if (dt.Rows.Count > 0)
 		        {
@@ -1926,6 +1927,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add( "i_UserKey", MySqlDbType.String ).Value = adminUserKey;                
                 cmd.Parameters.Add( "i_IsHostAdmin", MySqlDbType.Byte ).Value = 0;
                 cmd.Parameters.Add("i_RolePrefix", MySqlDbType.VarChar).Value = rolePrefix;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				
                 return Convert.ToInt32( MsSqlDbAccess.Current.ExecuteScalar(cmd) );
 			}
@@ -2069,6 +2071,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add( "i_UserID", MySqlDbType.Int32 ).Value = userID;
 				cmd.Parameters.Add( "i_Hash", MySqlDbType.VarChar ).Value = hash;
                 cmd.Parameters.Add( "i_Email", MySqlDbType.VarChar ).Value = email;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -2146,6 +2149,7 @@ namespace YAF.Classes.Data
                     cmd.Parameters.Add( "i_Source", MySqlDbType.VarChar ).Value = source.ToString();
                     cmd.Parameters.Add( "i_Description", MySqlDbType.Text ).Value = description.ToString();
                     cmd.Parameters.Add( "i_Type", MySqlDbType.Int32 ).Value = type;
+                    cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 					MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				}
 			}
@@ -2464,6 +2468,25 @@ namespace YAF.Classes.Data
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
+
+        /// <summary>
+        /// Gets a max id of forums.
+        /// </summary>
+        /// <param name="boardID">
+        /// boardID
+        /// </param>
+        /// <returns>
+        /// A max forum id for a board
+        /// </returns>
+        public static int forum_maxid([NotNull] object boardID)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("forum_maxid"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardID;
+                return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
+            }
+        }
 
 		/// <summary>
 		/// Listes all forums accessible to a user
@@ -3199,6 +3222,7 @@ namespace YAF.Classes.Data
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add( "i_ProcessID", MySqlDbType.Int32 ).Value = processId;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
@@ -3237,6 +3261,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add( "i_Body", MySqlDbType.Text ).Value = body;
                 cmd.Parameters.Add( "i_BodyHtml", MySqlDbType.Text).Value = bodyHtml;
 				cmd.Parameters.Add( "i_UserID", MySqlDbType.Int32).Value = userID;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -3258,6 +3283,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add( "i_Subject", MySqlDbType.VarChar ).Value = subject;
                 cmd.Parameters.Add( "i_Body", MySqlDbType.Text ).Value = body;
                 cmd.Parameters.Add( "i_BodyHtml", MySqlDbType.Text ).Value = bodyHtml;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -3537,6 +3563,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add( "i_MessageID", MySqlDbType.Int32).Value = messageID;
 				cmd.Parameters.Add( "i_ForumID", MySqlDbType.Int32 ).Value = forumId;
 				cmd.Parameters.Add( "i_Subject", MySqlDbType.VarChar ).Value = newTopicSubj;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				
                 DataTable dt = MsSqlDbAccess.Current.GetData(cmd);
 				return long.Parse( dt.Rows [0] ["TopicID"].ToString() );
@@ -3629,6 +3656,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add( "i_ReporterID", MySqlDbType.Int32 ).Value = userID;
                 cmd.Parameters.Add( "i_ReportedDate", MySqlDbType.DateTime ).Value = reportedDateTime;
                 cmd.Parameters.Add("i_ReportText", MySqlDbType.VarChar).Value = reportText;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -3657,6 +3685,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add( "i_MessageFlag", MySqlDbType.Int32 ).Value = messageFlag;
                 cmd.Parameters.Add( "i_MessageID", MySqlDbType.Int32 ).Value = messageID;
 				cmd.Parameters.Add( "i_UserID", MySqlDbType.Int32 ).Value = userID;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -3854,6 +3883,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add("i_ExternalMessageID", MySqlDbType.VarChar).Value = DBNull.Value;
                 cmd.Parameters.Add("i_ReferenceMessageID", MySqlDbType.VarChar).Value = DBNull.Value;	
                 cmd.Parameters.Add( "i_Flags", MySqlDbType.Int32 ).Value = flags;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                 
 				cmd.Parameters.Add( paramMessageID );
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
@@ -4091,7 +4121,8 @@ namespace YAF.Classes.Data
                 
                 cmd.Parameters.Add("I_FromUserID", MySqlDbType.Int32).Value = fromUserID;
                 cmd.Parameters.Add("I_MessageID", MySqlDbType.Int32).Value = messageID;
-               
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
+
                 return MsSqlDbAccess.Current.ExecuteScalar(cmd).ToString();
             }
         }
@@ -4506,6 +4537,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add( "i_OnlyRibbon", MySqlDbType.Byte ).Value = onlyRibbon;
                 cmd.Parameters.Add( "i_SortOrder", MySqlDbType.Byte ).Value = sortOrder;
                 cmd.Parameters.Add( "i_DateAwarded", MySqlDbType.DateTime ).Value = dateAwarded;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -4562,6 +4594,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add( "i_Minutes", MySqlDbType.Int32 ).Value = minutes;
                 cmd.Parameters.Add( "i_NntpForumID", MySqlDbType.Int32 ).Value = nntpForumID;
                 cmd.Parameters.Add( "i_Active", MySqlDbType.Byte ).Value = active;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
@@ -4575,6 +4608,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add( "i_NntpForumID", MySqlDbType.Int32).Value = nntpForumID;
                 cmd.Parameters.Add( "i_LastMessageNo", MySqlDbType.Int32 ).Value = lastMessageNo;
 				cmd.Parameters.Add( "i_UserID", MySqlDbType.Int32 ).Value = userID;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -4600,6 +4634,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add( "i_ForumID", MySqlDbType.Int32 ).Value = forumID;
                 cmd.Parameters.Add( "i_Active", MySqlDbType.Byte ).Value = active;
                 cmd.Parameters.Add("i_DateCutoff", MySqlDbType.DateTime).Value = dateCutOff;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -4697,6 +4732,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add( "i_Posted", MySqlDbType.DateTime ).Value = posted;
                 cmd.Parameters.Add("i_ExternalMessageId", MySqlDbType.VarChar ).Value = externalMessageId;
                 cmd.Parameters.Add("i_ReferenceMessageId", MySqlDbType.VarChar ).Value = referenceMessageId;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 
                 
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
@@ -4820,6 +4856,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add( "i_Subject", MySqlDbType.VarChar ).Value = subject;
                 cmd.Parameters.Add( "i_Body", MySqlDbType.Text ).Value = body;
                 cmd.Parameters.Add( "i_Flags", MySqlDbType.Int32 ).Value = Flags;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -4853,6 +4890,7 @@ namespace YAF.Classes.Data
                
                 cmd.Parameters.Add( "i_DaysRead", MySqlDbType.Int32).Value = daysRead;
 				cmd.Parameters.Add( "i_DaysUnread", MySqlDbType.Int32 ).Value = daysUnread;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -6049,6 +6087,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add( "i_ForumID", MySqlDbType.Int32 ).Value = forumID;
                 cmd.Parameters.Add( "i_ShowMoved", MySqlDbType.Byte ).Value = showMoved;
                 cmd.Parameters.Add("i_LinkDays", MySqlDbType.Int32).Value = linkDays;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -6700,6 +6739,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add( "i_Posted", MySqlDbType.DateTime ).Value = posted;
                 cmd.Parameters.Add( "i_BlogPostID", MySqlDbType.VarChar ).Value = blogPostID;
                 cmd.Parameters.Add( "i_Flags", MySqlDbType.Int32 ).Value = flags;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 
 				DataTable dt = MsSqlDbAccess.Current.GetData(cmd);
 				messageID = long.Parse( dt.Rows [0] ["MessageID"].ToString() );
@@ -7267,6 +7307,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add( "i_GroupID", MySqlDbType.Int32 ).Value = groupID;
 				cmd.Parameters.Add( "i_RankID", MySqlDbType.Int32 ).Value = rankID;
                 cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
              
 				return MsSqlDbAccess.Current.GetData( cmd,false );               
            
@@ -7683,6 +7724,7 @@ namespace YAF.Classes.Data
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32 ).Value = boardId;
             cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+            cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 
             return MsSqlDbAccess.Current.GetData(cmd);
         }
@@ -7730,6 +7772,7 @@ namespace YAF.Classes.Data
             cmd.Parameters.Add("i_GroupID", MySqlDbType.Int32).Value = groupId;
             cmd.Parameters.Add("i_RankID", MySqlDbType.Int32).Value = rankId;
             cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+            cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 
             return MsSqlDbAccess.Current.GetData(cmd).AsEnumerable().Select(x => new TypedUserList(x));
         }
@@ -7821,6 +7864,7 @@ namespace YAF.Classes.Data
 				
                 cmd.Parameters.Add( "i_BoardID", MySqlDbType.Int32 ).Value = boardId;
                 cmd.Parameters.Add("i_Days", MySqlDbType.Int32).Value = days;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -7976,7 +8020,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add("i_AutoWatchTopics", MySqlDbType.Byte).Value = autoWatchTopics;
                 cmd.Parameters.Add("i_DSTUser", MySqlDbType.Byte).Value = dSTUser;
                 cmd.Parameters.Add("i_HideUser", MySqlDbType.Byte).Value = isHidden;
-               
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
@@ -8355,6 +8399,7 @@ namespace YAF.Classes.Data
 					cmd.Parameters.Add( "i_Email", MySqlDbType.VarChar ).Value = email;
                     cmd.Parameters.Add( "i_ProviderUserKey", MySqlDbType.VarChar ).Value = providerUserKey;
 					cmd.Parameters.Add( "i_IsApproved", MySqlDbType.Byte ).Value = isApproved;
+                    cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                     
                     return Convert.ToInt32( MsSqlDbAccess.Current.ExecuteScalar(cmd) );
 				}
@@ -8399,6 +8444,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add( "i_UserName", MySqlDbType.VarChar ).Value = userName;
                 cmd.Parameters.Add( "i_Email", MySqlDbType.VarChar ).Value = email;
                 cmd.Parameters.Add("i_TimeZone", MySqlDbType.Int32).Value = timeZone;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                 
 				return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
 			}
@@ -8613,7 +8659,8 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add( "i_UserID", MySqlDbType.Int32 ).Value = userID;
 				cmd.Parameters.Add( "i_ForumID", MySqlDbType.Int32 ).Value = forumID;
                 cmd.Parameters.Add( "i_AccessMaskID", MySqlDbType.Int32 ).Value = accessMaskID;
-				
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
+
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
@@ -8651,7 +8698,7 @@ namespace YAF.Classes.Data
                 
                 cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userID;
                 cmd.Parameters.Add("i_ForumID", MySqlDbType.Int32).Value = forumID;
-				
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
@@ -8732,7 +8779,7 @@ namespace YAF.Classes.Data
 				
                 cmd.Parameters.Add( "i_UserID", MySqlDbType.Int32 ).Value = userID;
                 cmd.Parameters.Add( "i_TopicID", MySqlDbType.Int32).Value = topicID;
-				
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
@@ -8752,6 +8799,7 @@ namespace YAF.Classes.Data
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("i_userid", MySqlDbType.Int32).Value = userID;
                 cmd.Parameters.Add("i_topicid", MySqlDbType.Int32).Value = topicID;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
             }
@@ -8840,6 +8888,8 @@ namespace YAF.Classes.Data
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new MySqlParameter("i_userid", MySqlDbType.Int32)).Value = userID;
                 cmd.Parameters.Add(new MySqlParameter("i_forumid", MySqlDbType.Int32)).Value = forumID;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
+
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
             }
         }
@@ -9710,6 +9760,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add("i_UserEmail", MySqlDbType.VarChar).Value = userEmail;     
                 cmd.Parameters.Add( "i_UserKey", MySqlDbType.String ).Value = providerUserKey;
                 cmd.Parameters.Add("i_RolePrefix", MySqlDbType.String).Value = rolePrefix;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                               
                 YAF.Classes.Data.MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
             }
@@ -9779,6 +9830,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new MySqlParameter("i_Message", MySqlDbType.Text)).Value = message;
                 cmd.Parameters.Add(new MySqlParameter("i_Date", MySqlDbType.DateTime)).Value = DBNull.Value;
                 cmd.Parameters.Add(new MySqlParameter("i_IP", MySqlDbType.VarChar)).Value = ip;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
                 return true;
             }
@@ -9866,7 +9918,7 @@ namespace YAF.Classes.Data
                 
                 cmd.Parameters.Add(new MySqlParameter("i_FromUserID",MySqlDbType.Int32)).Value = FromUserID;
                 cmd.Parameters.Add(new MySqlParameter("i_ToUserID",MySqlDbType.Int32)).Value =  ToUserID;
-           
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 
                 DataTable dt = MsSqlDbAccess.Current.GetData(cmd);
                 return new string[] { dt.Rows[0]["i_paramOutput"].ToString(), dt.Rows[0]["i_approved"].ToString() };
@@ -9898,6 +9950,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new MySqlParameter("i_FromUserID", MySqlDbType.Int32)).Value = FromUserID;
                 cmd.Parameters.Add(new MySqlParameter("i_ToUserID", MySqlDbType.Int32)).Value =  ToUserID;
                 cmd.Parameters.Add(new MySqlParameter("i_mutual", MySqlDbType.Byte)).Value = Mutual;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                 cmd.Parameters.Add(paramOutput);
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
                 return paramOutput.Value.ToString();
@@ -10006,6 +10059,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new MySqlParameter("i_UserID",MySqlDbType.Int32)).Value = UserID;
                 cmd.Parameters.Add(new MySqlParameter("i_Title", MySqlDbType.VarChar)).Value = Title;
                 cmd.Parameters.Add(new MySqlParameter("i_CoverImageID",MySqlDbType.Int32)).Value = CoverImageID;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                               
                 return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
             }
@@ -10130,6 +10184,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add(new MySqlParameter("i_FileName",MySqlDbType.VarChar)).Value = FileName;
                 cmd.Parameters.Add(new MySqlParameter("i_Bytes", MySqlDbType.Int32)).Value = Bytes;
                 cmd.Parameters.Add(new MySqlParameter("i_ContentType", MySqlDbType.VarChar)).Value =   ContentType;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
             }
         }

@@ -63,24 +63,17 @@
           <blockquote>
            <p>Database:  The minimal Firebird version is 2.5.0 and higher.</p>
            <p>OS:  Windows XP,Windows Vista,Windows Server 2003,Windows Server 2008.</p>
+			  <p>Yet Another Forum 1.9.6 RC1 and higher.&nbsp;</p>
              
           </blockquote>        
-        <h1>Firebird Installation</h1>
+        <h1>Firebird RDBMS AND YAF Installation</h1>
         <!-- **** INSERT PAGE CONTENT HERE **** -->
        
         <h2>1.Install & configure Firebird database &amp; server</h2>
         
         <p>                <!-- **** INSERT PAGE CONTENT HERE **** -->
-                Download archive from <a href="http://sourceforge.net/projects/firebird/files/">here</a>, choose your architecture.  
        
        </p>
-		  <p>                For later versions, beginning with 1.9.6 RC1 use
-		  <a href="https://github.com/vzrus/YetAnotherForumExtraDataLayers">this
-		  </a>repository.  
-       
-       </p>
-		  <p>                Keep in mind that this data layer is not upgradable 
-		  from previous versions before 1.9.6 RC1.</p>
 		  <p>                Files for DB Server called 
 			  like:</p>
 			 <p> For win32:                
@@ -95,19 +88,7 @@
 			  Firebird-2.5.0.23247-1_Win32_embed_Beta1.zip</a></p>
 			  <p>For further instruction see 
 			   <a href="http://www.firebirdsql.org">firebird official site</a>
-              </p>        
-     
-         <h2>1.1.Install Firebird server</h2>
-			  <p>&nbsp;</p>
-        
-	
-
-	<br />	
-	<p>1. Download the archive or version from our svn. </p>	
-   <br />
-   <p>2. Unzip the entire archive to to a folder you want to run YAF in on your web 
-	server.<br />
-	Apply all svn patches to corresponding svn version if present</p>
+              </p>
 	<br />
 
 <hr />
@@ -115,29 +96,32 @@
  <!-- **** INSERT PAGE CONTENT HERE **** -->
 
 <hr />
-<h2>STEP 3. REPLACE FILES and folders in the archive.</h2>
+<h2>STEP 3. REPLACE FILES and folders in the YAF unpacked archive with source 
+code.</h2>
 <br />
 
-<p>Replace all the files in the archive. If a folder misses, create it.</p>
-<hr />
-<br />
-<h2>STEP 4a. REPLACE OR ADD FILES IN FOLDERS.</h2>
-Simply replace YAF distribution files with /Distribution folder content or add new ones if they are in distribution.
+<p>Replace all the files in the archive. If you see a folder with a MS Visual 
+Studio , simply replace a corresponding project. You should completely replace 
+YAF.Calasses.Data and YAF.Providers projects and their folders in YAF solution. All other files 
+you should add, if they're missing&nbsp; or replace. Providers are optional but 
+it's recommended to use them first to test the functionality.&nbsp; The source 
+code contains sample configuration files.</p>
 	<br />
 <hr />
 
 	
 <br />
-<h2>STEP 4b. COMPILE YAF(optional).	</h2>
+<h2>STEP 4. COMPILE YAF with replaced files.	</h2>
+		  <p>Compile YAF with the replaced files.</p>
 
  <!-- **** INSERT PAGE CONTENT HERE **** -->
 <hr />
-	 <h1>Firebird Configuration</h1> 
+	 <h1>Firebird Configuration TIPS</h1> 
 	 <br></br>
 	 <h2>1.Page size and encoding</h2>
 	 	<br></br>
-	 <p>If you use UTF8 keep in mind that page size must be more then 4096kB - 8 
-	 and more .</p> 
+	 <p>If you use UTF8 keep in mind that page size must be more then 4096kB - 8192 
+	 and more. </p> 
 	 <br></br>
      <h2>2.Connection strings examples</h2>
      <br></br>
@@ -145,13 +129,13 @@ Simply replace YAF distribution files with /Distribution folder content or add n
    
 
 			 <br></br>
-			 <p>connectionString="Database=C:\Documents and Settings\bob\My Documents\Projects\yaffirebird\YetAnotherForum.NET\App_Data\yafnet.fdb;
+			 <p>connectionString="Database=C:\Documents and Settings\vzrus\My Documents\Projects\yaffirebird\YetAnotherForum.NET\App_Data\yafnet.fdb;
       Server Type=1"</p>       
     <br></br>
 			 <h2>-- firebird as embeded full or as a file --</h2>
 	<br></br>	     
 <p>connectionString="User=SYSDBA;Password=myfirebird;
-Database=C:\Documents and Settings\bob\My Documents\Projects\yaffirebird\YetAnotherForum.NET\App_Data\yafnet.fdb;Dialect=3;
+Database=C:\Documents and Settings\vzrus\My Documents\Projects\yaffirebird\YetAnotherForum.NET\App_Data\yafnet.fdb;Dialect=3;
 Charset=UNICODE_FSS;Role=;
 Connection lifetime=0;Connection timeout=15;Pooling=True;
 Server Type=1"</p>     

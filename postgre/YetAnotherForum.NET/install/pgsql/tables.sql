@@ -15,7 +15,7 @@ CREATE TABLE databaseSchema.objectQualifier_accessmask
             (
              accessmaskid              serial NOT NULL,
 			 boardid                   integer NOT NULL,
-			 name                      varchar(128) NOT NULL,
+			 name                      varchar(128) NOT NULL CHECK (name <> ''),
 			 flags                     integer DEFAULT 0 NOT NULL,
 			 sortorder                 smallint DEFAULT 0 NOT NULL
 			) 
@@ -30,7 +30,7 @@ CREATE TABLE databaseSchema.objectQualifier_active
              sessionid                 varchar(24) NOT NULL,
 			 boardid                   integer NOT NULL,
 			 userid                    integer NOT NULL,
-			 ip                        varchar(39) NOT NULL,
+			 ip                        varchar(39) NOT NULL CHECK (ip <> ''),
 			 login                     timestampTZ  NOT NULL,
 			 lastactive                timestampTZ  NOT NULL,
 			 location                  varchar(255) NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE databaseSchema.objectQualifier_active
 			 forumpage                 varchar(255) NOT NULL,
 			 flags                     integer NOT NULL default 0
 			) 
-		WITH (OIDS=withOIDs);
+		WITH (OIDS=withOIDs,fillfactor=10,autovacuum_enabled=true);
 END IF;
 
 IF NOT EXISTS (select 1 from pg_tables 
@@ -69,8 +69,8 @@ CREATE TABLE databaseSchema.objectQualifier_activeaccess
 			 uploadaccess		       boolean NOT NULL default false,
 			 downloadaccess		       boolean NOT NULL default false			
 			 ) 
-	   WITH (OIDS=withOIDs);
-END IF;
+	   WITH (OIDS=withOIDs,fillfactor=10,autovacuum_enabled=true);
+	   END IF;
 
 IF NOT EXISTS (select 1 from pg_tables 
                where schemaname='databaseSchema' 
@@ -79,7 +79,7 @@ CREATE TABLE databaseSchema.objectQualifier_attachment
              (
              attachmentid              serial NOT NULL,
 			 messageid                 integer NOT NULL,
-			 filename                  varchar(255) NOT NULL,
+			 filename                  varchar(255) NOT NULL CHECK (filename <> ''),
 			 bytes                     integer NOT NULL,
 			 fileid                    integer,
 			 contenttype               varchar(128),
@@ -111,7 +111,7 @@ CREATE TABLE databaseSchema.objectQualifier_bbcode
             (
              bbcodeid                  serial NOT NULL,
 			 boardid                   integer NOT NULL,
-			 name                      varchar(255) NOT NULL,
+			 name                      varchar(255) NOT NULL CHECK (name <> ''),
 			 description               varchar(4000),
 			 onclickjs                 varchar(1000),
 			 displayjs                 text,
@@ -133,7 +133,7 @@ IF NOT EXISTS (select 1 from pg_tables
 CREATE TABLE databaseSchema.objectQualifier_board
              (
              boardid                   serial NOT NULL,
-			 name                      varchar(128) NOT NULL,
+			 name                      varchar(128) NOT NULL CHECK (name <> ''),
 			 allowthreaded             boolean NOT NULL,
 			 membershipappname         varchar(255),
 			 rolesappname              varchar(255)
@@ -147,7 +147,7 @@ CREATE TABLE databaseSchema.objectQualifier_category
              (
              categoryid                serial NOT NULL,
 			 boardid                   integer NOT NULL,
-			 name                      varchar(128) NOT NULL,
+			 name                      varchar(128) NOT NULL CHECK (name <> ''),
 			 categoryimage             varchar(255),
 			 sortorder                 smallint NOT NULL,
 			 pollgroupid               int
@@ -162,9 +162,9 @@ CREATE TABLE databaseSchema.objectQualifier_checkemail
              (
              checkemailid              serial NOT NULL,
 			 userid                    integer NOT NULL,
-			 email                     varchar(128) NOT NULL,
+			 email                     varchar(128) NOT NULL CHECK (email <> ''),
 			 created                   timestampTZ  NOT NULL,
-			 hash                      varchar(32) NOT NULL
+			 hash                      varchar(32) NOT NULL CHECK (hash <> '') 
 			 ) 
 	    WITH (OIDS=withOIDs);
 END IF;
@@ -176,7 +176,7 @@ CREATE TABLE databaseSchema.objectQualifier_choice
              (
              choiceid                  serial NOT NULL,
 			 pollid                    integer NOT NULL,
-			 choice                    varchar(128) NOT NULL,
+			 choice                    varchar(128) NOT NULL CHECK (choice <> ''),
 			 votes                     integer NOT NULL,
 			 objectpath                varchar(255),
 			 mimetype                  varchar(50)
@@ -192,8 +192,8 @@ CREATE TABLE databaseSchema.objectQualifier_eventlog
              eventlogid                serial NOT NULL,
 			 eventtime                 timestampTZ  NOT NULL DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
 			 userid                    integer,
-			 source                    varchar(128) NOT NULL,
-			 description               text NOT NULL,
+			 source                    varchar(128) NOT NULL CHECK (source <> ''),
+			 description               text NOT NULL CHECK (description <> ''),
 			 type                      integer DEFAULT 0 NOT NULL
 			 ) 
 	   WITH (OIDS=withOIDs);
@@ -206,7 +206,7 @@ CREATE TABLE databaseSchema.objectQualifier_extension
              (
              extensionid               serial NOT NULL,
 			 boardid                   integer DEFAULT 1 NOT NULL,
-			 extension                 varchar(10) NOT NULL
+			 extension                 varchar(10) NOT NULL CHECK (extension <> '')
 			 ) 
 	   WITH (OIDS=withOIDs);
 END IF;
@@ -219,18 +219,19 @@ CREATE TABLE databaseSchema.objectQualifier_forum
              forumid                   serial NOT NULL,
 			 categoryid                integer NOT NULL,
 			 parentid                  integer,
-			 name                      varchar(128) NOT NULL,
+			 name                      varchar(128) NOT NULL CHECK (name <> ''),
 			 description               varchar(255) NOT NULL,
-			 sortorder                 smallint NOT NULL,
+			 sortorder                 smallint NOT NULL CHECK (sortorder >= 0),
 			 lastposted                timestampTZ ,
 			 lasttopicid               integer,
 			 lastmessageid             integer,
 			 lastuserid                integer,
 			 lastusername              varchar(128),
-			 numtopics                 integer NOT NULL,
-			 numposts                  integer NOT NULL,
+			 lastuserdisplayname       varchar(128),
+			 numtopics                 integer NOT NULL CHECK (numtopics >= 0),
+			 numposts                  integer NOT NULL CHECK (numposts >= 0),
 			 remoteurl                 varchar(255),
-			 flags                     integer DEFAULT 0 NOT NULL,
+			 flags                     integer DEFAULT 0 NOT NULL CHECK (flags >= 0),
 			 themeurl                  varchar(255),
 			 imageurl                  varchar(255),
 			 styles                    varchar(255),
@@ -259,7 +260,7 @@ CREATE TABLE databaseSchema.objectQualifier_group
              groupid                   serial NOT NULL,
 			 boardid                   integer NOT NULL,
 			 name                      varchar(128) NOT NULL,
-			 flags                     integer DEFAULT 0 NOT NULL,
+			 flags                     integer DEFAULT 0 NOT NULL CHECK (flags >= 0),
 			 pmlimit                   integer DEFAULT 0 NOT NULL,
 			 style                     varchar(255),
 			 sortorder                 smallint DEFAULT 0 NOT NULL,
@@ -346,6 +347,7 @@ CREATE TABLE databaseSchema.objectQualifier_message
 			 indent                    integer NOT NULL,
 			 userid                    integer NOT NULL,
 			 username                  varchar(128),
+			 userdisplayname           varchar(128),
 			 posted                    timestampTZ  NOT NULL,
 			 message                   text NOT NULL,
 			 ip                        varchar(39) NOT NULL,
@@ -583,6 +585,7 @@ CREATE TABLE databaseSchema.objectQualifier_topic
 			 forumid                   integer NOT NULL,
 			 userid                    integer NOT NULL,
 			 username                  varchar(128),
+			 userdisplayname           varchar(128),
 			 posted                    timestampTZ  NOT NULL,
 			 topic                     varchar(128) NOT NULL,
 			 views                     integer NOT NULL,
@@ -593,6 +596,7 @@ CREATE TABLE databaseSchema.objectQualifier_topic
 			 lastmessageid             integer,
 			 lastuserid                integer,
 			 lastusername              varchar(128),
+			 lastuserdisplayname       varchar(128),
 			 numposts                  integer NOT NULL,
 			 flags                     integer DEFAULT 0 NOT NULL,
 			 answermessageid           integer NULL,
@@ -782,6 +786,7 @@ CREATE TABLE databaseSchema.objectQualifier_shoutboxmessage
              shoutboxmessageid         serial NOT NULL,
 			 userid                    integer,
 			 username                  varchar(128) NOT NULL,
+			 userdisplayname           varchar(128) NOT NULL,
 			 message                   text,
 			 "date"                    timestampTZ  NOT NULL,
 			 "ip"                      varchar(128) NOT NULL,
@@ -950,8 +955,20 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_add_or_change_columns(
 RETURNS void AS
 $BODY$
 BEGIN
-     IF (NOT column_exists('databaseSchema.objectQualifier_topic','linkdate')) THEN
+     IF (NOT column_exists('databaseSchema.objectQualifier_forum','lastuserdisplayname')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_forum ADD COLUMN lastuserdisplayname  varchar(128);
+     END IF;
+	 IF (NOT column_exists('databaseSchema.objectQualifier_topic','userdisplayname')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_topic ADD COLUMN userdisplayname   varchar(128);
+     END IF;
+	 IF (NOT column_exists('databaseSchema.objectQualifier_topic','lastuserdisplayname')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_topic ADD COLUMN lastuserdisplayname   varchar(128);
+     END IF;
+	 IF (NOT column_exists('databaseSchema.objectQualifier_topic','linkdate')) THEN
          ALTER TABLE databaseSchema.objectQualifier_topic ADD COLUMN linkdate  timestampTZ;
+     END IF;
+	 IF (NOT column_exists('databaseSchema.objectQualifier_message','userdisplayname')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_message ADD COLUMN userdisplayname   varchar(128);
      END IF;
 	 IF (NOT column_exists('databaseSchema.objectQualifier_user','userstyle')) THEN
          ALTER TABLE databaseSchema.objectQualifier_user ADD COLUMN userstyle  varchar(255);
@@ -967,6 +984,9 @@ BEGIN
      END IF;
 	  IF (NOT column_exists('databaseSchema.objectQualifier_user','isrankstyle')) THEN
          ALTER TABLE databaseSchema.objectQualifier_user ADD COLUMN isrankstyle  boolean DEFAULT FALSE NOT NULL;
+     END IF;
+	 IF (NOT column_exists('databaseSchema.objectQualifier_shoutboxmessage','userdisplayname')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_shoutboxmessage ADD COLUMN userdisplayname  varchar(128);
      END IF;
 	 END;	 	
 $BODY$

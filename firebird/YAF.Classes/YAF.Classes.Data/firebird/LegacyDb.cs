@@ -1,20 +1,34 @@
-/* Yet Another Forum.NET
- * Copyright (C) 2003-2005 Bjørnar Henden
- * Copyright (C) 2006-2008 Jaben Cargman
+/* Yet Another Forum.NET Firebird data layer by vzrus
+ * Copyright (C) 2006-2012 Vladimir Zakharov
+ * https://github.com/vzrus
+ * http://sourceforge.net/projects/yaf-datalayers/
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; version 2 only
+ * General class structure is based on MS SQL Server code,
+ * created by YAF developers
+ *
  * http://www.yetanotherforum.net/
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License.
  * 
- * This scripts for MySQL for Yet Another Forum http://sourceforge.net/projects/yafdotnet/
- * were created by vzrus from vz-team https://github.com/vzrus http://sourceforge.net/projects/yaf-datalayers/
- * They are distributed under terms of GPL licence as in http://www.fsf.org/licensing/licenses/gpl.html
- * Copyright vzrus(c) 2008-2012
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
 using System.Configuration;
 using System.Web;
-using VZF.Data.Firebird;
 using YAF.Types.Handlers;
 
-namespace YAF.Classes.Data.FirebirdDb
+namespace YAF.Classes.Data
 {
     using System;
     using System.Collections.Generic;
@@ -525,22 +539,22 @@ namespace YAF.Classes.Data.FirebirdDb
 	    /// Gets the database size
 	    /// </summary>
 	    /// <returns>An integer value for database size</returns>
-        public static int GetDBSize(string connectionString)
+        public static int GetDBSize()
 	    {
-	        using (FbCommand cmd = FbDbAccess.GetCommand("DB_SIZE"))
+	        using (FbCommand cmd = MsSqlDbAccess.GetCommand("DB_SIZE"))
 	        {
 	            cmd.CommandType = CommandType.StoredProcedure;
-	            cmd.Parameters.Add(new FbParameter("@I_DBNAME", FbDbType.VarChar)).Value = FbDbAccess.DBName.ToUpperInvariant();
+	            cmd.Parameters.Add(new FbParameter("@I_DBNAME", FbDbType.VarChar)).Value = MsSqlDbAccess.DBName.ToUpperInvariant();
 
-	            return Convert.ToInt32(FbDbAccess.Current.ExecuteScalar(cmd, connectionString));
+	            return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
 	        }
 	    }
 
-	    public static bool GetIsForumInstalled(string connectionString)
+	    public static bool GetIsForumInstalled()
 	    {
 	        try
 	        {
-                using (DataTable dt = board_list(connectionString, DBNull.Value))
+                using (DataTable dt = board_list( DBNull.Value))
 	            {
 	                return dt.Rows.Count > 0;
 	            }
@@ -551,11 +565,11 @@ namespace YAF.Classes.Data.FirebirdDb
 	        return false;
 	    }
 
-        public static int GetDBVersion(string connectionString)
+        public static int GetDBVersion()
 	    {
 	        try
 	        {
-	            using (DataTable dt = registry_list(connectionString,"version"))
+	            using (DataTable dt = registry_list("version"))
 	            {
 	                if (dt.Rows.Count > 0)
 	                {
@@ -631,7 +645,7 @@ namespace YAF.Classes.Data.FirebirdDb
         /// <exception cref="ApplicationException">
         /// </exception>
         static public DataRow pageload(
-            string connectionString,
+            
             object sessionID, 
             object boardID, 
             object userKey, 
@@ -660,7 +674,7 @@ namespace YAF.Classes.Data.FirebirdDb
 			{
 				try
 				{
-					using ( FbCommand cmd = FbDbAccess.GetCommand( "PAGELOAD" ) )
+					using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "PAGELOAD" ) )
 					{
 						cmd.CommandType = CommandType.StoredProcedure;
 
@@ -686,7 +700,7 @@ namespace YAF.Classes.Data.FirebirdDb
 						cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
              
           
-						using ( DataTable dt = FbDbAccess.Current.GetData(cmd,connectionString))
+						using ( DataTable dt = MsSqlDbAccess.Current.GetData(cmd))
 						{
 							if ( dt.Rows.Count > 0 )
 								return dt.Rows [0];
@@ -716,7 +730,7 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="fid"></param>
 		/// <param name="UserID">ID of user</param>
 		/// <returns>Results</returns>
-        static public DataTable GetSearchResult(string connectionString, string toSearchWhat, string toSearchFromWho, SearchWhatFlags searchFromWhoMethod, SearchWhatFlags searchWhatMethod, int forumIDToStartAt, int userID, int boardId, int maxResults, bool useFullText, bool searchDisplayName)
+        static public DataTable GetSearchResult( string toSearchWhat, string toSearchFromWho, SearchWhatFlags searchFromWhoMethod, SearchWhatFlags searchWhatMethod, int forumIDToStartAt, int userID, int boardId, int maxResults, bool useFullText, bool searchDisplayName)
 		{
 
             /*     if (toSearchWhat == "*")
@@ -732,9 +746,9 @@ namespace YAF.Classes.Data.FirebirdDb
                    }
              string searchSql = new SearchBuilder().BuildSearchSql(toSearchWhat, toSearchFromWho, searchFromWhoMethod, searchWhatMethod, userID, searchDisplayName, boardId, maxResults, useFullText, forumIds);
     
-                   using (FbCommand cmd = FbDbAccess.GetCommand(searchSql, true))
+                   using (FbCommand cmd = MsSqlDbAccess.GetCommand(searchSql, true))
                    {
-                       return FbDbAccess.Current.GetData(cmd, connectionString);
+                       return MsSqlDbAccess.Current.GetData(cmd);
                    } 
 
             */
@@ -748,14 +762,14 @@ namespace YAF.Classes.Data.FirebirdDb
 
             if (forumIDToStartAt != 0)
             {
-                forumIds = ForumListAll(connectionString, boardId, userID, forumIDToStartAt).Select(f => f.ForumID ?? 0).Distinct();
+                forumIds = ForumListAll( boardId, userID, forumIDToStartAt).Select(f => f.ForumID ?? 0).Distinct();
             }
 
           /*  string searchSql = new SearchBuilder().BuildSearchSql(toSearchWhat, toSearchFromWho, searchFromWhoMethod, searchWhatMethod, userID, searchDisplayName, boardId, maxResults, useFullText, forumIds);
 
-            using (FbCommand cmd = FbDbAccess.GetCommand(searchSql, true))
+            using (FbCommand cmd = MsSqlDbAccess.GetCommand(searchSql, true))
             {
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             } */
 
 			// if ( ToSearch.Length == 0 )
@@ -769,7 +783,7 @@ namespace YAF.Classes.Data.FirebirdDb
 
 			if (forumIDToStartAt != 0)
 			{
-                DataTable dt = forum_listall_sorted(connectionString, boardId, userID, null, false, forumIDToStartAt);
+                DataTable dt = forum_listall_sorted( boardId, userID, null, false, forumIDToStartAt);
 				foreach (DataRow dr in dt.Rows)
 					forumIDs = forumIDs + Convert.ToInt32(dr["ForumID"]).ToString() + ",";
 				forumIDs = forumIDs.Substring(0, forumIDs.Length - 1);
@@ -788,10 +802,10 @@ namespace YAF.Classes.Data.FirebirdDb
 
 			searchSql += @" a.FORUMID AS ""ForumID"", a.TOPICID AS ""TopicID"", a.TOPIC AS ""Topic"", b.USERID AS ""UserID"" , COALESCE(c.USERNAME, b.NAME) AS ""Name"", c.MESSAGEID AS ""MessageID"", c.POSTED AS ""Posted"", '' AS ""Message"", c.FLAGS AS ""Flags""";
 			searchSql += " FROM "  +
-				FbDbAccess.GetObjectName("TOPIC") + " a LEFT JOIN " 
-				+ FbDbAccess.GetObjectName("MESSAGE") + @" c ON a.TOPICID = c.TOPICID LEFT JOIN "
-				+  FbDbAccess.GetObjectName("USER") + @" b ON c.USERID = b.USERID join "
-				+ FbDbAccess.GetObjectName("VACCESS") + @" x ON x.FORUMID=a.FORUMID ";
+				MsSqlDbAccess.GetObjectName("TOPIC") + " a LEFT JOIN " 
+				+ MsSqlDbAccess.GetObjectName("MESSAGE") + @" c ON a.TOPICID = c.TOPICID LEFT JOIN "
+				+  MsSqlDbAccess.GetObjectName("USER") + @" b ON c.USERID = b.USERID join "
+				+ MsSqlDbAccess.GetObjectName("VACCESS") + @" x ON x.FORUMID=a.FORUMID ";
 			searchSql += String.Format(@"WHERE x.READACCESS<>0 AND x.USERID={0} AND c.ISAPPROVED <> 0 AND a.TOPICMOVEDID IS NULL AND a.ISDELETED = 0 AND c.ISDELETED = 0 ", userID);
 			orderString += @" ORDER BY a.FORUMID ";
 			
@@ -972,9 +986,9 @@ namespace YAF.Classes.Data.FirebirdDb
 			
 
 
-			using (FbCommand cmd = FbDbAccess.GetCommand(searchSql, true))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand(searchSql, true))
 			{
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -986,16 +1000,16 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// </summary>
 		/// <param name="boardID">BoardID</param>
 		/// <returns>DataSet with categories</returns>
-        static public DataSet ds_forumadmin(string connectionString,
+        static public DataSet ds_forumadmin(
             [NotNull] object boardID)
 		{
-			using ( FbDbConnectionManager connMan = new FbDbConnectionManager() )
+			using ( MsSqlDbConnectionManager connMan = new MsSqlDbConnectionManager() )
 			{
 				using ( DataSet ds = new DataSet() )
 				{
-					using ( FbTransaction trans = connMan.OpenDBConnection.BeginTransaction( FbDbAccess.IsolationLevel ) )
+					using ( FbTransaction trans = connMan.OpenDBConnection.BeginTransaction( MsSqlDbAccess.IsolationLevel ) )
 					{
-						using (FbDataAdapter da = new FbDataAdapter(FbDbAccess.GetObjectName("category_list"), connMan.DBConnection))
+						using (FbDataAdapter da = new FbDataAdapter(MsSqlDbAccess.GetObjectName("category_list"), connMan.DBConnection))
 						{
 							da.SelectCommand.Transaction = trans;
 
@@ -1006,16 +1020,16 @@ namespace YAF.Classes.Data.FirebirdDb
 							da.SelectCommand.Parameters[1].Value = DBNull.Value;
 						
 							da.SelectCommand.CommandType = CommandType.StoredProcedure;
-							da.Fill( ds, FbDbAccess.GetObjectName( "Category" ) );
-							da.SelectCommand.CommandText = FbDbAccess.GetObjectName( "forum_list" );
-							da.Fill( ds, FbDbAccess.GetObjectName( "ForumUnsorted" ) );
-							DataTable dtForumListSorted = ds.Tables [FbDbAccess.GetObjectName( "ForumUnsorted" )].Clone();
-							dtForumListSorted.TableName = FbDbAccess.GetObjectName( "Forum" );
+							da.Fill( ds, MsSqlDbAccess.GetObjectName( "Category" ) );
+							da.SelectCommand.CommandText = MsSqlDbAccess.GetObjectName( "forum_list" );
+							da.Fill( ds, MsSqlDbAccess.GetObjectName( "ForumUnsorted" ) );
+							DataTable dtForumListSorted = ds.Tables [MsSqlDbAccess.GetObjectName( "ForumUnsorted" )].Clone();
+							dtForumListSorted.TableName = MsSqlDbAccess.GetObjectName( "Forum" );
 							ds.Tables.Add( dtForumListSorted );
 							dtForumListSorted.Dispose();
-                            forum_list_sort_basic(connectionString, ds.Tables[FbDbAccess.GetObjectName("ForumUnsorted")], ds.Tables[FbDbAccess.GetObjectName("Forum")], 0, 0);
-							ds.Tables.Remove( FbDbAccess.GetObjectName( "ForumUnsorted" ) );
-							ds.Relations.Add( "FK_Forum_Category", ds.Tables [FbDbAccess.GetObjectName( "Category" )].Columns ["CategoryID"], ds.Tables [FbDbAccess.GetObjectName( "Forum" )].Columns ["CategoryID"] );
+                            forum_list_sort_basic( ds.Tables[MsSqlDbAccess.GetObjectName("ForumUnsorted")], ds.Tables[MsSqlDbAccess.GetObjectName("Forum")], 0, 0);
+							ds.Tables.Remove( MsSqlDbAccess.GetObjectName( "ForumUnsorted" ) );
+							ds.Relations.Add( "FK_Forum_Category", ds.Tables [MsSqlDbAccess.GetObjectName( "Category" )].Columns ["CategoryID"], ds.Tables [MsSqlDbAccess.GetObjectName( "Forum" )].Columns ["CategoryID"] );
 							trans.Commit();
                             
 						}
@@ -1034,9 +1048,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="boardID">ID of Board</param>
 		/// <param name="accessMaskID">ID of access mask</param>
 		/// <returns></returns>
-        static public DataTable accessmask_list(string connectionString, object boardID, object accessMaskID)
+        static public DataTable accessmask_list( object boardID, object accessMaskID)
 		{
-            return accessmask_list(connectionString, boardID, accessMaskID, 0);
+            return accessmask_list( boardID, accessMaskID, 0);
 		}
 		/// <summary>
 		/// Gets a list of access mask properities
@@ -1044,9 +1058,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="boardID">ID of Board</param>
 		/// <param name="accessMaskID">ID of access mask</param>
 		/// <returns></returns>
-        static public DataTable accessmask_list(string connectionString, object boardID, object accessMaskID, object excludeFlags)
+        static public DataTable accessmask_list( object boardID, object accessMaskID, object excludeFlags)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "accessmask_list" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "accessmask_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer));
@@ -1055,7 +1069,7 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters[1].Value = accessMaskID;
 				cmd.Parameters.Add(new FbParameter("@I_EXCLUDEFLAGS", FbDbType.Integer));
 				cmd.Parameters[2].Value = excludeFlags;       
-				return FbDbAccess.Current.GetData(cmd, connectionString);			
+				return MsSqlDbAccess.Current.GetData(cmd);			
 				
 			}
 		}
@@ -1064,15 +1078,15 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// </summary>
 		/// <param name="accessMaskID">ID of access mask</param>
 		/// <returns></returns>
-        static public bool accessmask_delete(string connectionString, object accessMaskID)
+        static public bool accessmask_delete( object accessMaskID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "accessmask_delete" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "accessmask_delete" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("@I_ACCESSMASKID", FbDbType.Integer));
 				cmd.Parameters[0].Value = accessMaskID;
 				
-				return Convert.ToInt32(FbDbAccess.Current.ExecuteScalar( cmd,connectionString )) != 0;
+				return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar( cmd )) != 0;
 			}
 		}
 		/// <summary>
@@ -1092,9 +1106,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="deleteAccess">Delete Access?</param>
 		/// <param name="uploadAccess">Upload Access?</param>
 		/// <param name="downloadAccess">Download Access?</param>
-        static public void accessmask_save(string connectionString, object accessMaskID, object boardID, object name, object readAccess, object postAccess, object replyAccess, object priorityAccess, object pollAccess, object voteAccess, object moderatorAccess, object editAccess, object deleteAccess, object uploadAccess, object downloadAccess, object sortOrder)
+        static public void accessmask_save( object accessMaskID, object boardID, object name, object readAccess, object postAccess, object replyAccess, object priorityAccess, object pollAccess, object voteAccess, object moderatorAccess, object editAccess, object deleteAccess, object uploadAccess, object downloadAccess, object sortOrder)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "accessmask_save" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "accessmask_save" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -1126,7 +1140,7 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters.Add("@I_SORTORDER", FbDbType.Integer).Value = sortOrder;
 							
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 			}
 		}
 		#endregion
@@ -1139,10 +1153,10 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="Guests"></param>
 		/// <returns>Returns a DataTable of active users</returns>
 		///         
-        static public DataTable active_list(string connectionString, object boardID, object Guests, object showCrawlers, int interval, object styledNicks)
+        static public DataTable active_list( object boardID, object Guests, object showCrawlers, int interval, object styledNicks)
 		{
 		   if (Guests == null) { Guests = 0; }
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "active_list" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "active_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
               
@@ -1153,7 +1167,7 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Boolean)).Value = styledNicks;
 				cmd.Parameters.Add("@I_UTCTIMESTAMP", FbDbType.TimeStamp).Value = DateTime.UtcNow;
 				
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 		}
 
@@ -1177,9 +1191,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <returns>
 		/// Returns a DataTable of active users
 		/// </returns>
-        public static DataTable active_list_user(string connectionString, object boardID, object userID, object guests, object showCrawlers, int activeTime, object styledNicks)
+        public static DataTable active_list_user( object boardID, object userID, object guests, object showCrawlers, int activeTime, object styledNicks)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("active_list_user"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("active_list_user"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -1191,7 +1205,7 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Boolean)).Value = styledNicks;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -1200,14 +1214,14 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// </summary>
 		/// <param name="forumID">forumID</param>
 		/// <returns>DataTable of all ative users in a forum</returns>
-        static public DataTable active_listforum(string connectionString, object forumID, object styledNicks)
+        static public DataTable active_listforum( object forumID, object styledNicks)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "active_listforum" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "active_listforum" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add( new FbParameter( "@I_FORUMID", FbDbType.Integer ) ).Value = forumID;               
 				cmd.Parameters.Add( new FbParameter( "@I_STYLEDNICKS", FbDbType.Boolean ) ).Value = styledNicks;
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 		}
 		/// <summary>
@@ -1215,16 +1229,16 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// </summary>
 		/// <param name="topicID">ID of topic </param>
 		/// <returns>DataTable of all users that are in a topic</returns>
-        static public DataTable active_listtopic(string connectionString, object topicID, object styledNicks)
+        static public DataTable active_listtopic( object topicID, object styledNicks)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "active_listtopic" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "active_listtopic" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add( new FbParameter("@I_TOPICID", FbDbType.Integer ) ).Value = topicID;                
 				cmd.Parameters.Add( new FbParameter("@I_STYLEDNICKS", FbDbType.Boolean ) ).Value = styledNicks;
 				
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			
 			}
 		}
@@ -1234,15 +1248,15 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// </summary>
 		/// <param name="boardID">boardID</param>
 		/// <returns>DataRow of activity stata</returns>
-        static public DataRow active_stats(string connectionString, object boardID)
+        static public DataRow active_stats( object boardID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "active_stats" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "active_stats" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
 				
-				using ( DataTable dt = FbDbAccess.Current.GetData( cmd,connectionString ) )
+				using ( DataTable dt = MsSqlDbAccess.Current.GetData( cmd ) )
 				{
 					return dt.Rows [0];
 				}
@@ -1258,9 +1272,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="attachmentID">attachementID</param>
 		/// <param name="boardID">boardID</param>
 		/// <returns>DataTable with attachement list</returns>
-        static public DataTable attachment_list(string connectionString, object messageID, object attachmentID, object boardID)
+        static public DataTable attachment_list( object messageID, object attachmentID, object boardID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "attachment_list" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "attachment_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -1274,7 +1288,7 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters[2].Value = boardID;
 
 			
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 		}
 		/// <summary>
@@ -1285,9 +1299,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="bytes">number of bytes</param>
 		/// <param name="contentType">type of attchment</param>
 		/// <param name="stream">stream of bytes</param>
-        static public void attachment_save(string connectionString, object messageID, object fileName, object bytes, object contentType, System.IO.Stream stream)
+        static public void attachment_save( object messageID, object fileName, object bytes, object contentType, System.IO.Stream stream)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "attachment_save" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "attachment_save" ) )
 			{
 				byte [] fileData = null;
 				if ( stream != null )
@@ -1314,7 +1328,7 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters[4].Value = fileData;
 
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 			}
 		}
 		
@@ -1322,7 +1336,7 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// Delete attachment
 		/// </summary>
 		/// <param name="attachmentID">ID of attachment to delete</param>
-        static public void attachment_delete(string connectionString, [NotNull] object attachmentID)
+        static public void attachment_delete( [NotNull] object attachmentID)
 		{
 			bool UseFileTable = GetBooleanRegistryValue("UseFileTable");
 
@@ -1330,7 +1344,7 @@ namespace YAF.Classes.Data.FirebirdDb
 			//If the files are actually saved in the Hard Drive
 			if ( !UseFileTable )
 			{
-				using ( FbCommand cmd = FbDbAccess.GetCommand( "attachment_list" ) )
+				using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "attachment_list" ) )
 				{
 					cmd.CommandType = CommandType.StoredProcedure;
 
@@ -1338,7 +1352,7 @@ namespace YAF.Classes.Data.FirebirdDb
 					cmd.Parameters.Add(new FbParameter("@I_ATTACHMENTID", FbDbType.Integer)).Value = attachmentID;
 					cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = DBNull.Value;
 									
-					DataTable tbAttachments = FbDbAccess.Current.GetData( cmd,connectionString );
+					DataTable tbAttachments = MsSqlDbAccess.Current.GetData( cmd );
 					string uploadDir = HostingEnvironment.MapPath(String.Concat(BaseUrlBuilder.ServerFileRoot, YafBoardFolders.Current.Uploads));
 
 					foreach ( DataRow row in tbAttachments.Rows )
@@ -1359,13 +1373,13 @@ namespace YAF.Classes.Data.FirebirdDb
 					}		
 				}
 			}
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "attachment_delete" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "attachment_delete" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_ATTACHMENTID", FbDbType.Integer)).Value = attachmentID;
 		  
-				FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 			}
 			
 		}
@@ -1375,15 +1389,15 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// Attachement dowload
 		/// </summary>
 		/// <param name="attachmentID">ID of attachemnt to download</param>
-        static public void attachment_download(string connectionString, object attachmentID)
+        static public void attachment_download( object attachmentID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "attachment_download" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "attachment_download" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_ATTACHMENTID", FbDbType.Integer)).Value = attachmentID;
 			   
-				FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 			}
 		}
 		#endregion
@@ -1395,9 +1409,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="boardID">ID of board</param>
 		/// <param name="ID">ID</param>
 		/// <returns>DataTable of banned IPs</returns>
-        static public DataTable bannedip_list(string connectionString, object boardID, object ID)
+        static public DataTable bannedip_list( object boardID, object ID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "bannedip_list" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "bannedip_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer));
@@ -1406,7 +1420,7 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters.Add(new FbParameter("@I_ID", FbDbType.Integer));
 				cmd.Parameters[1].Value = ID;
 								
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 		}
 		/// <summary>
@@ -1415,9 +1429,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="ID">ID</param>
 		/// <param name="boardID">BoardID</param>
 		/// <param name="Mask">Mask</param>
-        static public void bannedip_save(string connectionString, object ID, object boardID, object Mask, string reason, int userID)
+        static public void bannedip_save( object ID, object boardID, object Mask, string reason, int userID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "bannedip_save" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "bannedip_save" ) )
 			{
 				//Regex for ip
 			  //  \b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b
@@ -1430,22 +1444,22 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;              		
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 			}
 		}
 		/// <summary>
 		/// Deletes Banned IP
 		/// </summary>
 		/// <param name="ID">ID of banned ip to delete</param>
-        static public void bannedip_delete(string connectionString, object ID)
+        static public void bannedip_delete( object ID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "bannedip_delete" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "bannedip_delete" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_ID", FbDbType.Integer)).Value = ID;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 			}
 		}
 		#endregion
@@ -1456,21 +1470,21 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// </summary>
 		/// <param name="boardID">board id</param>
 		/// <returns>DataTable</returns>
-        static public DataTable board_list(string connectionString, object boardID)
+        static public DataTable board_list( object boardID)
 		{
 			String _systemInfo = String.Concat(" OS: ", Platform.VersionString,
 				 " - Runtime: ", Platform.RuntimeName, " ", Platform.RuntimeString,
 				 " - Number of processors: ", Platform.Processors,
 				 " - Allocated memory:", (Platform.AllocatedMemory / 1024 / 1024).ToString(), " Mb.");
 
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "board_list" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "board_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer));
 				cmd.Parameters[0].Value = boardID;
 				cmd.Parameters.AddWithValue("@I_SYSINFO", _systemInfo);				
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 		}
 		/// <summary>
@@ -1478,9 +1492,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// </summary>
 		/// <param name="boardId">BoardID</param>
 		/// <returns>DataRow of Poststats</returns>
-        static public DataRow board_poststats(string connectionString, int? boardId, bool useStyledNicks, bool showNoCountPosts)
+        static public DataRow board_poststats( int? boardId, bool useStyledNicks, bool showNoCountPosts)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "board_poststats" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "board_poststats" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -1490,7 +1504,7 @@ namespace YAF.Classes.Data.FirebirdDb
                 cmd.Parameters.Add(new FbParameter("@I_GETDEFAULTS", FbDbType.Boolean)).Value = 0;
 				cmd.Parameters[0].Value = boardId;
 				
-				using ( DataTable dt = FbDbAccess.Current.GetData( cmd,connectionString ) )
+				using ( DataTable dt = MsSqlDbAccess.Current.GetData( cmd ) )
 				{
                     if (dt.Rows.Count > 0)
                     {
@@ -1500,7 +1514,7 @@ namespace YAF.Classes.Data.FirebirdDb
 			}
 
             // vzrus - this happens at a new install only when we don't have posts or when they are not visible to a user 
-            using (FbCommand cmd = FbDbAccess.GetCommand("board_poststats"))
+            using (FbCommand cmd = MsSqlDbAccess.GetCommand("board_poststats"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -1510,7 +1524,7 @@ namespace YAF.Classes.Data.FirebirdDb
                 cmd.Parameters.Add(new FbParameter("@I_GETDEFAULTS", FbDbType.Boolean)).Value = 0;
                 cmd.Parameters[0].Value = boardId;
 
-                using (DataTable dt = FbDbAccess.Current.GetData(cmd, connectionString))
+                using (DataTable dt = MsSqlDbAccess.Current.GetData(cmd))
                 {
                     return dt.Rows[0];
                 }
@@ -1527,13 +1541,13 @@ namespace YAF.Classes.Data.FirebirdDb
         /// <returns>
         /// DataRow of Poststats
         /// </returns>
-        public static DataRow board_userstats(string connectionString, int? boardId)
+        public static DataRow board_userstats( int? boardId)
         {
-            using (FbCommand cmd = FbDbAccess.GetCommand("board_userstats"))
+            using (FbCommand cmd = MsSqlDbAccess.GetCommand("board_userstats"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId;
-                using (DataTable dt = FbDbAccess.Current.GetData(cmd, connectionString))
+                using (DataTable dt = MsSqlDbAccess.Current.GetData(cmd))
                 {
                     return dt.Rows[0];
                 }
@@ -1543,43 +1557,43 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <summary>
 		/// Recalculates topic and post numbers and updates last post for all forums in all boards
 		/// </summary>
-        static public void board_resync(string connectionString)
+        static public void board_resync()
 		{
-            board_resync(connectionString, null);
+            board_resync( null);
 		}
 
 		/// <summary>
 		/// Recalculates topic and post numbers and updates last post for specified board
 		/// </summary>
 		/// <param name="boardID">BoardID of board to do re-sync for, if null, all boards are re-synced</param>
-        static public void board_resync(string connectionString, object boardID)
+        static public void board_resync( object boardID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "board_resync" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "board_resync" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 			   
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
 							
-				FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 			}
 		}
 		/// <summary>
 		/// Gets statistica about number of posts etc.
 		/// </summary>
 		/// <returns>DataRow</returns>
-        static public DataRow board_stats(string connectionString)
+        static public DataRow board_stats()
 		{
-			return board_stats( connectionString, null );
+			return board_stats(  null );
 		}
-        static public DataRow board_stats(string connectionString, object boardID)
+        static public DataRow board_stats( object boardID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "board_stats" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "board_stats" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add("@I_BOARDID", FbDbType.Integer).Value = boardID;            
 
-				return FbDbAccess.Current.GetData(cmd, connectionString).Rows[0];				
+				return MsSqlDbAccess.Current.GetData(cmd).Rows[0];				
 			}
 		}
 		/// <summary>
@@ -1588,9 +1602,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="boardID">BoardID</param>
 		/// <param name="name">Name of Board</param>
 		/// <param name="allowThreaded">Boolen value, allowThreaded</param>
-        static public int board_save(string connectionString, object boardID, object languageFile, object culture, object name, object allowThreaded)
+        static public int board_save( object boardID, object languageFile, object culture, object name, object allowThreaded)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "BOARD_SAVE" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "BOARD_SAVE" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -1600,7 +1614,7 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters.Add("@I_CULTURE", FbDbType.VarChar, 10).Value = culture;
 				cmd.Parameters.Add("@I_ALLOWTHREADED", FbDbType.Boolean).Value = allowThreaded;
 
-				return Convert.ToInt32(FbDbAccess.Current.ExecuteScalar( cmd,connectionString ));
+				return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar( cmd ));
 			
 			}
 		}
@@ -1613,9 +1627,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="boardName">Name of new board</param>
 		/// <param name="boardMembershipName">Membership Provider Application Name for new board</param>
 		/// <param name="boardRolesName">Roles Provider Application Name for new board</param>
-        static public int board_create(string connectionString, object adminUsername, object adminUserEmail, object adminUserKey, object boardName, object culture, object languageFile, object boardMembershipName, object boardRolesName, object rolePrefix)
+        static public int board_create( object adminUsername, object adminUserEmail, object adminUserKey, object boardName, object culture, object languageFile, object boardMembershipName, object boardRolesName, object rolePrefix)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "BOARD_CREATE" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "BOARD_CREATE" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -1631,7 +1645,7 @@ namespace YAF.Classes.Data.FirebirdDb
                 cmd.Parameters.Add("@I_ROLEPREFIX", FbDbType.VarChar).Value = rolePrefix;  
 				cmd.Parameters.Add("@I_UTCTIMESTAMP", FbDbType.TimeStamp).Value = DateTime.UtcNow;                
 
-				return Convert.ToInt32(FbDbAccess.Current.ExecuteScalar(cmd, connectionString));
+				return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
 							 
 			}
 		}
@@ -1639,15 +1653,15 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// Deletes a board
 		/// </summary>
 		/// <param name="boardID">ID of board to delete</param>
-        static public void board_delete(string connectionString, object boardID)
+        static public void board_delete( object boardID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "board_delete" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "board_delete" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 			}
 		}
 		#endregion
@@ -1658,16 +1672,16 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// </summary>
 		/// <param name="CategoryID">ID of category to delete</param>
 		/// <returns>Bool value indicationg if category was deleted</returns>
-        static public bool category_delete(string connectionString, object CategoryID)
+        static public bool category_delete( object CategoryID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "category_delete" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "category_delete" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 			   
 				cmd.Parameters.Add(new FbParameter("@I_CATEGORYID", FbDbType.Integer));
 				cmd.Parameters[0].Value = CategoryID;
 				
-				return ( int )FbDbAccess.Current.ExecuteScalar( cmd,connectionString ) != 0;
+				return ( int )MsSqlDbAccess.Current.ExecuteScalar( cmd ) != 0;
 			}
 		}
 		/// <summary>
@@ -1676,9 +1690,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="boardID">boardID</param>
 		/// <param name="categoryID">categotyID</param>
 		/// <returns>DataTable with a list of forums in a category</returns>
-        static public DataTable category_list(string connectionString, object boardID, object categoryID)
+        static public DataTable category_list( object boardID, object categoryID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "category_list" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "category_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer));
@@ -1687,7 +1701,7 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters.Add(new FbParameter("@I_CATEGORYID", FbDbType.Integer));
 				cmd.Parameters[1].Value = categoryID;
 				
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 		}
 		/// <summary>
@@ -1697,9 +1711,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="userID"></param>
 		/// <param name="categoryID"></param>
 		/// <returns></returns>
-        static public DataTable category_listread(string connectionString, object boardID, object userID, object categoryID)
+        static public DataTable category_listread( object boardID, object userID, object categoryID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "category_listread" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "category_listread" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -1713,7 +1727,7 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters.Add(new FbParameter("@I_CATEGORYID", FbDbType.Integer));
 				cmd.Parameters[2].Value = categoryID;
 
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 		}
 		/// <summary>
@@ -1722,16 +1736,16 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="StartID"></param>
 		/// <param name="Limit"></param>
 		/// <returns></returns>
-        static public DataTable category_simplelist(string connectionString, int startID, int limit)
+        static public DataTable category_simplelist( int startID, int limit)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "category_simplelist" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "category_simplelist" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_STARTID", FbDbType.Integer)).Value = startID;
                 cmd.Parameters.Add(new FbParameter("@I_LIMIT", FbDbType.Integer)).Value = limit;
 				
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 		}
 		/// <summary>
@@ -1741,13 +1755,13 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="CategoryID">CategoryID so save changes to</param>
 		/// <param name="Name">Name of the category</param>
 		/// <param name="SortOrder">Sort Order</param>
-        static public void category_save(string connectionString, object boardID, object categoryId, object name, object categoryImage, object sortOrder)
+        static public void category_save( object boardID, object categoryId, object name, object categoryImage, object sortOrder)
 		{
 
 			int sortOrderChecked = 0;
 			bool result = Int32.TryParse(sortOrder.ToString(), out sortOrderChecked);
 			if (result) { if (sortOrderChecked >= 255) { sortOrderChecked = 0; } }
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "category_save" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "category_save" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -1769,7 +1783,7 @@ namespace YAF.Classes.Data.FirebirdDb
 			   
 				
  
-				FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 			}
 		}
 		#endregion
@@ -1781,9 +1795,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// <param name="UserID">ID of user to verify</param>
 		/// <param name="Hash">Hash of user</param>
 		/// <param name="Email">email of user</param>
-        static public void checkemail_save(string connectionString, object userID, object hash, object email)
+        static public void checkemail_save( object userID, object hash, object email)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "checkemail_save" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "checkemail_save" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -1793,7 +1807,7 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow; 
 
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 			}
 		}
 		/// <summary>
@@ -1801,15 +1815,15 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// </summary>
 		/// <param name="hash">New hash</param>
 		/// <returns>DataTable with user information</returns>
-        static public DataTable checkemail_update(string connectionString, object hash)
+        static public DataTable checkemail_update( object hash)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "checkemail_update" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "checkemail_update" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_HASH", FbDbType.VarChar)).Value = hash;
 				
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 		}
 
@@ -1818,15 +1832,15 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// </summary>
 		/// <param name="email">Associated email</param>
 		/// <returns>DataTable with check email information</returns>
-        static public DataTable checkemail_list(string connectionString, object email)
+        static public DataTable checkemail_list( object email)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "checkemail_list" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "checkemail_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_EMAIL", FbDbType.VarChar)).Value = email;
 				
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 		}
 
@@ -1837,9 +1851,9 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// Saves a vote in the database
 		/// </summary>
 		/// <param name="choiceID">Choice of the vote</param>
-        static public void choice_vote(string connectionString, object choiceID, object userID, object remoteIP)
+        static public void choice_vote( object choiceID, object userID, object remoteIP)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "choice_vote" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "choice_vote" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -1853,18 +1867,18 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters[2].Value = remoteIP;
 
 			
-				FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 			}
 		}
 		#endregion
 		
 		#region yaf_EventLog
-        static public void eventlog_create(string connectionString, object userID, object source, object description, object type)
+        static public void eventlog_create( object userID, object source, object description, object type)
 		{
 			try
 			{
 				if ( userID == null ) userID = DBNull.Value;
-				using ( FbCommand cmd = FbDbAccess.GetCommand( "eventlog_create" ) )
+				using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "eventlog_create" ) )
 				{
 					cmd.CommandType = CommandType.StoredProcedure;
 
@@ -1876,7 +1890,7 @@ namespace YAF.Classes.Data.FirebirdDb
 					cmd.Parameters.Add(new FbParameter("@I_TYPE", FbDbType.Integer)).Value = type;
 					cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow; 
 
-					FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+					MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 				}
 			}
 			catch
@@ -1886,16 +1900,16 @@ namespace YAF.Classes.Data.FirebirdDb
 		}
 
 
-        static public void eventlog_create(string connectionString, object userID, object source, object description)
+        static public void eventlog_create( object userID, object source, object description)
 		{
-            eventlog_create(connectionString, userID, (object)source.GetType().ToString(), description, (object)0);
+            eventlog_create( userID, (object)source.GetType().ToString(), description, (object)0);
 		}
 
 		/// <summary>
 		/// Deletes all event log entries for given board.
 		/// </summary>
 		/// <param name="boardID">ID of board.</param>
-        static public void eventlog_delete(string connectionString, int boardID)
+        static public void eventlog_delete( int boardID)
 		{
             eventlog_delete(null, boardID);
 		}
@@ -1903,37 +1917,37 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// Deletes event log entry of given ID.
 		/// </summary>
 		/// <param name="eventLogID">ID of event log entry.</param>
-        static public void eventlog_delete(string connectionString, object eventLogID)
+        static public void eventlog_delete( object eventLogID)
 		{
-            eventlog_delete(connectionString, eventLogID, null);
+            eventlog_delete( eventLogID, null);
 		}
 		/// <summary>
 		/// Calls underlying stroed procedure for deletion of event log entry(ies).
 		/// </summary>
 		/// <param name="eventLogID">When not null, only given event log entry is deleted.</param>
 		/// <param name="boardID">Specifies board. It is ignored if eventLogID parameter is not null.</param>
-        static public void eventlog_delete(string connectionString, object eventLogID, object boardID)
+        static public void eventlog_delete( object eventLogID, object boardID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "eventlog_delete" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "eventlog_delete" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_EVENTLOGID", FbDbType.Integer)).Value = eventLogID;
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
 			
-				FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 			}
 		}
 
-        static public DataTable eventlog_list(string connectionString, object boardID)
+        static public DataTable eventlog_list( object boardID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "eventlog_list" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "eventlog_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer));
 				cmd.Parameters[0].Value = boardID;
 
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 		}
 		#endregion yaf_EventLog
@@ -1942,18 +1956,18 @@ namespace YAF.Classes.Data.FirebirdDb
 	   
 		#region yaf_Extensions
 
-        static public void extension_delete(string connectionString, object extensionId)
+        static public void extension_delete( object extensionId)
 		{
 			try
 			{
-				using ( FbCommand cmd = FbDbAccess.GetCommand( "extension_delete" ) )
+				using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "extension_delete" ) )
 				{
 					cmd.CommandType = CommandType.StoredProcedure;
 
 					cmd.Parameters.Add(new FbParameter("@I_EXTENSIONID", FbDbType.Integer));
 					cmd.Parameters[0].Value = extensionId;
 				   
-					FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+					MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 				}
 			}
 			catch
@@ -1963,24 +1977,24 @@ namespace YAF.Classes.Data.FirebirdDb
 		}
 
 		// Get Extension record by extensionId
-        static public DataTable extension_edit(string connectionString, object extensionId)
+        static public DataTable extension_edit( object extensionId)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "extension_edit" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "extension_edit" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_EXTENSIONID", FbDbType.Integer));
 				cmd.Parameters[0].Value = extensionId;
 
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 
 		}
 
 		// Used to validate a file before uploading
-        static public DataTable extension_list(string connectionString, object boardID, object extension)
+        static public DataTable extension_list( object boardID, object extension)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "extension_list" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "extension_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -1990,15 +2004,15 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters.Add(new FbParameter("@I_EXTENSION", FbDbType.VarChar));
 				cmd.Parameters[1].Value = extension;
 								
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 
 		}
 
 		// Returns an extension list for a given Board
-        static public DataTable extension_list(string connectionString, object boardID)
+        static public DataTable extension_list( object boardID)
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "extension_list" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "extension_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -2009,18 +2023,18 @@ namespace YAF.Classes.Data.FirebirdDb
 				cmd.Parameters[1].Value = null;
 
 			
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 				
 			}
 
 		}
 
 		// Saves / creates extension
-        static public void extension_save(string connectionString, object extensionId, object boardID, object extension)
+        static public void extension_save( object extensionId, object boardID, object extension)
 		{
 			try
 			{
-				using ( FbCommand cmd = FbDbAccess.GetCommand( "extension_save" ) )
+				using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "extension_save" ) )
 				{
 					cmd.CommandType = CommandType.StoredProcedure;
 
@@ -2034,7 +2048,7 @@ namespace YAF.Classes.Data.FirebirdDb
 					cmd.Parameters[2].Value = extension;
 		  
 
-					FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString );
+					MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 				}
 			}
 			catch
@@ -2049,12 +2063,12 @@ namespace YAF.Classes.Data.FirebirdDb
 		/// Checks for a vote in the database
 		/// </summary>
 		/// <param name="choiceID">Choice of the vote</param>
-        static public DataTable pollvote_check(string connectionString,
+        static public DataTable pollvote_check(
             object pollid, 
             object userid, 
             object remoteip )
 		{
-			using ( FbCommand cmd = FbDbAccess.GetCommand( "pollvote_check" ) )
+			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "pollvote_check" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -2062,7 +2076,7 @@ namespace YAF.Classes.Data.FirebirdDb
                 cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userid;
                 cmd.Parameters.Add(new FbParameter("@I_REMOTEIP", FbDbType.VarChar)).Value = remoteip;
 				
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 		}
 
@@ -2079,18 +2093,18 @@ namespace YAF.Classes.Data.FirebirdDb
     /// The remoteip.
     /// </param>
         public static DataTable pollgroup_votecheck(
-string connectionString,
+
         object pollGroupId, 
         object userId, 
         object remoteIp)
     {
-        using (FbCommand cmd = FbDbAccess.GetCommand("pollgroup_votecheck"))
+        using (FbCommand cmd = MsSqlDbAccess.GetCommand("pollgroup_votecheck"))
         {
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add("@I_POLLGROUPID", FbDbType.Integer).Value =  pollGroupId;
             cmd.Parameters.Add("@I_USERID", FbDbType.Integer).Value =  userId;
             cmd.Parameters.Add("@I_REMOTEIP", FbDbType.VarChar).Value =  remoteIp;
-            return FbDbAccess.Current.GetData(cmd, connectionString);
+            return MsSqlDbAccess.Current.GetData(cmd);
         }
     }
 		#endregion        
@@ -2101,21 +2115,21 @@ string connectionString,
 		/// Deletes attachments out of a entire forum
 		/// </summary>
 		/// <param name="ForumID">ID of forum to delete all attachemnts out of</param>
-        static private void forum_deleteAttachments(string connectionString, object forumID)
+        static private void forum_deleteAttachments( object forumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forum_listtopics"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forum_listtopics"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer)).Value = forumID;
 								
-				using (DataTable dt = FbDbAccess.Current.GetData(cmd, connectionString))
+				using (DataTable dt = MsSqlDbAccess.Current.GetData(cmd))
 				{
 					foreach (DataRow row in dt.Rows)
 					{
 							if ( row != null && row["TopicID"] != DBNull.Value )
 						{
-							topic_delete(connectionString, row["TopicID"], true );
+							topic_delete( row["TopicID"], true );
 						}
 					}
 				}
@@ -2128,27 +2142,27 @@ string connectionString,
 		/// </summary>
 		/// <param name="ForumID">forum to delete</param>
 		/// <returns>bool to indicate that forum has been deleted</returns>
-        static public bool forum_delete(string connectionString, object forumID)
+        static public bool forum_delete( object forumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forum_listSubForums"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forum_listSubForums"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer));
 				cmd.Parameters[0].Value = forumID;
 
-			    if (!(FbDbAccess.Current.ExecuteScalar(cmd, connectionString) is DBNull))
+			    if (!(MsSqlDbAccess.Current.ExecuteScalar(cmd) is DBNull))
 			        return false;
 			
-			        forum_deleteAttachments(connectionString, forumID);
-			        using (var cmd_new = FbDbAccess.GetCommand("forum_delete"))
+			        forum_deleteAttachments( forumID);
+			        using (var cmd_new = MsSqlDbAccess.GetCommand("forum_delete"))
 			        {
 			            cmd_new.CommandType = CommandType.StoredProcedure;
 			            cmd_new.CommandTimeout = 99999;
 			            cmd_new.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer));
 			            cmd_new.Parameters[0].Value = forumID;
 
-			            FbDbAccess.Current.ExecuteNonQuery(cmd_new, connectionString);
+			            MsSqlDbAccess.Current.ExecuteNonQuery(cmd_new);
 			        }
 			        return true;
 			}
@@ -2159,25 +2173,26 @@ string connectionString,
         /// </summary>
         /// <param name="ForumID">forum to delete</param>
         /// <returns>bool to indicate that forum has been deleted</returns>
-        static public bool forum_move([NotNull] string connectionString, [NotNull] object forumOldID, [NotNull] object forumNewID)
+        static public bool forum_move([NotNull] object forumOldID, [NotNull] object forumNewID)
         {
-            using (FbCommand cmd = FbDbAccess.GetCommand("forum_listSubForums"))
+            using (FbCommand cmd = MsSqlDbAccess.GetCommand("forum_listSubForums"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer)).Value = forumOldID;
 
-                if (!(FbDbAccess.Current.ExecuteScalar(cmd, connectionString) is DBNull))
+                if (!(MsSqlDbAccess.Current.ExecuteScalar(cmd) is DBNull))
                     return false;
               
-                using (var cmd_new = FbDbAccess.GetCommand("forum_move"))
+                using (var cmd_new = MsSqlDbAccess.GetCommand("forum_move"))
                 {
                     cmd_new.CommandType = CommandType.StoredProcedure;
                     cmd_new.CommandTimeout = 99999;
                     cmd.Parameters.Add(new FbParameter("@I_FORUMOLDID", FbDbType.Integer)).Value = forumOldID;
                     cmd.Parameters.Add(new FbParameter("@I_FORUMNEWID", FbDbType.Integer)).Value = forumNewID;
+                    cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 
-                    FbDbAccess.Current.ExecuteNonQuery(cmd_new, connectionString);
+                    MsSqlDbAccess.Current.ExecuteNonQuery(cmd_new);
                 }
                 return true;
             }
@@ -2188,16 +2203,16 @@ string connectionString,
 		/// <param name="boardID">board if of moderators</param>
 		/// <param name="userID">user id</param>
 		/// <returns>DataTable of moderated forums</returns>
-        static public DataTable forum_listallMyModerated(string connectionString, object boardID, object userID)
+        static public DataTable forum_listallMyModerated( object boardID, object userID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forum_listallmymoderated"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forum_listallmymoderated"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
                 cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
 	 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 		//END ABOT NEW 16.04.04
@@ -2207,9 +2222,9 @@ string connectionString,
 		/// <param name="boardID">boardID</param>
 		/// <param name="ForumID">forumID</param>
 		/// <returns>DataTable with list of topics from a forum</returns>
-        static public DataTable forum_list(string connectionString, object boardID, object forumID)
+        static public DataTable forum_list( object boardID, object forumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forum_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forum_list"))
 			{
 				if (forumID == null) { forumID = DBNull.Value; }
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -2221,7 +2236,7 @@ string connectionString,
 				cmd.Parameters[1].Value = forumID;
 
 			   
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -2231,9 +2246,9 @@ string connectionString,
 		/// <param name="boardID">BoardID</param>
 		/// <param name="userID">ID of user</param>
 		/// <returns>DataTable of all accessible forums</returns>
-        static public DataTable forum_listall(string connectionString, object boardID, object userID)
+        static public DataTable forum_listall( object boardID, object userID)
 		{
-            return forum_listall(connectionString, boardID, userID, 0);
+            return forum_listall( boardID, userID, 0);
 		}
 
 		/// <summary>
@@ -2243,9 +2258,9 @@ string connectionString,
 		/// <param name="userID">ID of user</param>
 		/// <param name="startAt">startAt ID</param>
 		/// <returns>DataTable of all accessible forums</returns>
-        static public DataTable forum_listall(string connectionString, object boardID, object userID, object startAt)
+        static public DataTable forum_listall( object boardID, object userID, object startAt)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forum_listall"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forum_listall"))
 			{
 				if (startAt == null) { startAt = 0; }
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -2260,21 +2275,21 @@ string connectionString,
 				cmd.Parameters[2].Value = startAt;
 
 			   
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        public static IEnumerable<TypedForumListAll> ForumListAll(string connectionString, int boardId, int userId)
+        public static IEnumerable<TypedForumListAll> ForumListAll( int boardId, int userId)
     {
-        return forum_listall(connectionString, boardId, userId, 0).AsEnumerable().Select(r => new TypedForumListAll(r));
+        return forum_listall( boardId, userId, 0).AsEnumerable().Select(r => new TypedForumListAll(r));
     }
          [NotNull]
-        public static IEnumerable<TypedBBCode> BBCodeList(string connectionString, int boardID, int? bbcodeID)
+        public static IEnumerable<TypedBBCode> BBCodeList( int boardID, int? bbcodeID)
          {
-             return bbcode_list(connectionString, boardID, bbcodeID).AsEnumerable().Select(o => new TypedBBCode(o));
+             return bbcode_list( boardID, bbcodeID).AsEnumerable().Select(o => new TypedBBCode(o));
          }
-         public static IEnumerable<TypedForumListAll> ForumListAll(string connectionString, int boardId, int userId, int startForumId)
+         public static IEnumerable<TypedForumListAll> ForumListAll( int boardId, int userId, int startForumId)
     {
-        var allForums = ForumListAll(connectionString, boardId, userId);
+        var allForums = ForumListAll( boardId, userId);
 
       var forumIds = new List<int>();
       var tempForumIds = new List<int>();
@@ -2308,9 +2323,9 @@ string connectionString,
 		/// <param name="boardID">BoardID</param>
 		/// <param name="CategoryID">CategoryID</param>
 		/// <returns>DataTable with list</returns>
-         static public DataTable forum_listall_fromCat(string connectionString, object boardID, object categoryID)
+         static public DataTable forum_listall_fromCat( object boardID, object categoryID)
 		{
-            return forum_listall_fromCat(connectionString, boardID, categoryID, true);
+            return forum_listall_fromCat( boardID, categoryID, true);
 		}
 		/// <summary>
 		/// Lists forums very simply (for URL rewriting)
@@ -2318,9 +2333,9 @@ string connectionString,
 		/// <param name="StartID"></param>
 		/// <param name="Limit"></param>
 		/// <returns></returns>
-         static public DataTable forum_simplelist(string connectionString, int StartID, int Limit)
+         static public DataTable forum_simplelist( int StartID, int Limit)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forum_simplelist"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forum_simplelist"))
 			{
 				if (StartID <= 0) { StartID = 0; }
 				if (Limit <= 0) { Limit = 500; }
@@ -2329,7 +2344,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_STARTID", FbDbType.Integer)).Value = StartID;
 				cmd.Parameters.Add(new FbParameter("@I_LIMIT", FbDbType.Integer)).Value = Limit;
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 		/// <summary>
@@ -2339,9 +2354,9 @@ string connectionString,
 		/// <param name="CategoryID">CategoryID</param>
 		/// <param name="EmptyFirstRow">EmptyFirstRow</param>
 		/// <returns>DataTable with list</returns>
-         static public DataTable forum_listall_fromCat(string connectionString, object boardID, object categoryID, bool emptyFirstRow)
+         static public DataTable forum_listall_fromCat( object boardID, object categoryID, bool emptyFirstRow)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forum_listall_fromCat"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forum_listall_fromCat"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -2354,9 +2369,9 @@ string connectionString,
 				
 				int intCategoryID = Convert.ToInt32(categoryID.ToString());
 
-				using (DataTable dt = FbDbAccess.Current.GetData(cmd, connectionString))
+				using (DataTable dt = MsSqlDbAccess.Current.GetData(cmd))
 				{
-                    return forum_sort_list(connectionString, dt, 0, intCategoryID, 0, null, emptyFirstRow);
+                    return forum_sort_list( dt, 0, intCategoryID, 0, null, emptyFirstRow);
 				}
 			}
 		}
@@ -2365,16 +2380,16 @@ string connectionString,
 		/// </summary>
 		/// <param name="forumID"></param>
 		/// <returns></returns>
-         static public DataTable forum_listpath(string connectionString, object forumID)
+         static public DataTable forum_listpath( object forumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forum_listpath"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forum_listpath"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer));
 				cmd.Parameters[0].Value = forumID;
 			   
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 		/// <summary>
@@ -2386,9 +2401,9 @@ string connectionString,
 		/// <param name="parentID">ParentID</param>
 		/// <returns>DataTable with list</returns> 
          static public DataTable forum_listread(
-            string connectionString, 
-            [NotNull] object boardId, 
-            [NotNull] object userId, 
+             
+            [NotNull] object boardID, 
+            [NotNull] object userID, 
             [NotNull] object categoryID, 
             [NotNull] object parentID, 
             [NotNull] object useStyledNicks,
@@ -2400,26 +2415,26 @@ string connectionString,
 
 			if (categoryID == null) { categoryID = DBNull.Value; }
 			if (parentID == null) { parentID = DBNull.Value; }
-		   /* using (FbCommand cmd0 = FbDbAccess.GetCommand("EXECUTE BLOCK as BEGIN IF (NOT EXISTS( SELECT 1 FROM  RDB$RELATIONS a WHERE a.RDB$RELATION_NAME='objQual_TMP_FLR')) THEN EXECUTE STATEMENT 'CREATE GLOBAL TEMPORARY TABLE objQual_TMP_FLR(CATEGORYID INTEGER, CATEGORY VARCHAR(128),FORUMID INTEGER, FORUM VARCHAR(128), DESCRIPTION VARCHAR(128),TOPICS INTEGER, POSTS INTEGER, SUBFORUMS INTEGER, FLAGS INTEGER, VIEWING INTEGER,REMOTEURL VARCHAR(255), READACCESS INTEGER, LASTTOPICID INTEGER, LASTPOSTED TIMESTAMP) ON COMMIT DELETE ROWS';END",true))
+		   /* using (FbCommand cmd0 = MsSqlDbAccess.GetCommand("EXECUTE BLOCK as BEGIN IF (NOT EXISTS( SELECT 1 FROM  RDB$RELATIONS a WHERE a.RDB$RELATION_NAME='objQual_TMP_FLR')) THEN EXECUTE STATEMENT 'CREATE GLOBAL TEMPORARY TABLE objQual_TMP_FLR(CATEGORYID INTEGER, CATEGORY VARCHAR(128),FORUMID INTEGER, FORUM VARCHAR(128), DESCRIPTION VARCHAR(128),TOPICS INTEGER, POSTS INTEGER, SUBFORUMS INTEGER, FLAGS INTEGER, VIEWING INTEGER,REMOTEURL VARCHAR(255), READACCESS INTEGER, LASTTOPICID INTEGER, LASTPOSTED TIMESTAMP) ON COMMIT DELETE ROWS';END",true))
 			{
 			   
-			   FbDbAccess.Current.ExecuteNonQuery(cmd0, true);
+			   MsSqlDbAccess.Current.ExecuteNonQuery(cmd0, true);
 				//return dt1;
 			}*/
 		
-			using (FbCommand cmd1 = FbDbAccess.GetCommand("FORUM_LISTREAD"))
+			using (FbCommand cmd1 = MsSqlDbAccess.GetCommand("FORUM_LISTREAD"))
 			{
 				cmd1.CommandType = CommandType.StoredProcedure;
 
-				cmd1.Parameters.Add("@I_BOARDID", FbDbType.Integer).Value = boardId;
-				cmd1.Parameters.Add("@I_USERID", FbDbType.Integer).Value = userId;
+				cmd1.Parameters.Add("@I_BOARDID", FbDbType.Integer).Value = boardID;
+				cmd1.Parameters.Add("@I_USERID", FbDbType.Integer).Value = userID;
 				cmd1.Parameters.Add("@I_CATEGORYID", FbDbType.Integer).Value = categoryID;
 				cmd1.Parameters.Add("@I_PARENTID", FbDbType.Integer).Value = parentID;
                 cmd1.Parameters.Add("@I_STYLEDNICKS", FbDbType.Integer).Value = useStyledNicks;
                 cmd1.Parameters.Add(new FbParameter("@I_FINDLASTREAD", FbDbType.Boolean)).Value = findLastRead;
 				cmd1.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow; 
 
-				return FbDbAccess.Current.GetData(cmd1, false,connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd1, false);
 				//return dt1;
 			}
 
@@ -2433,16 +2448,16 @@ string connectionString,
 				foreach (DataRow dr1 in dt1.Rows)
 				{
 
-					using (FbCommand cmd3 = FbDbAccess.GetCommand("FORUM_LISTREAD_HELPER"))
+					using (FbCommand cmd3 = MsSqlDbAccess.GetCommand("FORUM_LISTREAD_HELPER"))
 					{
 						cmd3.CommandType = CommandType.StoredProcedure;
 
 						cmd3.Parameters.Add("@I_FORUMID", FbDbType.Integer).Value = dr1["ForumID"];
 
 						if (cntr != dt1rc - 1 || dt1rc == 0)
-							dt2 = FbDbAccess.Current.AddValuesToDataTableFromReader(cmd3, dt1, false, true, firstColumnIndex, cntr);
+							dt2 = MsSqlDbAccess.Current.AddValuesToDataTableFromReader(cmd3, dt1, false, true, firstColumnIndex, cntr);
 						else
-							dt2 = FbDbAccess.Current.AddValuesToDataTableFromReader(cmd3, dt1, false, false, firstColumnIndex, cntr);
+							dt2 = MsSqlDbAccess.Current.AddValuesToDataTableFromReader(cmd3, dt1, false, false, firstColumnIndex, cntr);
 					}
 
 
@@ -2452,13 +2467,13 @@ string connectionString,
 			else
 			{
 				//We simply get rows' structure
-				using (FbCommand cmd2 = FbDbAccess.GetCommand("forum_listread_helper"))
+				using (FbCommand cmd2 = MsSqlDbAccess.GetCommand("forum_listread_helper"))
 				{
 					cmd2.CommandType = CommandType.StoredProcedure;
 
 					cmd2.Parameters.Add("i_forumid", FbDbType.Integer).Value = 0;
 
-					dt2 = FbDbAccess.Current.AddValuesToDataTableFromReader(cmd2, dt1, false, true, firstColumnIndex, 0);
+					dt2 = MsSqlDbAccess.Current.AddValuesToDataTableFromReader(cmd2, dt1, false, true, firstColumnIndex, 0);
 				}
 			}
 
@@ -2471,15 +2486,15 @@ string connectionString,
 		/// <param name="boardID">BoardID</param>
 		/// <param name="userID">UserID</param>
 		/// <returns>DataSet with categories</returns>
-         static public DataSet forum_moderatelist(string connectionString, object userID, object boardID)
+         static public DataSet forum_moderatelist( object userID, object boardID)
 		{
-			using (FbDbConnectionManager connMan = new FbDbConnectionManager())
+			using (MsSqlDbConnectionManager connMan = new MsSqlDbConnectionManager())
 			{
 				using (DataSet ds = new DataSet())
 				{
-					using (FbDataAdapter da = new FbDataAdapter(FbDbAccess.GetObjectName("category_list"), connMan.OpenDBConnection))
+					using (FbDataAdapter da = new FbDataAdapter(MsSqlDbAccess.GetObjectName("category_list"), connMan.OpenDBConnection))
 					{
-						using (FbTransaction trans = da.SelectCommand.Connection.BeginTransaction(FbDbAccess.IsolationLevel))
+						using (FbTransaction trans = da.SelectCommand.Connection.BeginTransaction(MsSqlDbAccess.IsolationLevel))
 						{
 							da.SelectCommand.Transaction = trans;
 							da.SelectCommand.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer));
@@ -2490,28 +2505,28 @@ string connectionString,
 							da.SelectCommand.CommandType = CommandType.StoredProcedure;
 
 
-							da.Fill(ds, FbDbAccess.GetObjectName("Category"));
-							da.SelectCommand.CommandText = FbDbAccess.GetObjectName("forum_moderatelist");
+							da.Fill(ds, MsSqlDbAccess.GetObjectName("Category"));
+							da.SelectCommand.CommandText = MsSqlDbAccess.GetObjectName("forum_moderatelist");
 							da.SelectCommand.Parameters.Clear();
 							da.SelectCommand.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer));
 							da.SelectCommand.Parameters[0].Value = boardID;
 							da.SelectCommand.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer));
 							da.SelectCommand.Parameters[1].Value = userID;
 						   
-							da.Fill(ds, FbDbAccess.GetObjectName("ForumUnsorted"));
-							DataTable dtForumListSorted = ds.Tables[FbDbAccess.GetObjectName("ForumUnsorted")].Clone();
-							dtForumListSorted.TableName = FbDbAccess.GetObjectName("Forum");
+							da.Fill(ds, MsSqlDbAccess.GetObjectName("ForumUnsorted"));
+							DataTable dtForumListSorted = ds.Tables[MsSqlDbAccess.GetObjectName("ForumUnsorted")].Clone();
+							dtForumListSorted.TableName = MsSqlDbAccess.GetObjectName("Forum");
 							ds.Tables.Add(dtForumListSorted);
 							dtForumListSorted.Dispose();
-                            forum_list_sort_basic(connectionString, ds.Tables[FbDbAccess.GetObjectName("ForumUnsorted")], ds.Tables[FbDbAccess.GetObjectName("Forum")], 0, 0);
-							ds.Tables.Remove(FbDbAccess.GetObjectName("ForumUnsorted"));
+                            forum_list_sort_basic( ds.Tables[MsSqlDbAccess.GetObjectName("ForumUnsorted")], ds.Tables[MsSqlDbAccess.GetObjectName("Forum")], 0, 0);
+							ds.Tables.Remove(MsSqlDbAccess.GetObjectName("ForumUnsorted"));
 							// vzrus: Remove here all forums with no reports. Would be better to do it in query...
 							// Array to write categories numbers
-							int[] categories = new int[ds.Tables[FbDbAccess.GetObjectName("Forum")].Rows.Count];
+							int[] categories = new int[ds.Tables[MsSqlDbAccess.GetObjectName("Forum")].Rows.Count];
 							int cntr = 0;
 							//We should make it before too as the colection was changed
-							ds.Tables[FbDbAccess.GetObjectName("Forum")].AcceptChanges();
-							foreach (DataRow dr in ds.Tables[FbDbAccess.GetObjectName("Forum")].Rows)
+							ds.Tables[MsSqlDbAccess.GetObjectName("Forum")].AcceptChanges();
+							foreach (DataRow dr in ds.Tables[MsSqlDbAccess.GetObjectName("Forum")].Rows)
 							{
 								categories[cntr] = Convert.ToInt32(dr["CategoryID"]);
 								if (Convert.ToInt32(dr["ReportedCount"]) == 0 && Convert.ToInt32(dr["MessageCount"]) == 0)
@@ -2521,9 +2536,9 @@ string connectionString,
 								}
 								cntr++;
 							}
-							ds.Tables[FbDbAccess.GetObjectName("Forum")].AcceptChanges();
+							ds.Tables[MsSqlDbAccess.GetObjectName("Forum")].AcceptChanges();
 
-							foreach (DataRow dr in ds.Tables[FbDbAccess.GetObjectName("Category")].Rows)
+							foreach (DataRow dr in ds.Tables[MsSqlDbAccess.GetObjectName("Category")].Rows)
 							{
 								bool deleteMe = true;
 								for (int i = 0; i < categories.Length; i++)
@@ -2537,9 +2552,9 @@ string connectionString,
 								}
 								if (deleteMe) dr.Delete();
 							}
-							ds.Tables[FbDbAccess.GetObjectName("Category")].AcceptChanges(); 
+							ds.Tables[MsSqlDbAccess.GetObjectName("Category")].AcceptChanges(); 
 
-							ds.Relations.Add("FK_Forum_Category", ds.Tables[FbDbAccess.GetObjectName("Category")].Columns["CategoryID"], ds.Tables[FbDbAccess.GetObjectName("Forum")].Columns["CategoryID"]);
+							ds.Relations.Add("FK_Forum_Category", ds.Tables[MsSqlDbAccess.GetObjectName("Category")].Columns["CategoryID"], ds.Tables[MsSqlDbAccess.GetObjectName("Forum")].Columns["CategoryID"]);
 							trans.Commit();
 						}
 						return ds;
@@ -2548,13 +2563,13 @@ string connectionString,
 			}
 		}
 
-         static public DataTable forum_moderators(string connectionString, object styledNicks)
+         static public DataTable forum_moderators( object styledNicks)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forum_moderators"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forum_moderators"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Integer)).Value = styledNicks;
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		} 
         /// <summary>
@@ -2566,13 +2581,13 @@ string connectionString,
          /// <returns>
          ///  Returns Data Table with all Mods
          /// </returns>
-         public static DataTable moderators_team_list(string connectionString, bool useStyledNicks)
+         public static DataTable moderators_team_list( bool useStyledNicks)
          {
-             using (var cmd = FbDbAccess.GetCommand("moderators_team_list"))
+             using (var cmd = MsSqlDbAccess.GetCommand("moderators_team_list"))
              {
                  cmd.CommandType = CommandType.StoredProcedure;
                  cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Integer)).Value = useStyledNicks;
-                 return FbDbAccess.Current.GetData(cmd, connectionString);
+                 return MsSqlDbAccess.Current.GetData(cmd);
              }
          }
 
@@ -2580,18 +2595,18 @@ string connectionString,
 		/// Updates topic and post count and last topic for all forums in specified board
 		/// </summary>
 		/// <param name="boardID">BoardID</param>
-         static public void forum_resync(string connectionString, object boardID)
+         static public void forum_resync( object boardID)
 		{
-            forum_resync(connectionString, boardID, null);
+            forum_resync( boardID, null);
 		}
 		/// <summary>
 		/// Updates topic and post count and last topic for specified forum
 		/// </summary>
 		/// <param name="boardID">BoardID</param>
 		/// <param name="forumID">If null, all forums in board are updated</param>
-         static public void forum_resync(string connectionString, object boardID, object forumID)
+         static public void forum_resync( object boardID, object forumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forum_resync"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forum_resync"))
 			{
 				if (forumID == null) { forumID = DBNull.Value; }
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -2602,11 +2617,11 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer));
 				cmd.Parameters[1].Value = forumID;
 			   
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-         static public long forum_save(string connectionString,
+         static public long forum_save(
             [NotNull] object forumID, 
             [NotNull] object categoryID, 
             [NotNull] object parentID, 
@@ -2624,7 +2639,7 @@ string connectionString,
             [NotNull] object styles,
                       bool dummy)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forum_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forum_save"))
 			{
 				if (parentID == null) { parentID = DBNull.Value; }
 				if (remoteURL == null) { remoteURL = DBNull.Value; }
@@ -2657,7 +2672,7 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_STYLES", FbDbType.VarChar)).Value = styles;
 				cmd.Parameters.Add(new FbParameter("@I_ACCESSMASKID", FbDbType.Integer)).Value = accessMaskID; 
 
-				String resultop = FbDbAccess.Current.ExecuteScalar(cmd, connectionString).ToString();
+				String resultop = MsSqlDbAccess.Current.ExecuteScalar(cmd).ToString();
 				if (String.IsNullOrEmpty(resultop))
 				{ return 0; }
 				else
@@ -2672,25 +2687,25 @@ string connectionString,
 		/// <param name="forumID"></param>
 		/// <param name="parentID"></param>
 		/// <returns>Integer value for a found dependency</returns>
-         public static int forum_save_parentschecker(string connectionString, object forumID, object parentID)
+         public static int forum_save_parentschecker( object forumID, object parentID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forum_save_parentschecker"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forum_save_parentschecker"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer)).Value = forumID;
 				cmd.Parameters.Add(new FbParameter("@I_PARENTID", FbDbType.Integer)).Value = parentID;
-				return Convert.ToInt32(FbDbAccess.Current.ExecuteScalar(cmd, connectionString));
+				return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
 			}
 
 		}
 
 
-         static private DataTable forum_sort_list(string connectionString, DataTable listSource, int parentID, int categoryID, int startingIndent, int[] forumidExclusions)
+         static private DataTable forum_sort_list( DataTable listSource, int parentID, int categoryID, int startingIndent, int[] forumidExclusions)
 		{
-			return forum_sort_list(connectionString,listSource, parentID, categoryID, startingIndent, forumidExclusions, true);
+			return forum_sort_list(listSource, parentID, categoryID, startingIndent, forumidExclusions, true);
 		}
 
-         static private DataTable forum_sort_list(string connectionString, DataTable listSource, int parentID, int categoryID, int startingIndent, int[] forumidExclusions, bool emptyFirstRow)
+         static private DataTable forum_sort_list( DataTable listSource, int parentID, int categoryID, int startingIndent, int[] forumidExclusions, bool emptyFirstRow)
 		{
 			DataTable listDestination = new DataTable();
 
@@ -2724,24 +2739,24 @@ string connectionString,
 				dv.ApplyDefaultSort = true;
 			}
 
-            forum_sort_list_recursive(connectionString, dv.ToTable(), listDestination, parentID, categoryID, startingIndent);
+            forum_sort_list_recursive( dv.ToTable(), listDestination, parentID, categoryID, startingIndent);
 
 			return listDestination;
 		}
 
-         static public DataTable forum_listall_sorted(string connectionString, object boardID, object userID)
+         static public DataTable forum_listall_sorted( object boardID, object userID)
 		{
-			return forum_listall_sorted(connectionString,boardID, userID, null, false, 0);
+			return forum_listall_sorted(boardID, userID, null, false, 0);
 		}
 
-         static public DataTable forum_listall_sorted(string connectionString, object boardID, object userID, int[] forumidExclusions)
+         static public DataTable forum_listall_sorted( object boardID, object userID, int[] forumidExclusions)
 		{
-            return forum_listall_sorted(connectionString, boardID, userID, null, false, 0);
+            return forum_listall_sorted( boardID, userID, null, false, 0);
 		}
 
-         static public DataTable forum_listall_sorted(string connectionString, object boardID, object userID, int[] forumidExclusions, bool emptyFirstRow, int startAt)
+         static public DataTable forum_listall_sorted( object boardID, object userID, int[] forumidExclusions, bool emptyFirstRow, int startAt)
 		{
-            using (DataTable dataTable = forum_listall(connectionString, boardID, userID, startAt))
+            using (DataTable dataTable = forum_listall( boardID, userID, startAt))
 			{
 				int baseForumId = 0;
 				int baseCategoryId = 0;
@@ -2761,11 +2776,11 @@ string connectionString,
 					}
 				}
 
-                return forum_sort_list(connectionString, dataTable, baseForumId, baseCategoryId, 0, forumidExclusions, emptyFirstRow);
+                return forum_sort_list( dataTable, baseForumId, baseCategoryId, 0, forumidExclusions, emptyFirstRow);
 			}
 		}
 
-         static private void forum_list_sort_basic(string connectionString, DataTable listsource, DataTable list, int parentid, int currentLvl)
+         static private void forum_list_sort_basic( DataTable listsource, DataTable list, int parentid, int currentLvl)
 		{
 			for (int i = 0; i < listsource.Rows.Count; i++)
 			{
@@ -2780,12 +2795,12 @@ string connectionString,
 					for (int j = 0; j < iIndent; j++) sIndent += "--";
 					row["Name"] = string.Format(" -{0} {1}", sIndent, row["Name"]);
 					list.Rows.Add(row.ItemArray);
-                    forum_list_sort_basic(connectionString, listsource, list, (int)row["ForumID"], currentLvl + 1);
+                    forum_list_sort_basic( listsource, list, (int)row["ForumID"], currentLvl + 1);
 				}
 			}
 		}
 
-         static private void forum_sort_list_recursive(string connectionString, DataTable listSource, DataTable listDestination, int parentID, int categoryID, int currentIndent)
+         static private void forum_sort_list_recursive( DataTable listSource, DataTable listDestination, int parentID, int categoryID, int currentIndent)
 		{
 			DataRow newRow;
 
@@ -2821,7 +2836,7 @@ string connectionString,
 					listDestination.Rows.Add(newRow);
 
 					// recurse through the list...
-                    forum_sort_list_recursive(connectionString, listSource, listDestination, (int)row["ForumID"], categoryID, currentIndent + 1);
+                    forum_sort_list_recursive( listSource, listDestination, (int)row["ForumID"], categoryID, currentIndent + 1);
 				}
 			}
 		}
@@ -2831,21 +2846,21 @@ string connectionString,
 		#endregion
 
 		#region yaf_ForumAccess
-         static public DataTable forumaccess_list(string connectionString, object forumID)
+         static public DataTable forumaccess_list( object forumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forumaccess_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forumaccess_list"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer));
 				cmd.Parameters[0].Value = forumID;
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-         static public void forumaccess_save(string connectionString, object forumID, object groupID, object accessMaskID)
+         static public void forumaccess_save( object forumID, object groupID, object accessMaskID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forumaccess_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forumaccess_save"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -2853,61 +2868,61 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_GROUPID", FbDbType.Integer)).Value = groupID;
                 cmd.Parameters.Add(new FbParameter("@I_ACCESSMASKID", FbDbType.Integer)).Value = accessMaskID;
 			 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-         static public DataTable forumaccess_group(string connectionString, object groupID)
+         static public DataTable forumaccess_group( object groupID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("forumaccess_group"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("forumaccess_group"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_GROUPID", FbDbType.Integer)).Value = groupID;
 				
-				return userforumaccess_sort_list(connectionString,FbDbAccess.Current.GetData(cmd, connectionString), 0, 0, 0);
+				return userforumaccess_sort_list(MsSqlDbAccess.Current.GetData(cmd), 0, 0, 0);
 			}
 		}
 		#endregion
 
 		#region yaf_Group
-         static public DataTable group_list(string connectionString,
+         static public DataTable group_list(
             [NotNull] object boardID, 
             [NotNull] object groupID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("group_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("group_list"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
                 cmd.Parameters.Add(new FbParameter("@I_GROUPID", FbDbType.Integer)).Value = groupID;
 			
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-         static public void group_delete(string connectionString, object groupID)
+         static public void group_delete( object groupID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("group_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("group_delete"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_GROUPID", FbDbType.Integer)).Value = groupID;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-         static public DataTable group_member(string connectionString, object boardID, object userID)
+         static public DataTable group_member( object boardID, object userID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("group_member"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("group_member"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
                 cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-         static public long group_save(string connectionString,
+         static public long group_save(
             [NotNull] object groupID, 
             [NotNull] object boardID, 
             [NotNull] object name, 
@@ -2927,7 +2942,7 @@ string connectionString,
             [NotNull] object usrAlbumImages
 			)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("group_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("group_save"))
 			{
 				if (accessMaskID == null) { accessMaskID = DBNull.Value; }
 
@@ -2952,21 +2967,21 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_USRALBUMS", FbDbType.Integer)).Value = usrAlbums;
 				cmd.Parameters.Add(new FbParameter("@I_USRALBUMIMAGES", FbDbType.Integer)).Value = usrAlbumImages;
 		
-				return long.Parse(FbDbAccess.Current.ExecuteScalar(cmd, connectionString).ToString());
+				return long.Parse(MsSqlDbAccess.Current.ExecuteScalar(cmd).ToString());
 			}
 		}
 		#endregion
 
 		#region yaf_Mail
-         static public void mail_delete(string connectionString, object mailID)
+         static public void mail_delete( object mailID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("mail_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("mail_delete"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_MAILID", FbDbType.Integer)).Value = mailID;
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -2978,20 +2993,20 @@ string connectionString,
     /// </param>
     /// <returns>
     /// </returns>
-         public static IEnumerable<TypedMailList> MailList(string connectionString, long processId)
+         public static IEnumerable<TypedMailList> MailList( long processId)
     {
-      using (FbCommand cmd = FbDbAccess.GetCommand("MAIL_LIST"))
+      using (FbCommand cmd = MsSqlDbAccess.GetCommand("MAIL_LIST"))
       {
         cmd.CommandType = CommandType.StoredProcedure;
         cmd.Parameters.Add(new FbParameter("@I_PROCESSID", FbDbType.Integer)).Value = processId;             
 		cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;              	
 
-        return FbDbAccess.Current.GetData(cmd, connectionString).SelectTypedList(x => new TypedMailList(x));
+        return MsSqlDbAccess.Current.GetData(cmd).SelectTypedList(x => new TypedMailList(x));
       }
     }
-         static public void mail_createwatch(string connectionString, object topicID, object from, object fromName, object subject, object body, object bodyHtml, object userID)
+         static public void mail_createwatch( object topicID, object from, object fromName, object subject, object body, object bodyHtml, object userID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("mail_createwatch"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("mail_createwatch"))
 			{
 				if (fromName == null) { fromName = DBNull.Value; }
 				if (bodyHtml == null) { bodyHtml = DBNull.Value; }
@@ -3007,10 +3022,10 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_iserid", FbDbType.Integer)).Value = userID;               
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;              		
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-         static public void mail_create(string connectionString,
+         static public void mail_create(
             [NotNull] object from, 
             [NotNull] object fromName, 
             [NotNull] object to, 
@@ -3020,7 +3035,7 @@ string connectionString,
             [NotNull] object bodyHtml)
         {
 
-			using (FbCommand cmd = FbDbAccess.GetCommand("mail_create"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("mail_create"))
 			{
 				//if (fromName == null) { fromName = DBNull.Value; }
 			   // if (toName == null) { toName = DBNull.Value; }
@@ -3037,20 +3052,22 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_BODYHTML", FbDbType.Text)).Value = bodyHtml;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow; 
 			  
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		#endregion
 
 		#region yaf_Message
 
-         static public DataTable post_list(string connectionString,
-            [NotNull] object topicId, 
-            [NotNull] object authorUserId, 
+
+         public static DataTable post_list([NotNull] object topicId, 
+            object currentUserID,
+            [NotNull] object authorUserID, 
             [NotNull] object updateViewCount,
-            bool showDeleted,
-            bool styledNicks,
-            DateTime sincePostedDate,
+             bool showDeleted,
+             bool styledNicks,
+             bool showReputation,
+             DateTime sincePostedDate,
             DateTime toPostedDate,
             DateTime sinceEditedDate,
             DateTime toEditedDate,
@@ -3062,15 +3079,17 @@ string connectionString,
             bool showThanks,
             int messagePosition)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("POST_LIST"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("POST_LIST"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicId;
-                cmd.Parameters.Add(new FbParameter("@I_AUTHORUSERID", FbDbType.Integer)).Value = authorUserId;
+                cmd.Parameters.Add(new FbParameter("@I_PAGEUSERID", FbDbType.Integer)).Value = currentUserID;
+                cmd.Parameters.Add(new FbParameter("@I_AUTHORUSERID", FbDbType.Integer)).Value = authorUserID;
 				cmd.Parameters.Add(new FbParameter("@I_UPDATEVIEWCOUNT", FbDbType.SmallInt)).Value = updateViewCount ?? 0;
 				cmd.Parameters.Add(new FbParameter("@I_SHOWDELETED", FbDbType.Boolean)).Value = showDeleted;
                 cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Boolean)).Value = styledNicks;
+                cmd.Parameters.Add(new FbParameter("@I_SHOWREPUTATION", FbDbType.Boolean)).Value = showReputation;
                 cmd.Parameters.Add(new FbParameter("@I_SINCEPOSTEDDATE", FbDbType.TimeStamp)).Value = sincePostedDate;
                 cmd.Parameters.Add(new FbParameter("@I_TOPOSTEDDATE", FbDbType.TimeStamp)).Value = toPostedDate;
                 cmd.Parameters.Add(new FbParameter("@I_SINCEEDITEDDATE", FbDbType.TimeStamp)).Value = sinceEditedDate;
@@ -3082,39 +3101,40 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_SORTPOSITION", FbDbType.Integer)).Value = sortPosition;
                 cmd.Parameters.Add(new FbParameter("@I_SHOWTHANKS", FbDbType.Boolean)).Value = showThanks;
                 cmd.Parameters.Add(new FbParameter("@I_MESSAGEPOSITION", FbDbType.Integer)).Value = messagePosition;
+                cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 				
 			}
 		}
-         static public DataTable post_list_reverse10(string connectionString, object topicID)
+         static public DataTable post_list_reverse10( object topicID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("post_list_reverse10"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("post_list_reverse10"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicID;
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 		[Obsolete("Use post_alluser() instead.")]
-         public static DataTable post_last10user(string connectionString,
+         public static DataTable post_last10user(
             object boardID, 
             object userID, 
             object pageUserID)
 		{
 			// use all posts procedure to return top ten
-            return post_alluser(connectionString, boardID, userID, pageUserID, 10);
+            return post_alluser( boardID, userID, pageUserID, 10);
 		}
 
-        static public DataTable post_alluser(string connectionString,
+        static public DataTable post_alluser(
             object boardID, 
             object userID, 
             object pageUserID, 
             object topCount)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("post_alluser"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("post_alluser"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -3123,12 +3143,12 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_PAGEUSERID", FbDbType.Integer)).Value = pageUserID;
 				cmd.Parameters.Add(new FbParameter("@I_TOPCOUNT", FbDbType.Integer)).Value = topCount;
 		 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
 		// gets list of replies to message
-        static public DataTable message_getRepliesList(string connectionString, object messageID)
+        static public DataTable message_getRepliesList( object messageID)
 		{
 			DataTable list = new DataTable();
 
@@ -3142,13 +3162,13 @@ string connectionString,
             list.Columns.Add("UserName", typeof(string));
             list.Columns.Add("Signature", typeof(string));
 
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_reply_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_reply_list"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer)).Value = messageID;
 
-				DataTable dtr = FbDbAccess.Current.GetData(cmd, connectionString);
+				DataTable dtr = MsSqlDbAccess.Current.GetData(cmd);
 				for (int i = 0; i < dtr.Rows.Count; i++)
 				{
 					DataRow newRow = list.NewRow();
@@ -3162,23 +3182,23 @@ string connectionString,
 					newRow["UserName"] = row["UserName"];
 					newRow["Signature"] = row["Signature"];
 					list.Rows.Add(newRow);
-                    message_getRepliesList_populate(connectionString, dtr, list, (int)row["MessageId"]);
+                    message_getRepliesList_populate( dtr, list, (int)row["MessageId"]);
 				}
 				return list;
 			}
 		}
 
 		// gets list of nested replies to message
-        static private void message_getRepliesList_populate(string connectionString, DataTable listsource, DataTable list, int messageID)
+        static private void message_getRepliesList_populate( DataTable listsource, DataTable list, int messageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_reply_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_reply_list"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer));
 				cmd.Parameters[0].Value = messageID;
 
 			   
-				DataTable dtr = FbDbAccess.Current.GetData(cmd, connectionString);
+				DataTable dtr = MsSqlDbAccess.Current.GetData(cmd);
 
 				for (int i = 0; i < dtr.Rows.Count; i++)
 				{
@@ -3193,19 +3213,19 @@ string connectionString,
 					newRow["UserName"] = row["UserName"];
 					newRow["Signature"] = row["Signature"];
 					list.Rows.Add(newRow);
-                    message_getRepliesList_populate(connectionString, dtr, list, (int)row["MessageId"]);
+                    message_getRepliesList_populate( dtr, list, (int)row["MessageId"]);
 				}
 			}
 
 		}
 
 		//creates new topic, using some parameters from message itself
-        static public long topic_create_by_message(string connectionString,
+        static public long topic_create_by_message(
             object messageId, 
             object forumId, 
             object newTopicSubj)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("topic_create_by_message"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("topic_create_by_message"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -3214,20 +3234,20 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_SUBJECT", FbDbType.VarChar)).Value = newTopicSubj;               
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;     
 
-				return Convert.ToInt32(FbDbAccess.Current.ExecuteScalar(cmd, connectionString));
+				return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
 				//return long.Parse(dt.Rows[0]["TopicID"].ToString());
 			}
 		}
         [Obsolete("Use MessageList(int messageId) instead")]
-        static public DataTable message_list(string connectionString, object messageID)
+        static public DataTable message_list( object messageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_list"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer)).Value = messageID;
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -3239,37 +3259,37 @@ string connectionString,
     /// </param>
     /// <returns>
     /// </returns>
-        public static IEnumerable<TypedMessageList> MessageList(string connectionString, int messageID)
+        public static IEnumerable<TypedMessageList> MessageList( int messageID)
     {
-      using (FbCommand cmd = FbDbAccess.GetCommand("message_list"))
+      using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_list"))
       {
           
           cmd.CommandType = CommandType.StoredProcedure;
           cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer)).Value = messageID;
           
-          return FbDbAccess.Current.GetData(cmd, connectionString).AsEnumerable().Select(t => new TypedMessageList(t));
+          return MsSqlDbAccess.Current.GetData(cmd).AsEnumerable().Select(t => new TypedMessageList(t));
       }
     }
 
-        static public void message_delete(string connectionString, object messageID, bool isModeratorChanged, string deleteReason, int isDeleteAction, bool DeleteLinked)
+        static public void message_delete( object messageID, bool isModeratorChanged, string deleteReason, int isDeleteAction, bool DeleteLinked)
 		{
-			message_delete(connectionString,messageID, isModeratorChanged, deleteReason, isDeleteAction, DeleteLinked, false);
+			message_delete(messageID, isModeratorChanged, deleteReason, isDeleteAction, DeleteLinked, false);
 		}
-        static public void message_delete(string connectionString, object messageID, bool isModeratorChanged, string deleteReason, int isDeleteAction, bool DeleteLinked, bool eraseMessage)
+        static public void message_delete( object messageID, bool isModeratorChanged, string deleteReason, int isDeleteAction, bool DeleteLinked, bool eraseMessage)
 		{
-            message_deleteRecursively(connectionString, messageID, isModeratorChanged, deleteReason, isDeleteAction, DeleteLinked, false, eraseMessage);
+            message_deleteRecursively( messageID, isModeratorChanged, deleteReason, isDeleteAction, DeleteLinked, false, eraseMessage);
 		}
 
 		// <summary> Retrieve all reported messages with the correct forumID argument. </summary>
-        static public DataTable message_listreported(string connectionString, object forumID)
+        static public DataTable message_listreported( object forumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_listreported"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_listreported"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				
 				cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer)).Value = forumID;
 		 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 		/// <summary>
@@ -3277,29 +3297,29 @@ string connectionString,
 		/// </summary>       
 		/// <param name="MessageID">Should not be NULL</param>
 		/// <returns>Returns reporters DataTable for a reported message.</returns>
-        static public DataTable message_listreporters(string connectionString, int messageID)
+        static public DataTable message_listreporters( int messageID)
 		{
 
-            return message_listreporters(connectionString, messageID, null);            
+            return message_listreporters( messageID, null);            
 		}
-        static public DataTable message_listreporters(string connectionString, int messageID, object userID)
+        static public DataTable message_listreporters( int messageID, object userID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("MESSAGE_LISTREPORTERS"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("MESSAGE_LISTREPORTERS"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer)).Value = messageID;
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 		// <summary> Save reported message back to the database. </summary>
-        static public void message_report(string connectionString,
+        static public void message_report(
             [NotNull] object messageID, 
             [NotNull] object userID, 
             [NotNull] object reportedDateTime, 
             [NotNull] object reportText)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_report"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_report"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 			   
@@ -3309,30 +3329,30 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_REPORTTEXT", FbDbType.VarChar)).Value = reportText;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;              		
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
 		// <summary> Copy current Message text over reported Message text. </summary>
-        static public void message_reportcopyover(string connectionString, object messageID)
+        static public void message_reportcopyover( object messageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_reportcopyover"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_reportcopyover"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer)).Value = messageID;
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
 		// <summary> Copy current Message text over reported Message text. </summary>
-        static public void message_reportresolve(string connectionString,
+        static public void message_reportresolve(
             [NotNull] object messageFlag, 
             [NotNull] object messageID, 
             [NotNull] object userID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_reportresolve"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_reportresolve"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -3341,17 +3361,17 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;               
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;     
 		
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
 		//BAI ADDED 30.01.2004
 		// <summary> Delete message and all subsequent releated messages to that ID </summary>
-        static private void message_deleteRecursively(string connectionString, object messageID, bool isModeratorChanged, string deleteReason, int isDeleteAction, bool DeleteLinked, bool isLinked)
+        static private void message_deleteRecursively( object messageID, bool isModeratorChanged, string deleteReason, int isDeleteAction, bool DeleteLinked, bool isLinked)
 		{
-            message_deleteRecursively(connectionString, messageID, isModeratorChanged, deleteReason, isDeleteAction, DeleteLinked, isLinked, false);
+            message_deleteRecursively( messageID, isModeratorChanged, deleteReason, isDeleteAction, DeleteLinked, isLinked, false);
 		}
-        static private void message_deleteRecursively(string connectionString,
+        static private void message_deleteRecursively(
             object messageID, 
             bool isModeratorChanged, 
             string deleteReason, 
@@ -3366,24 +3386,24 @@ string connectionString,
 			if (DeleteLinked)
 			{
 				//Delete replies
-				using (FbCommand cmd = FbDbAccess.GetCommand("message_getReplies"))
+				using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_getReplies"))
 				{
 					cmd.CommandType = CommandType.StoredProcedure;
 					cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer));
 					cmd.Parameters[0].Value = messageID;
 
 					
-					DataTable tbReplies = FbDbAccess.Current.GetData(cmd, connectionString);
+					DataTable tbReplies = MsSqlDbAccess.Current.GetData(cmd);
 
 					foreach (DataRow row in tbReplies.Rows)
-                        message_deleteRecursively(connectionString, row["MessageID"], isModeratorChanged, deleteReason, isDeleteAction, DeleteLinked, true, eraseMessages);
+                        message_deleteRecursively( row["MessageID"], isModeratorChanged, deleteReason, isDeleteAction, DeleteLinked, true, eraseMessages);
 				}
 			}
 
 			//If the files are actually saved in the Hard Drive
 			if (!UseFileTable)
 			{
-				using (FbCommand cmd = FbDbAccess.GetCommand("attachment_list"))
+				using (FbCommand cmd = MsSqlDbAccess.GetCommand("attachment_list"))
 				{
 					cmd.CommandType = CommandType.StoredProcedure;
 
@@ -3397,7 +3417,7 @@ string connectionString,
 					cmd.Parameters[2].Value = null;
 
  
-					DataTable tbAttachments = FbDbAccess.Current.GetData(cmd, connectionString);
+					DataTable tbAttachments = MsSqlDbAccess.Current.GetData(cmd);
 					string uploadDir = HostingEnvironment.MapPath(String.Concat(BaseUrlBuilder.ServerFileRoot, YafBoardFolders.Current.Uploads));
 
 
@@ -3424,7 +3444,7 @@ string connectionString,
 			// Ederon : erase message for good
 			if (eraseMessages)
 			{
-				using (FbCommand cmd = FbDbAccess.GetCommand("message_delete"))
+				using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_delete"))
 				{
 					int eraseMessagesInt = 0;
 					if (eraseMessages == true)
@@ -3441,14 +3461,14 @@ string connectionString,
 					cmd.Parameters[1].Value = eraseMessagesInt;
 
 		  
-					FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+					MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				}
 			}
 			else
 			{
 				//Delete Message
 				// undelete function added
-				using (FbCommand cmd = FbDbAccess.GetCommand("message_deleteundelete"))
+				using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_deleteundelete"))
 				{
 					int isModeratorChangedInt = 0;
 					if (isModeratorChanged == true)
@@ -3471,21 +3491,21 @@ string connectionString,
 					cmd.Parameters.Add(new FbParameter("@I_ISDELETEACTION", FbDbType.Integer));
 					cmd.Parameters[3].Value = isDeleteAction;
 
-					FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+					MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				}
 			}
 		}
 
 		// <summary> Set flag on message to approved and store in DB </summary>
-        static public void message_approve(string connectionString, object messageID)
+        static public void message_approve( object messageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_approve"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_approve"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer)).Value = messageID;
 			   
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		/// <summary>
@@ -3494,9 +3514,9 @@ string connectionString,
 		/// <param name="StartID"></param>
 		/// <param name="Limit"></param>
 		/// <returns></returns>
-        static public DataTable message_simplelist(string connectionString, int StartID, int Limit)
+        static public DataTable message_simplelist( int StartID, int Limit)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_simplelist"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_simplelist"))
 			{
 				if (StartID <= 0) { StartID = 0; }
 				if (Limit <= 0) { Limit = 1000; }
@@ -3507,13 +3527,13 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_LIMIT", FbDbType.Integer)).Value = Limit;
 				
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
 
         static public void message_update(
-            string connectionString,
+            
             [NotNull] object messageID, 
             [NotNull] object priority, 
             [NotNull] object message,
@@ -3528,7 +3548,7 @@ string connectionString,
             [NotNull] object originalMessage, 
             [NotNull] object editedBy)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_update"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_update"))
 			{
 				if (overrideApproval == null) { overrideApproval = DBNull.Value; }
 
@@ -3549,12 +3569,12 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_ORIGINALMESSAGE", FbDbType.Text)).Value = originalMessage;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;     
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		// <summary> Save message to DB. </summary>
         static public bool message_save(
-            string connectionString,
+            
             [NotNull] object topicID, 
             [NotNull] object userID, 
             [NotNull] object message, 
@@ -3565,7 +3585,7 @@ string connectionString,
             [NotNull] object flags,
             ref long messageID)
         {
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_save"))
 			{
 				if (userName == null) { userName = DBNull.Value; }
 				if (posted == null) { posted = DBNull.Value; }
@@ -3591,74 +3611,74 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;     
 				
 			   // cmd.Parameters.Add(paramMessageID);
-				messageID = Convert.ToInt32(FbDbAccess.Current.ExecuteScalar(cmd, connectionString));
+				messageID = Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
 			   // messageID = Convert.ToInt64(paramMessageID.Value);
 				return true;
 			}
 		}
-        static public DataTable message_unapproved(string connectionString, object forumID)
+        static public DataTable message_unapproved( object forumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_unapproved"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_unapproved"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer)).Value = forumID;
 			   
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
         static public DataTable message_findunread(
-            string connectionString,
-            [NotNull] object topicId, 
+            
+            [NotNull] object topicID, 
             [NotNull] object messageId, 
             [NotNull] object lastRead, 
-            [NotNull] object showDeleted, 
-            [NotNull] object authorUserId)
+            [NotNull] object showDeleted,
+            [NotNull] object authorUserID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_findunread"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_findunread"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicId;
+                cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicID;
                 cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer)).Value = messageId;
                 cmd.Parameters.Add(new FbParameter("@I_LASTREAD", FbDbType.TimeStamp)).Value = lastRead;
                 cmd.Parameters.Add(new FbParameter("@I_SHOWDELETED", FbDbType.Boolean)).Value = showDeleted;
-                cmd.Parameters.Add(new FbParameter("@I_AUTHORUSERID", FbDbType.Integer)).Value = authorUserId;
+                cmd.Parameters.Add(new FbParameter("@I_AUTHORUSERID", FbDbType.Integer)).Value = authorUserID;
                 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
 		// message movind function
         static public void message_move(
-            string connectionString,
+            
             [NotNull] object messageID, 
             [NotNull] object moveToTopic, 
             bool moveAll)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_move"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_move"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer)).Value = messageID;
                 cmd.Parameters.Add(new FbParameter("@I_MOVETOTOPIC", FbDbType.Integer)).Value = moveToTopic;
 			
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 			//moveAll=true anyway
 			// it's in charge of moving answers of moved post
 			if (moveAll)
 			{
-				using (FbCommand cmd = FbDbAccess.GetCommand("message_getReplies"))
+				using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_getReplies"))
 				{
 					cmd.CommandType = CommandType.StoredProcedure;
 
                     cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer)).Value = messageID;
 
-					DataTable tbReplies = FbDbAccess.Current.GetData(cmd, connectionString);
+					DataTable tbReplies = MsSqlDbAccess.Current.GetData(cmd);
 					foreach (DataRow row in tbReplies.Rows)
 					{
-                        message_moveRecursively(connectionString, row["MessageID"], moveToTopic);
+                        message_moveRecursively( row["MessageID"], moveToTopic);
 					}
 
 				}
@@ -3666,31 +3686,31 @@ string connectionString,
 		}
 
 		//moves answers of moved post
-        static private void message_moveRecursively(string connectionString, object messageID, object moveToTopic)
+        static private void message_moveRecursively( object messageID, object moveToTopic)
 		{
             bool UseFileTable = GetBooleanRegistryValue("UseFileTable");
 
 			//Delete replies
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_getReplies"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_getReplies"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer));
 				cmd.Parameters[0].Value = messageID;
 
-				DataTable tbReplies = FbDbAccess.Current.GetData(cmd, connectionString);
+				DataTable tbReplies = MsSqlDbAccess.Current.GetData(cmd);
 				foreach (DataRow row in tbReplies.Rows)
 				{
-                    message_moveRecursively(connectionString, row["messageID"], moveToTopic);
+                    message_moveRecursively( row["messageID"], moveToTopic);
 				}
-				using (FbCommand innercmd = FbDbAccess.GetCommand("message_move"))
+				using (FbCommand innercmd = MsSqlDbAccess.GetCommand("message_move"))
 				{
 					innercmd.CommandType = CommandType.StoredProcedure;
 
                     innercmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer)).Value = messageID;
                     innercmd.Parameters.Add(new FbParameter("@I_MOVETOTOPIC", FbDbType.Integer)).Value = moveToTopic;
 
-					FbDbAccess.Current.ExecuteNonQuery(innercmd, connectionString);
+					MsSqlDbAccess.Current.ExecuteNonQuery(innercmd);
 				}
 			}
 		}
@@ -3700,9 +3720,9 @@ string connectionString,
 		// <summary> Checks if the message with the provided messageID is thanked 
 		//           by the user with the provided UserID. if so, returns true,
 		//           otherwise returns false. </summary>
-        static public bool message_isThankedByUser(string connectionString, object userID, object messageID)
+        static public bool message_isThankedByUser( object userID, object messageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_isthankedbyuser"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_isthankedbyuser"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				FbParameter paramOutput = new FbParameter();
@@ -3710,36 +3730,36 @@ string connectionString,
 				cmd.Parameters.AddWithValue("I_USERID", userID);
 				cmd.Parameters.AddWithValue("I_MESSAGEID", messageID);
 				cmd.Parameters.Add(paramOutput);
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				return Convert.ToBoolean(paramOutput.Value);
 			}
 		}
 
 		// <summary> Return the number of times the message with the provided messageID
 		//           has been thanked. </summary>
-        static public int message_ThanksNumber(string connectionString, object messageID)
+        static public int message_ThanksNumber( object messageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_thanksnumber"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_thanksnumber"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				FbParameter paramOutput = new FbParameter();
 				paramOutput.Direction = ParameterDirection.ReturnValue;
 				cmd.Parameters.Add("I_MESSAGEID", FbDbType.Integer).Value = messageID;
 				cmd.Parameters.Add(paramOutput);
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				return Convert.ToInt32(paramOutput.Value);
 			}
 		}
 
 		// <summary> Returns the UserIDs and UserNames who have thanked the message
 		//           with the provided messageID. </summary>
-        static public DataTable message_GetThanks(string connectionString, object messageID)
+        static public DataTable message_GetThanks( object messageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("MESSAGE_GETTHANKS"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("MESSAGE_GETTHANKS"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add("@I_MESSAGEID", FbDbType.Integer).Value = messageID;                
-				return FbDbAccess.Current.GetData( cmd,connectionString );
+				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 		}
         /// <summary>
@@ -3751,13 +3771,13 @@ string connectionString,
         /// </param>
         /// <returns>
         /// </returns>
-        public static DataTable message_GetTextByIds(string connectionString, string messageIDs)
+        public static DataTable message_GetTextByIds( string messageIDs)
         {
-            using (FbCommand cmd = FbDbAccess.GetCommand("message_gettextbyids"))
+            using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_gettextbyids"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("I_MESSAGEIDS", FbDbType.VarChar).Value = messageIDs;
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
 
@@ -3765,13 +3785,13 @@ string connectionString,
 		/// delimited string variable MessageIDs 
         ///</summary>
         [Obsolete("Use MessageGetAllThanks(string messageIdsSeparatedWithColon) instead")]
-        static public DataTable message_GetAllThanks(string connectionString, object MessageIDs)
+        static public DataTable message_GetAllThanks( object MessageIDs)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_getallthanks"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_getallthanks"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add("I_MESSAGEIDS", FbDbType.VarChar).Value = MessageIDs;
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -3784,20 +3804,20 @@ string connectionString,
     /// </param>
     /// <returns>
     /// </returns>
-        public static IEnumerable<TypedAllThanks> MessageGetAllThanks(string connectionString, string messageIdsSeparatedWithColon)
+        public static IEnumerable<TypedAllThanks> MessageGetAllThanks( string messageIdsSeparatedWithColon)
     {
-      using (FbCommand cmd = FbDbAccess.GetCommand("message_getallthanks"))
+      using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_getallthanks"))
       {
         cmd.CommandType = CommandType.StoredProcedure;
         cmd.Parameters.Add("I_MESSAGEIDS", FbDbType.VarChar).Value = messageIdsSeparatedWithColon;
 
-        return FbDbAccess.Current.GetData(cmd, connectionString).AsEnumerable().Select(t => new TypedAllThanks(t));
+        return MsSqlDbAccess.Current.GetData(cmd).AsEnumerable().Select(t => new TypedAllThanks(t));
       }
     }
 
-        static public string message_AddThanks(string connectionString, object FromUserID, object MessageID)
+        static public string message_AddThanks( object FromUserID, object MessageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("MESSAGE_ADDTHANKS"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("MESSAGE_ADDTHANKS"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;               
 				
@@ -3805,13 +3825,13 @@ string connectionString,
 				cmd.Parameters.Add("I_MESSAGEID", FbDbType.Integer).Value = MessageID;
 				cmd.Parameters.Add("I_UTCTIMESTAMP", FbDbType.TimeStamp).Value = DateTime.UtcNow;
 
-				return FbDbAccess.Current.ExecuteScalar(cmd, connectionString).ToString();              
+				return MsSqlDbAccess.Current.ExecuteScalar(cmd).ToString();              
 			}
 		}
 
-        static public string message_RemoveThanks(string connectionString, object FromUserID, object MessageID)
+        static public string message_RemoveThanks( object FromUserID, object MessageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("MESSAGE_REMOVETHANKS"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("MESSAGE_REMOVETHANKS"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				FbParameter paramOutput = new FbParameter("OUT_RESULT", FbDbType.VarChar, 128);
@@ -3819,7 +3839,7 @@ string connectionString,
 				cmd.Parameters.Add("I_FROMUSERID", FbDbType.Integer).Value = FromUserID;
 				cmd.Parameters.Add("I_MESSAGEID", FbDbType.Integer).Value = MessageID;
 				cmd.Parameters.Add(paramOutput);
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				return (paramOutput.Value.ToString());
 			}
 		}
@@ -3836,9 +3856,9 @@ string connectionString,
 		/// <returns>
 		/// List of all message changes. 
 		/// </returns>
-        public static DataTable messagehistory_list(string connectionString, int messageID, int daysToClean)
+        public static DataTable messagehistory_list( int messageID, int daysToClean)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("MESSAGEHISTORY_LIST"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("MESSAGEHISTORY_LIST"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				
@@ -3846,7 +3866,7 @@ string connectionString,
 				cmd.Parameters.Add("I_DAYSTOCLEAN", FbDbType.Integer).Value = daysToClean;				
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;        
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -3856,16 +3876,16 @@ string connectionString,
 		/// <param name="MessageID">The Message Id.</param>
 		/// <param name="UserID">The UserId.</param>
 		/// <returns></returns>
-        public static DataTable message_secdata(string connectionString, int messageID, object pageUserId)
+        public static DataTable message_secdata( int messageID, object pageUserId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("message_secdata"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_secdata"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add("@I_MESSAGEID", FbDbType.Integer).Value = messageID;
                 cmd.Parameters.Add("@I_PAGEUSERID", FbDbType.Integer).Value = pageUserId;               
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 
 			}
 		}
@@ -3877,18 +3897,18 @@ string connectionString,
 		/// Lists given medal.
 		/// </summary>
 		/// <param name="medalID">ID of medal to list.</param>
-        static public DataTable medal_list(string connectionString, object medalID)
+        static public DataTable medal_list( object medalID)
 		{
-			return medal_list(connectionString,null, medalID, null);
+			return medal_list(null, medalID, null);
 		}
 		/// <summary>
 		/// Lists given medals.
 		/// </summary>
 		/// <param name="boardID">ID of board of which medals to list. Required.</param>
 		/// <param name="category">Cateogry of medals to list. Can be null. In such case this parameter is ignored.</param>
-        static public DataTable medal_list(string connectionString, object boardID, object category)
+        static public DataTable medal_list( object boardID, object category)
 		{
-            return medal_list(connectionString, boardID, null, category);
+            return medal_list( boardID, null, category);
 		}
 		/// <summary>
 		/// Lists medals.
@@ -3896,9 +3916,9 @@ string connectionString,
 		/// <param name="boardID">ID of board of which medals to list. Can be null if medalID parameter is specified.</param>
 		/// <param name="medalID">ID of medal to list. When specified, boardID and category parameters are ignored.</param>
 		/// <param name="category">Cateogry of medals to list. Must be complemented with not-null boardID parameter.</param>
-        static public DataTable medal_list(string connectionString, object boardID, object medalID, object category)
+        static public DataTable medal_list( object boardID, object medalID, object category)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("medal_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("medal_list"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -3906,7 +3926,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_MEDALID", FbDbType.Integer)).Value = medalID ?? DBNull.Value;
                 cmd.Parameters.Add(new FbParameter("@I_CATEGORY", FbDbType.VarChar)).Value = category ?? DBNull.Value; 
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -3916,16 +3936,16 @@ string connectionString,
 		/// </summary>
 		/// <param name="medalID">Medal of which owners to get.</param>
 		/// <returns>List of users with their user id and usernames, who own this medal.</returns>
-        static public DataTable medal_listusers(string connectionString,
+        static public DataTable medal_listusers(
             object medalID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("medal_listusers"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("medal_listusers"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_MEDALID", FbDbType.Integer)).Value = medalID;
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -3935,9 +3955,9 @@ string connectionString,
         /// <param name="medalID">
         /// ID of medal to delete.
         /// </param>
-        public static void medal_delete(string connectionString, [NotNull] object medalID)
+        public static void medal_delete( [NotNull] object medalID)
         {
-            medal_delete(connectionString, null, medalID, null);
+            medal_delete( null, medalID, null);
         }
 
 		/// <summary>
@@ -3946,9 +3966,9 @@ string connectionString,
 		/// <param name="boardID">ID of board of which medals to delete. Can be null if medalID parameter is specified.</param>
 		/// <param name="medalID">ID of medal to delete. When specified, boardID and category parameters are ignored.</param>
 		/// <param name="category">Cateogry of medals to delete. Must be complemented with not-null boardID parameter.</param>
-        static public void medal_delete(string connectionString, object boardID, object medalID, object category)
+        static public void medal_delete( object boardID, object medalID, object category)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("medal_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("medal_delete"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -3956,7 +3976,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_MEDALID", FbDbType.Integer)).Value = medalID ?? DBNull.Value;
                 cmd.Parameters.Add(new FbParameter("@I_CATEGORY", FbDbType.VarChar)).Value = category ?? DBNull.Value;
 			
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -3981,7 +4001,7 @@ string connectionString,
 		/// <param name="sortOrder">Default order of medal as it will be displayed in user box.</paramHeight
 		/// <param name="flags">Medal's flags.</param>
 		/// <returns>True if medal was successfully created or updated. False otherwise.</returns>
-        static public bool medal_save(string connectionString,
+        static public bool medal_save(
             [NotNull] object boardID, 
             [NotNull] object medalID, 
             [NotNull] object name, 
@@ -3999,7 +4019,7 @@ string connectionString,
             [NotNull] object sortOrder, 
             [NotNull] object flags)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("medal_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("medal_save"))
 			{
 				if (boardID == null) { boardID = DBNull.Value; }
 				if (medalID == null) { medalID = DBNull.Value; }
@@ -4036,8 +4056,8 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_FLAGS", FbDbType.Integer)).Value = flags ?? 0; 
 
 				// command succeeded if returned value is greater than zero (number of affected rows)
-				// bool rres = (FbDbAccess.Current.ExecuteScalar(cmd, connectionString) > 0);
-				return Convert.ToInt32(FbDbAccess.Current.ExecuteScalar(cmd, connectionString)) > 0;
+				// bool rres = (MsSqlDbAccess.Current.ExecuteScalar(cmd) > 0);
+				return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd)) > 0;
 
 			}
 		}
@@ -4049,9 +4069,9 @@ string connectionString,
 		/// <param name="boardID">ID of board.</param>
 		/// <param name="medalID">ID of medal to re-sort.</param>
 		/// <param name="move">Change of sort.</param>
-        static public void medal_resort(string connectionString, object boardID, object medalID, int move)
+        static public void medal_resort( object boardID, object medalID, int move)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("medal_resort"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("medal_resort"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -4059,7 +4079,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_MEDALID", FbDbType.Integer)).Value = medalID;
                 cmd.Parameters.Add(new FbParameter("@I_MOVE", FbDbType.Integer)).Value = move;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -4069,9 +4089,9 @@ string connectionString,
 		/// </summary>
 		/// <param name="groupID">ID of group owning medal.</param>
 		/// <param name="medalID">ID of medal.</param>
-        static public void group_medal_delete(string connectionString, object groupID, object medalID)
+        static public void group_medal_delete( object groupID, object medalID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("group_medal_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("group_medal_delete"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -4083,7 +4103,7 @@ string connectionString,
 
 			  
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -4093,11 +4113,11 @@ string connectionString,
 		/// </summary>
 		/// <param name="groupID">ID of group of which to list medals.</param>
 		/// <param name="medalID">ID of medal to list.</param>
-        static public DataTable group_medal_list(string connectionString,
+        static public DataTable group_medal_list(
             [NotNull] object groupID, 
             [NotNull] object medalID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("group_medal_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("group_medal_list"))
 			{
 				if (groupID == null) { groupID = DBNull.Value; }
 				if (medalID == null) { medalID = DBNull.Value; }
@@ -4107,7 +4127,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_GROUPID", FbDbType.Integer)).Value = groupID;
                 cmd.Parameters.Add(new FbParameter("@I_MEDALID", FbDbType.Integer)).Value = medalID;
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -4121,7 +4141,7 @@ string connectionString,
 		/// <param name="hide">Hide medal in user box.</param>
 		/// <param name="onlyRibbon">Show only ribbon bar in user box.</param>
 		/// <param name="sortOrder">Sort order in user box. Overrides medal's default sort order.</param>
-        static public void group_medal_save(string connectionString,
+        static public void group_medal_save(
             [NotNull] object groupID, 
             [NotNull] object medalID, 
             [NotNull] object message, 
@@ -4136,7 +4156,7 @@ string connectionString,
 				if (sortOrderOut >= 255) { sortOrderOut = 0; }
 			}
 
-			using (FbCommand cmd = FbDbAccess.GetCommand("group_medal_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("group_medal_save"))
 			{
 				if (message == null) { message = DBNull.Value; }
 
@@ -4149,7 +4169,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_ONLYRIBBON", FbDbType.Boolean)).Value = onlyRibbon;
                 cmd.Parameters.Add(new FbParameter("@I_SORTORDER", FbDbType.SmallInt)).Value = sortOrderOut;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -4160,9 +4180,9 @@ string connectionString,
 		/// </summary>
 		/// <param name="userID">ID of user owning medal.</param>
 		/// <param name="medalID">ID of medal.</param>
-        static public void user_medal_delete(string connectionString, object userID, object medalID)
+        static public void user_medal_delete( object userID, object medalID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_medal_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_medal_delete"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -4170,7 +4190,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_MEDALID", FbDbType.Integer)).Value = medalID ?? DBNull.Value;
 	  
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -4180,9 +4200,9 @@ string connectionString,
 		/// </summary>
 		/// <param name="userID">ID of user who was given medal.</param>
 		/// <param name="medalID">ID of medal to list.</param>
-        static public DataTable user_medal_list(string connectionString, object userID, object medalID)
+        static public DataTable user_medal_list( object userID, object medalID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_medal_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_medal_list"))
 			{
 			
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -4190,7 +4210,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID ?? DBNull.Value;
                 cmd.Parameters.Add(new FbParameter("@I_MEDALID", FbDbType.Integer)).Value = medalID ?? DBNull.Value;
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			   
 			}
 		}
@@ -4206,11 +4226,11 @@ string connectionString,
 		/// <param name="onlyRibbon">Show only ribbon bar in user box.</param>
 		/// <param name="sortOrder">Sort order in user box. Overrides medal's default sort order.</param>
 		/// <param name="dateAwarded">Date when medal was awarded to a user. Is ignored when existing user-medal allocation is edited.</param>
-        static public void user_medal_save(string connectionString,
+        static public void user_medal_save(
 			object userID, object medalID, object message,
 			object hide, object onlyRibbon, object sortOrder, object dateAwarded)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_medal_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_medal_save"))
 			{
 				if (message == null) { message = DBNull.Value; }
 				if (dateAwarded == null) { dateAwarded = DBNull.Value; }
@@ -4227,7 +4247,7 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_DATEAWARDED", FbDbType.TimeStamp)).Value = dateAwarded;               
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;     
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -4237,25 +4257,25 @@ string connectionString,
 		/// </summary>
 		/// <param name="userID">ID of user.</param>
 		/// <returns>List of medals, ribbon bar only first.</returns>
-        static public DataTable user_listmedals(string connectionString,
+        static public DataTable user_listmedals(
             [NotNull]object userID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_listmedals"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_listmedals"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
 		#endregion        
 
 		#region yaf_NntpForum
-        static public DataTable nntpforum_list(string connectionString, object boardID, object minutes, object nntpForumID, object active)
+        static public DataTable nntpforum_list( object boardID, object minutes, object nntpForumID, object active)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("nntpforum_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("nntpforum_list"))
 			{
 				if (minutes == null) { minutes = DBNull.Value; }
 				if (nntpForumID == null) { nntpForumID = DBNull.Value; }
@@ -4269,16 +4289,16 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_ACTIVE", FbDbType.Boolean)).Value = active;                
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 
-				return FbDbAccess.Current.GetData(cmd,false,connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd,false);
 			}
 		}
-        public static IEnumerable<TypedNntpForum> NntpForumList(string connectionString,
+        public static IEnumerable<TypedNntpForum> NntpForumList(
             int boardID, 
             int? minutes, 
             int? nntpForumID, 
             bool? active)
         {
-            using (var cmd = FbDbAccess.GetCommand("nntpforum_list"))
+            using (var cmd = MsSqlDbAccess.GetCommand("nntpforum_list"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
@@ -4286,15 +4306,15 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_NNTPFORUMID", FbDbType.Integer)).Value = nntpForumID;
                 cmd.Parameters.Add(new FbParameter("@I_ACTIVE", FbDbType.Boolean)).Value = active;
 
-                return FbDbAccess.Current.GetData(cmd, connectionString).AsEnumerable().Select(r => new TypedNntpForum(r));
+                return MsSqlDbAccess.Current.GetData(cmd).AsEnumerable().Select(r => new TypedNntpForum(r));
             }
         }
-        static public void nntpforum_update(string connectionString,
+        static public void nntpforum_update(
             [NotNull] object nntpForumID, 
             [NotNull] object lastMessageNo, 
             [NotNull] object userID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("nntpforum_update"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("nntpforum_update"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -4303,10 +4323,10 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void nntpforum_save(string connectionString,
+        static public void nntpforum_save(
             [NotNull] object nntpForumID, 
             [NotNull] object nntpServerID, 
             [NotNull] object groupName, 
@@ -4314,7 +4334,7 @@ string connectionString,
             [NotNull] object active, 
             [NotNull] object datecutoff)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("nntpforum_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("nntpforum_save"))
 			{
 				if (nntpForumID == null) { nntpForumID = DBNull.Value; }
 
@@ -4329,27 +4349,27 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_DATECUTOFF", FbDbType.TimeStamp)).Value = datecutoff;     
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void nntpforum_delete(string connectionString, object nntpForumID)
+        static public void nntpforum_delete( object nntpForumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("nntpforum_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("nntpforum_delete"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("@I_NNTPFORUMID", FbDbType.Integer));
 				cmd.Parameters[0].Value = nntpForumID;
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		#endregion
 	   
 		#region yaf_NntpServer
-        static public DataTable nntpserver_list(string connectionString,
+        static public DataTable nntpserver_list(
             object boardID, 
             object nntpServerID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("nntpserver_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("nntpserver_list"))
 			{
 				if (boardID == null) { boardID = DBNull.Value; }
 				if (nntpServerID == null) { nntpServerID = DBNull.Value; }
@@ -4359,10 +4379,10 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
                 cmd.Parameters.Add(new FbParameter("@I_NNTPSERVERID", FbDbType.Integer)).Value = nntpServerID;
 		  
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void nntpserver_save(string connectionString,
+        static public void nntpserver_save(
             [NotNull] object nntpServerID, 
             [NotNull] object boardID, 
             [NotNull] object name, 
@@ -4371,7 +4391,7 @@ string connectionString,
             [NotNull] object userName, 
             [NotNull] object userPass)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("nntpserver_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("nntpserver_save"))
 			{
 				if (nntpServerID == null) { nntpServerID = DBNull.Value; }
 				if (userName == null) { userName = DBNull.Value; }
@@ -4387,27 +4407,27 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_USERNAME", FbDbType.VarChar)).Value = userName;
 				cmd.Parameters.Add(new FbParameter("@I_USERPASS", FbDbType.VarChar)).Value = userPass;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void nntpserver_delete(string connectionString, object nntpServerID)
+        static public void nntpserver_delete( object nntpServerID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("nntpserver_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("nntpserver_delete"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_NNTPSERVERID", FbDbType.Integer)).Value = nntpServerID;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		#endregion        
 
 		#region yaf_NntpTopic
-        static public DataTable nntptopic_list(string connectionString,
+        static public DataTable nntptopic_list(
             object thread)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("nntptopic_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("nntptopic_list"))
 			{
 
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -4415,10 +4435,10 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_THREAD", FbDbType.VarChar)).Value = thread;
 
 			   
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void nntptopic_savemessage(string connectionString,
+        static public void nntptopic_savemessage(
             [NotNull] object nntpForumID, 
             [NotNull] object topic, 
             [NotNull] object body, 
@@ -4446,7 +4466,7 @@ string connectionString,
 			 
 			newbody = newbody.Replace("&", "^^^"); */
 			//string newbody = body.ToString().Replace(@"&lt;br&gt;", "> ").Replace(@"&amp;lt;", "<").Replace(@"&lt;hr&gt;", "> ").Replace(@"&amp;quot;", @"""").Replace(@"&lt;", @"<").Replace(@"br&gt;", @"> ").Replace(@"&amp;gt;", @"> ").Replace(@"&gt;", "> ").Replace("&quot;", @"""").Replace("[-snip-]", "(SNIP)").Replace(@"@I_", "[dog]").Replace("_.", "");
-			using (FbCommand cmd = FbDbAccess.GetCommand("nntptopic_savemessage")) 
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("nntptopic_savemessage")) 
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -4460,7 +4480,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_EXTERNALMESSAGEID", FbDbType.VarChar)).Value = externalMessageId;
                 cmd.Parameters.Add(new FbParameter("@I_REFERENCEMESSAGEID", FbDbType.VarChar)).Value = referenceMessageId;
                 cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		#endregion        
@@ -4476,9 +4496,9 @@ string connectionString,
 		/// <param name="fromUserID"></param>
 		/// <param name="pMessageID">The id of the private message</param>
 		/// <returns></returns>
-        static public DataTable pmessage_list(string connectionString, object toUserID, object fromUserID, object userPMessageID)
+        static public DataTable pmessage_list( object toUserID, object fromUserID, object userPMessageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("PMESSAGE_LIST"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("PMESSAGE_LIST"))
 			{
 
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -4487,7 +4507,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_TOUSERID", FbDbType.Integer)).Value = toUserID ?? DBNull.Value;
                 cmd.Parameters.Add(new FbParameter("@I_USERPMESSAGEID", FbDbType.Integer)).Value = userPMessageID ?? DBNull.Value;
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 		/// <summary>
@@ -4500,9 +4520,9 @@ string connectionString,
 		/// <param name="fromUserID"></param>
 		/// <param name="pMessageID">The id of the private message</param>
 		/// <returns></returns>
-        static public DataTable pmessage_list(string connectionString, object userPMessageID)
+        static public DataTable pmessage_list( object userPMessageID)
 		{
-            return pmessage_list(connectionString, null, null, userPMessageID);
+            return pmessage_list( null, null, userPMessageID);
 		}
 		/// <summary>
 		/// Deletes the private message from the database as per the given parameter.  If <paramref name="fromOutbox"/> is true,
@@ -4510,18 +4530,18 @@ string connectionString,
 		/// </summary>
 		/// <param name="pMessageID"></param>
 		/// <param name="fromOutbox">If true, removes the message from the outbox.  Otherwise deletes the message completely.</param>
-        static public void pmessage_delete(string connectionString,
+        static public void pmessage_delete(
             object userPMessageID, 
             bool fromOutbox)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("pmessage_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("pmessage_delete"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_USERPMESSAGEID", FbDbType.Integer)).Value = userPMessageID;
                 cmd.Parameters.Add(new FbParameter("@I_FROMOUTBOX", FbDbType.Boolean)).Value = fromOutbox;
  
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		/// <summary>
@@ -4529,37 +4549,37 @@ string connectionString,
 		/// the message is only deleted from the user's outbox.  Otherwise, it is completely delete from the database.
 		/// </summary>
 		/// <param name="userPMessageID"></param>
-        static public void pmessage_delete(string connectionString, object userPMessageID)
+        static public void pmessage_delete( object userPMessageID)
 		{
-            pmessage_delete(connectionString, userPMessageID, false);
+            pmessage_delete( userPMessageID, false);
 		}
 
 		/// <summary>
 		/// Archives the private message of the given id.  Archiving moves the message from the user's inbox to his message archive.
 		/// </summary>
 		/// <param name="pMessageID">The ID of the private message</param>
-        public static void pmessage_archive(string connectionString,
+        public static void pmessage_archive(
             object userPMessageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("pmessage_archive"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("pmessage_archive"))
 			{
 
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_USERPMESSAGEID", FbDbType.Integer)).Value = userPMessageID ?? DBNull.Value;
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-        static public void pmessage_save(string connectionString,
+        static public void pmessage_save(
             object fromUserID, 
             object toUserID, 
             object subject, 
             object body, 
             object Flags)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("pmessage_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("pmessage_save"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -4570,12 +4590,12 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_FLAGS", FbDbType.Integer)).Value = Flags;               
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 			   
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void pmessage_markread(string connectionString, object userPMessageID)
+        static public void pmessage_markread( object userPMessageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("pmessage_markread"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("pmessage_markread"))
 			{
 				if (userPMessageID == null) { userPMessageID = DBNull.Value; }
 
@@ -4583,22 +4603,22 @@ string connectionString,
 
                 cmd.Parameters.Add(new FbParameter("@I_USERPMESSAGEID", FbDbType.Integer)).Value = userPMessageID;
 			
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public DataTable pmessage_info(string connectionString)
+        static public DataTable pmessage_info()
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("pmessage_info"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("pmessage_info"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void pmessage_prune(string connectionString,
+        static public void pmessage_prune(
             object daysRead, 
             object daysUnread)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("pmessage_prune"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("pmessage_prune"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -4606,7 +4626,7 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_DAYSUNREAD", FbDbType.Integer)).Value = daysUnread;                
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		#endregion
@@ -4622,13 +4642,13 @@ string connectionString,
     /// <returns>
     /// </returns>
         public static DataTable pollgroup_stats(
-        string connectionString, int? pollGroupId)
+         int? pollGroupId)
     {
-        using (FbCommand cmd = FbDbAccess.GetCommand("pollgroup_stats"))
+        using (FbCommand cmd = MsSqlDbAccess.GetCommand("pollgroup_stats"))
         {
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.AddWithValue("@I_POLLGROUPID", pollGroupId);
-            return FbDbAccess.Current.GetData(cmd, connectionString);
+            return MsSqlDbAccess.Current.GetData(cmd);
         }
     }
 
@@ -4641,14 +4661,14 @@ string connectionString,
     /// <returns>
     /// </returns>
         public static int pollgroup_attach(
-        string connectionString,
+        
         int? pollGroupId, 
         int? topicId, 
         int? forumId, 
         int? categoryId, 
         int? boardId)
     {
-        using (FbCommand cmd = FbDbAccess.GetCommand("pollgroup_attach"))
+        using (FbCommand cmd = MsSqlDbAccess.GetCommand("pollgroup_attach"))
         {
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.AddWithValue("@I_POLLGROUPID", pollGroupId);
@@ -4656,18 +4676,18 @@ string connectionString,
             cmd.Parameters.AddWithValue("@I_FORUMID", forumId);
             cmd.Parameters.AddWithValue("@I_CATEGORYID", categoryId);
             cmd.Parameters.AddWithValue("@I_BOARDID", boardId);
-            return Convert.ToInt32(FbDbAccess.Current.ExecuteScalar(cmd, connectionString));
+            return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
         }
     }
-        static public DataTable poll_stats(string connectionString, object pollID)
+        static public DataTable poll_stats( object pollID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("poll_stats"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("poll_stats"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_POLLID", FbDbType.Integer)).Value = pollID;
 			   
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -4676,7 +4696,7 @@ string connectionString,
 		/// </summary>
 		/// <param name="pollList">List to hold all polls data</param>
 		/// <returns>Last saved poll id.</returns>
-        public static int? poll_save(string connectionString,
+        public static int? poll_save(
             [NotNull] System.Collections.Generic.List<PollSaveList> pollList)
 		{
 
@@ -4691,7 +4711,7 @@ string connectionString,
               {
 
                   sb.Append("SELECT POLLGROUPID  FROM ");
-                  sb.Append(FbDbAccess.GetObjectName("CATEGORY"));
+                  sb.Append(MsSqlDbAccess.GetObjectName("CATEGORY"));
                   sb.Append(" WHERE CATEGORYID = :I_CATEGORYID INTO :OUT_POLLGROUPID; ");
                   paramSb.Append("I_CATEGORYID INTEGER = ?,");
               }
@@ -4699,7 +4719,7 @@ string connectionString,
               {
 
                   sb.Append("SELECT POLLGROUPID  FROM ");
-                  sb.Append(FbDbAccess.GetObjectName("FORUM"));
+                  sb.Append(MsSqlDbAccess.GetObjectName("FORUM"));
                   sb.Append(" WHERE FORUMID = :I_FORUMID INTO :OUT_POLLGROUPID; ");
                   paramSb.Append("I_FORUMID INTEGER = ?,");
               }
@@ -4707,7 +4727,7 @@ string connectionString,
             if (question.TopicId > 0)
            {
                sb.Append(" SELECT POLLID FROM ");
-               sb.Append(FbDbAccess.GetObjectName("TOPIC"));
+               sb.Append(MsSqlDbAccess.GetObjectName("TOPIC"));
                sb.Append(" WHERE TOPICID = :I_TOPICID INTO :OUT_POLLGROUPID; ");
                paramSb.Append("I_TOPICID INTEGER = ?,");
            }
@@ -4717,36 +4737,36 @@ string connectionString,
 			sb.Append("IF (OUT_POLLGROUPID IS NULL) THEN BEGIN ");
             
            sb.Append("INSERT INTO ");
-           sb.Append(FbDbAccess.GetObjectName("POLLGROUPCLUSTER"));
-           sb.AppendFormat("(POLLGROUPID, USERID, FLAGS) VALUES((SELECT NEXT VALUE FOR SEQ_{0}PGC_POLLGROUPID FROM RDB$DATABASE), :GROUPUSERID, :POLLGROUPFLAGS) RETURNING POLLGROUPID INTO :OUT_POLLGROUPID;  END ", FbDbAccess.ObjectQualifier.ToUpper());
+           sb.Append(MsSqlDbAccess.GetObjectName("POLLGROUPCLUSTER"));
+           sb.AppendFormat("(POLLGROUPID, USERID, FLAGS) VALUES((SELECT NEXT VALUE FOR SEQ_{0}PGC_POLLGROUPID FROM RDB$DATABASE), :GROUPUSERID, :POLLGROUPFLAGS) RETURNING POLLGROUPID INTO :OUT_POLLGROUPID;  END ", MsSqlDbAccess.ObjectQualifier.ToUpper());
 
            paramSb.Append("GROUPUSERID INTEGER = ?,");
            paramSb.Append("POLLGROUPFLAGS INTEGER = ?,");
            if (question.CategoryId > 0)
            {
                sb.Append("UPDATE ");
-               sb.Append(FbDbAccess.GetObjectName("CATEGORY"));
+               sb.Append(MsSqlDbAccess.GetObjectName("CATEGORY"));
                sb.Append(" SET POLLGROUPID = :OUT_POLLGROUPID WHERE CATEGORYID = :I_CATEGORYID; ");
 
            }
            if (question.ForumId > 0)
            {
                sb.Append("UPDATE ");
-               sb.Append(FbDbAccess.GetObjectName("FORUM"));
+               sb.Append(MsSqlDbAccess.GetObjectName("FORUM"));
                sb.Append(" SET POLLGROUPID = :OUT_POLLGROUPID WHERE FORUMID = :I_FORUMID; ");
            }
 
            if (question.TopicId > 0)
            {
                sb.Append("UPDATE ");
-               sb.Append(FbDbAccess.GetObjectName("TOPIC"));
+               sb.Append(MsSqlDbAccess.GetObjectName("TOPIC"));
                sb.Append(" SET POLLID = :OUT_POLLGROUPID WHERE TOPICID = :I_TOPICID; ");
            }
 
                 // System.Text.StringBuilder paramSb = new System.Text.StringBuilder("EXECUTE BLOCK ("); 
             // INSERT in poll
 				sb.Append(" INSERT INTO ");
-				sb.Append(FbDbAccess.GetObjectName("POLL"));
+				sb.Append(MsSqlDbAccess.GetObjectName("POLL"));
 				if (question.Closes > DateTime.MinValue)
 				{
 
@@ -4767,7 +4787,7 @@ string connectionString,
                 }
                 sb.Append(") VALUES(");
 				
-				sb.AppendFormat("(SELECT NEXT VALUE FOR SEQ_{0}POLL_POLLID FROM RDB$DATABASE),", FbDbAccess.ObjectQualifier.ToUpper());
+				sb.AppendFormat("(SELECT NEXT VALUE FOR SEQ_{0}POLL_POLLID FROM RDB$DATABASE),", MsSqlDbAccess.ObjectQualifier.ToUpper());
 				sb.Append(":QUESTION");
 
                 paramSb.Append(" QUESTION VARCHAR(255) = ?,");
@@ -4807,7 +4827,7 @@ string connectionString,
                     {
 
                         sb.Append("INSERT INTO ");
-                        sb.Append(FbDbAccess.GetObjectName("CHOICE"));
+                        sb.Append(MsSqlDbAccess.GetObjectName("CHOICE"));
 
                         sb.Append("(CHOICEID, POLLID,CHOICE,VOTES");
                         if (question.QuestionObjectPath.IsSet())
@@ -4820,7 +4840,7 @@ string connectionString,
                         }
                         sb.Append(") VALUES(");
                         sb.AppendFormat("(SELECT NEXT VALUE FOR SEQ_{0}CHOICE_CHOICEID FROM RDB$DATABASE),",
-                                        FbDbAccess.ObjectQualifier.ToUpper());
+                                        MsSqlDbAccess.ObjectQualifier.ToUpper());
                         sb.AppendFormat(":OUT_POLLID,:CHOICE{0},:VOTES{0}", choiceCount);
                         if (question.QuestionObjectPath.IsSet())
                         {
@@ -4850,9 +4870,9 @@ string connectionString,
 			   sb.Append(" SUSPEND; END;");               
 			   FbCommand cmd = new FbCommand();
 			   cmd.CommandText =  paramSb.ToString().TrimEnd(',') + ") " + sb.ToString();
-			   FbDbConnectionManager connMan = new FbDbConnectionManager();
+			   MsSqlDbConnectionManager connMan = new MsSqlDbConnectionManager();
 			    FbConnection con = connMan.OpenDBConnection;
-			    FbTransaction trans = con.BeginTransaction(FbDbAccess.IsolationLevel);
+			    FbTransaction trans = con.BeginTransaction(MsSqlDbAccess.IsolationLevel);
 			
 			   cmd.Transaction = trans;
 			  // cmd.Prepare();   
@@ -4946,7 +4966,7 @@ string connectionString,
 
 
                 // cmd.Prepare();   
-				int? result = Convert.ToInt32(FbDbAccess.Current.ExecuteScalar(cmd, true,connectionString));
+				int? result = Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd, true));
 				trans.Commit();
 				con.Close();
 				return  result;
@@ -4956,7 +4976,7 @@ string connectionString,
 		}
 
         static public void poll_update(
-        string connectionString,
+        
         [NotNull] object pollID,
         [NotNull] object question,
         [NotNull] object closes,
@@ -4968,7 +4988,7 @@ string connectionString,
         [NotNull] object questionPath,
         [NotNull] object questionMime)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("POLL_UPDATE"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("POLL_UPDATE"))
 			{
 				if (closes == null) { closes = DBNull.Value; }
 
@@ -4985,17 +5005,17 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_SHOWVOTERS", FbDbType.Boolean)).Value = showVoters;
                 cmd.Parameters.Add(new FbParameter("@I_ALLOWSKIPVOTE", FbDbType.Boolean)).Value = allowSkipVote;
     
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
         static public void poll_remove(
-            string connectionString,
+            
             object pollGroupID, object 
             pollID, object boardId, 
             bool removeCompletely, 
             bool removeEverywhere)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("poll_remove"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("poll_remove"))
 			{
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_POLLGROUPID", FbDbType.Integer)).Value = pollGroupID;
@@ -5004,7 +5024,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_REMOVECOMPLETELY",FbDbType.Boolean)).Value = removeCompletely;
                 cmd.Parameters.Add(new FbParameter("@I_REMOVEEVERYWHERE",FbDbType.Boolean)).Value =removeEverywhere;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -5022,9 +5042,9 @@ string connectionString,
     /// </param>
     /// <returns>
     /// </returns>
-        public static IEnumerable<TypedPollGroup> PollGroupList(string connectionString, int userID, int? forumId, int boardId)
+        public static IEnumerable<TypedPollGroup> PollGroupList( int userID, int? forumId, int boardId)
     {
-      using (FbCommand cmd = FbDbAccess.GetCommand("POLLGROUP_LIST"))
+      using (FbCommand cmd = MsSqlDbAccess.GetCommand("POLLGROUP_LIST"))
       {
         cmd.CommandType = CommandType.StoredProcedure;
 
@@ -5032,7 +5052,7 @@ string connectionString,
         cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer)).Value = forumId;
         cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId;
 
-        return FbDbAccess.Current.GetData(cmd, connectionString).AsEnumerable().Select(r => new TypedPollGroup(r));
+        return MsSqlDbAccess.Current.GetData(cmd).AsEnumerable().Select(r => new TypedPollGroup(r));
       }
     }
 
@@ -5055,7 +5075,7 @@ string connectionString,
       /// <param name="forumId"></param>
       /// <param name="removeEverywhere"></param>
         public static void pollgroup_remove(
-          string connectionString,
+          
           [NotNull]object pollGroupID, 
           object topicId, 
           object forumId, 
@@ -5064,7 +5084,7 @@ string connectionString,
           bool removeCompletely, 
           bool removeEverywhere)
     {
-        using (FbCommand cmd = FbDbAccess.GetCommand("POLLGROUP_REMOVE"))
+        using (FbCommand cmd = MsSqlDbAccess.GetCommand("POLLGROUP_REMOVE"))
         {
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add(new FbParameter("@I_POLLGROUPID", FbDbType.Integer)).Value =  pollGroupID;
@@ -5074,29 +5094,29 @@ string connectionString,
             cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value =  boardId;
             cmd.Parameters.Add(new FbParameter("@I_REMOVECOMPLETELY", FbDbType.Boolean)).Value =  removeCompletely;
             cmd.Parameters.Add(new FbParameter("@I_REMOVEEVERYWHERE", FbDbType.Boolean)).Value =  removeEverywhere;
-            FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+            MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
         }
     }
 
-        static public void choice_delete(string connectionString,
+        static public void choice_delete(
           [NotNull] object choiceID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("CHOICE_DELETE"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("CHOICE_DELETE"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_CHOICEID", FbDbType.Integer)).Value = choiceID;
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void choice_update(string connectionString,
+        static public void choice_update(
             [NotNull] object choiceID, 
             [NotNull] object choice, 
             [NotNull] object path, 
             [NotNull] object mime)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("CHOICE_UPDATE"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("CHOICE_UPDATE"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -5105,16 +5125,16 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_OBJECTPATH", FbDbType.VarChar)).Value = path;
                 cmd.Parameters.Add(new FbParameter("@I_MIMETYPE", FbDbType.VarChar)).Value = mime;
     
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void choice_add(string connectionString,
+        static public void choice_add(
             [NotNull] object pollId, 
             [NotNull] object choice, 
             [NotNull] object path, 
             [NotNull] object mime)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("choice_add"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("choice_add"))
 			{
 
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -5124,18 +5144,18 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_OBJECTPATH", FbDbType.VarChar)).Value = path;
                 cmd.Parameters.Add(new FbParameter("@I_MIMETYPE", FbDbType.VarChar)).Value = mime;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString); 
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd); 
 			 }            
 		}
 
 		#endregion
 	   
 		#region yaf_Rank
-        static public DataTable rank_list(string connectionString,
+        static public DataTable rank_list(
             object boardID, 
             object rankID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("rank_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("rank_list"))
 			{
 
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -5143,10 +5163,10 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
                 cmd.Parameters.Add(new FbParameter("@I_RANKID", FbDbType.Integer)).Value = rankID ?? DBNull.Value;
 			   
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void rank_save(string connectionString,
+        static public void rank_save(
             object rankID, 
             object boardID, 
             object name, 
@@ -5164,7 +5184,7 @@ string connectionString,
 			object usrAlbums,
 			object usrAlbumImages)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("rank_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("rank_save"))
 			{
 			    if (minPosts.ToString() == "") { minPosts = 0; }
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -5186,19 +5206,19 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_USRALBUMS", FbDbType.Integer)).Value = usrAlbums;
 				cmd.Parameters.Add(new FbParameter("@I_USRALBUMIMAGES", FbDbType.Integer)).Value = usrAlbumImages;
 		
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void rank_delete(string connectionString,
+        static public void rank_delete(
             [NotNull]object rankID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("rank_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("rank_delete"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_RANKID", FbDbType.Integer)).Value = rankID;
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		#endregion
@@ -5207,9 +5227,9 @@ string connectionString,
         [NotNull]
 
 
-        static public DataTable smiley_list(string connectionString, object boardID, object smileyID)
+        static public DataTable smiley_list( object boardID, object smileyID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("smiley_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("smiley_list"))
 			{
 				if (smileyID == null) { smileyID = DBNull.Value; }
 
@@ -5218,7 +5238,7 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
 				cmd.Parameters.Add(new FbParameter("@I_SMILEYID", FbDbType.Integer)).Value = smileyID;
 			  
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
         
@@ -5233,9 +5253,9 @@ string connectionString,
     /// </param>
     /// <returns>
     /// </returns>
-        public static IEnumerable<TypedSmileyList> SmileyList(string connectionString, int boardID, int? smileyID)
+        public static IEnumerable<TypedSmileyList> SmileyList( int boardID, int? smileyID)
     {
-      using (FbCommand cmd = FbDbAccess.GetCommand("smiley_list"))
+      using (FbCommand cmd = MsSqlDbAccess.GetCommand("smiley_list"))
       {
        // if (smileyID == null) { smileyID = DBNull.Value; }
 
@@ -5244,34 +5264,34 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
 				cmd.Parameters.Add(new FbParameter("@I_SMILEYID", FbDbType.Integer)).Value = smileyID;
 
-        return FbDbAccess.Current.GetData(cmd, connectionString).AsEnumerable().Select(r => new TypedSmileyList(r));
+        return MsSqlDbAccess.Current.GetData(cmd).AsEnumerable().Select(r => new TypedSmileyList(r));
       }
     }
-        static public DataTable smiley_listunique(string connectionString, object boardID)
+        static public DataTable smiley_listunique( object boardID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("smiley_listunique"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("smiley_listunique"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
 			   
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void smiley_delete(string connectionString, object smileyID)
+        static public void smiley_delete( object smileyID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("smiley_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("smiley_delete"))
 			{
 				if (smileyID == null) { smileyID = DBNull.Value; }
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_SMILEYID", FbDbType.Integer)).Value = smileyID;
 								
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
         static public void smiley_save(
-            string connectionString,
+            
             object smileyID, 
             object boardID, 
             object code, 
@@ -5280,7 +5300,7 @@ string connectionString,
             object sortOrder, 
             object replace)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("smiley_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("smiley_save"))
 			{
 
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -5293,15 +5313,15 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_SORTORDER", FbDbType.SmallInt)).Value = sortOrder;
                 cmd.Parameters.Add(new FbParameter("@I_REPLACE", FbDbType.SmallInt)).Value = replace ?? 0;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void smiley_resort(string connectionString,
+        static public void smiley_resort(
             object boardID, 
             object smileyID, 
             int move)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("smiley_resort"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("smiley_resort"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -5309,17 +5329,17 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_SMILEYID", FbDbType.Integer)).Value = smileyID;
                 cmd.Parameters.Add(new FbParameter("@I_MOVE", FbDbType.Integer)).Value = move;
 			
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		#endregion
 	   
 		#region yaf_BBCode
-        static public DataTable bbcode_list(string connectionString,
+        static public DataTable bbcode_list(
             [NotNull] object boardID, 
             [NotNull] object bbcodeID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("bbcode_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("bbcode_list"))
 			{
 				if (bbcodeID == null) { bbcodeID = DBNull.Value; }
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -5327,23 +5347,23 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
                 cmd.Parameters.Add(new FbParameter("@I_BBCODEID", FbDbType.Integer)).Value = bbcodeID;
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void bbcode_delete(string connectionString,
+        static public void bbcode_delete(
             [NotNull] object bbcodeID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("bbcode_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("bbcode_delete"))
 			{
 				if (bbcodeID == null) { bbcodeID = DBNull.Value; }
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_BBCODEID", FbDbType.Integer)).Value = bbcodeID;
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public void bbcode_save(string connectionString,
+        static public void bbcode_save(
             [NotNull] object bbcodeID, 
             [NotNull] object boardID, 
             [NotNull] object name, 
@@ -5359,7 +5379,7 @@ string connectionString,
             [NotNull] object moduleclass, 
             [NotNull] object execorder)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("bbcode_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("bbcode_save"))
 			{
 				//My input defaults
 				if (bbcodeID == null) { bbcodeID = DBNull.Value; }
@@ -5393,7 +5413,7 @@ string connectionString,
 				
 
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		#endregion
@@ -5404,48 +5424,49 @@ string connectionString,
 		/// </summary>
 		/// <param name="Name">Use to specify return of specific entry only. Setting this to null returns all entries.</param>
 		/// <returns>DataTable filled will registry entries</returns>
-        static public DataTable registry_list(string connectionString,
+        static public DataTable registry_list(
             object name, 
             object boardID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("registry_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("registry_list"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_NAME", FbDbType.VarChar)).Value = name ?? DBNull.Value;
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID ?? DBNull.Value;
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
+        /// <summary>
+        /// Retrieves all the entries in the board settings registry
+        /// </summary>
+        /// <returns>DataTable filled will all registry entries</returns>
+        static public DataTable registry_list()
+        {
+            return registry_list(null, null);
+        }
 		/// <summary>
 		/// Retrieves entries in the board settings registry
 		/// </summary>
 		/// <param name="Name">Use to specify return of specific entry only. Setting this to null returns all entries.</param>
 		/// <returns>DataTable filled will registry entries</returns>
-        static public DataTable registry_list(string connectionString,
+        static public DataTable registry_list(
             [NotNull]object name)
 		{
-            return registry_list(connectionString, name, null);
+            return registry_list( name, null);
 		}
-		/// <summary>
-		/// Retrieves all the entries in the board settings registry
-		/// </summary>
-		/// <returns>DataTable filled will all registry entries</returns>
-		static public DataTable registry_list(string connectionString)
-		{
-			return registry_list(connectionString,null, null);
-		}
+
 		/// <summary>
 		/// Saves a single registry entry pair to the database.
 		/// </summary>
 		/// <param name="Name">Unique name associated with this entry</param>
 		/// <param name="Value">Value associated with this entry which can be null</param>
-        static public void registry_save(string connectionString,
+        static public void registry_save(
             [NotNull]object name,
             [NotNull]object value)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("registry_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("registry_save"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -5453,7 +5474,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_VALUE", FbDbType.VarChar)).Value = value;
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = DBNull.Value;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		/// <summary>
@@ -5462,12 +5483,12 @@ string connectionString,
 		/// <param name="Name">Unique name associated with this entry</param>
 		/// <param name="Value">Value associated with this entry which can be null</param>
 		/// <param name="BoardID">The BoardID for this entry</param>
-        static public void registry_save(string connectionString,
+        static public void registry_save(
             [NotNull]object name,
             [NotNull]object value,
             [NotNull]object boardID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("registry_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("registry_save"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -5475,7 +5496,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_VALUE", FbDbType.VarChar)).Value = value;
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		#endregion
@@ -5485,53 +5506,53 @@ string connectionString,
 		/// Not in use anymore. Only required for old database versions.
 		/// </summary>
 		/// <returns></returns>
-        static public DataTable system_list(string connectionString)
+        static public DataTable system_list()
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("system_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("system_list"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 		#endregion
 	   
 		#region yaf_Topic
 
-        public static void topic_updatetopic(string connectionString,
+        public static void topic_updatetopic(
               int topicId, 
               string topic)
     {
-      using (FbCommand cmd = FbDbAccess.GetCommand("topic_updatetopic"))
+      using (FbCommand cmd = MsSqlDbAccess.GetCommand("topic_updatetopic"))
       {
         cmd.CommandType = CommandType.StoredProcedure;
         cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicId;
         cmd.Parameters.Add(new FbParameter("@I_TOPIC", FbDbType.VarChar)).Value = topic;
-        FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+        MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
       }      
     }
 
 
-        static public int topic_prune(string connectionString,object forumID, object days)
+        static public int topic_prune(object forumID, object days)
 		{
 			int boardID = 0;
-			using (FbCommand cmd = FbDbAccess.GetCommand(String.Format(@"SELECT c.BOARDID FROM {0} f INNER JOIN {1} c ON f.CATEGORYID=c.CATEGORYID  WHERE FORUMID={2};", FbDbAccess.GetObjectName("Forum"), FbDbAccess.GetObjectName("Category"), forumID), true))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand(String.Format(@"SELECT c.BOARDID FROM {0} f INNER JOIN {1} c ON f.CATEGORYID=c.CATEGORYID  WHERE FORUMID={2};", MsSqlDbAccess.GetObjectName("Forum"), MsSqlDbAccess.GetObjectName("Category"), forumID), true))
 			{
-				boardID = Convert.ToInt32(FbDbAccess.Current.ExecuteScalar(cmd, connectionString));
+				boardID = Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
 			 
 			}
 
-			return topic_prune(connectionString,boardID, forumID, days, 1);
+			return topic_prune(boardID, forumID, days, 1);
 				
 		}
 
         static public int topic_prune(
-            string connectionString,
+            
             object boardId, 
             object forumId, 
             object days, 
             object permDelete)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("topic_prune"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("topic_prune"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -5540,12 +5561,12 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_DAYS", FbDbType.Integer)).Value = days;
                 cmd.Parameters.Add(new FbParameter("@I_PERMDELETE", FbDbType.Boolean)).Value = permDelete;
 
-				return (int)FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+				return (int)MsSqlDbAccess.Current.ExecuteScalar(cmd);
 			}
 		}
 
         static public DataTable topic_list(
-            string connectionString,
+            
             object forumID, 
             [NotNull] object userId, 
             [NotNull] object sinceDate, 
@@ -5557,7 +5578,7 @@ string connectionString,
             [CanBeNull]bool findLastRead)
 		{    
 
-		   using (FbCommand cmd = FbDbAccess.GetCommand("TOPIC_LIST"))
+		   using (FbCommand cmd = MsSqlDbAccess.GetCommand("TOPIC_LIST"))
 			{
 				
 				if (userId == null) { userId = DBNull.Value; }
@@ -5575,13 +5596,13 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_SHOWMOVED", FbDbType.Boolean)).Value = showMoved;
                 cmd.Parameters.Add(new FbParameter("@I_FINDLASTUNREAD", FbDbType.Boolean)).Value = findLastRead; 
 
-				return FbDbAccess.Current.GetData(cmd,true,connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd,true);
 			} 
 		}
 
-        public static DataTable announcements_list(string connectionString, [NotNull] object forumID, [NotNull] object userId, [NotNull] object sinceDate, [NotNull] object toDate, [NotNull] object pageIndex, [NotNull] object pageSize, [NotNull] object useStyledNicks, [NotNull] object showMoved, [CanBeNull]bool findLastRead)
+        public static DataTable announcements_list( [NotNull] object forumID, [NotNull] object userId, [NotNull] object sinceDate, [NotNull] object toDate, [NotNull] object pageIndex, [NotNull] object pageSize, [NotNull] object useStyledNicks, [NotNull] object showMoved, [CanBeNull]bool findLastRead)
         {
-            using (var cmd = FbDbAccess.GetCommand("announcements_list"))
+            using (var cmd = MsSqlDbAccess.GetCommand("announcements_list"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer)).Value = forumID;
@@ -5593,7 +5614,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Boolean)).Value = useStyledNicks;
                 cmd.Parameters.Add(new FbParameter("@I_SHOWMOVED", FbDbType.Boolean)).Value = showMoved;
                 cmd.Parameters.Add(new FbParameter("@I_FINDLASTUNREAD", FbDbType.Boolean)).Value = findLastRead; 
-                return FbDbAccess.Current.GetData(cmd, true, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd, true);
             }
         }
 
@@ -5603,11 +5624,11 @@ string connectionString,
 		/// <param name="startId"></param>
 		/// <param name="limit"></param>
 		/// <returns></returns>
-        static public DataTable topic_simplelist(string connectionString,
+        static public DataTable topic_simplelist(
             int startId, 
             int limit)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("topic_simplelist"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("topic_simplelist"))
 			{
 				if (startId <= 0) { startId = 0; }
 				if (limit <= 0) { limit = 500; }
@@ -5617,29 +5638,31 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_STARTID", FbDbType.Integer)).Value = startId;
                 cmd.Parameters.Add(new FbParameter("@I_LIMIT", FbDbType.Integer)).Value = limit;
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void topic_move(string connectionString,object topicId, object forumId, object showMoved)
+        static public void topic_move(object topicId, object forumId, object showMoved, object linkDays)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("topic_move"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("topic_move"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicId;
                 cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer)).Value = forumId;
                 cmd.Parameters.Add(new FbParameter("@I_SHOWMOVED", FbDbType.Boolean)).Value = showMoved;
-			 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+                cmd.Parameters.Add(new FbParameter("@I_LINKDAYS", FbDbType.Integer)).Value = linkDays;
+                cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
+
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-        static public DataTable topic_announcements(string connectionString,
+        static public DataTable topic_announcements(
             object boardId, 
             object numOfPostsToRetrieve,
             object pageUserId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("topic_announcements"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("topic_announcements"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -5647,7 +5670,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_NUMPOSTS", FbDbType.Integer)).Value = numOfPostsToRetrieve;
                 cmd.Parameters.Add(new FbParameter("@I_PAGEUSERID", FbDbType.Integer)).Value = pageUserId;
 			
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 	/// <summary>
@@ -5667,28 +5690,28 @@ string connectionString,
 	/// </param>
 	/// <returns>
 	/// </returns>
-        static public DataTable topic_latest(string connectionString,
-            object boardId, 
+        static public DataTable topic_latest(
+            object boardID, 
             object numOfPostsToRetrieve, 
-            object userId, 
+            object pageUserId, 
             bool useStyledNicks, 
             bool showNoCountPosts, 
             object findLastRead )
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("TOPIC_LATEST"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("TOPIC_LATEST"))
 			{
 				int style = 0;
 				if (useStyledNicks) style = 1;
 				cmd.CommandType = CommandType.StoredProcedure;
 
-				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId;
+				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
 				cmd.Parameters.Add(new FbParameter("@I_NUMPOSTS", FbDbType.Integer)).Value = numOfPostsToRetrieve;
-				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
+                cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = pageUserId;
 				cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Boolean)).Value = style;
                 cmd.Parameters.Add(new FbParameter("@I_SHOWNOCOUNTPOSTS", FbDbType.Boolean)).Value = showNoCountPosts;
                 cmd.Parameters.Add(new FbParameter("@I_FINDLASTREAD", FbDbType.Boolean)).Value = findLastRead;
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
         /// <summary>
@@ -5708,14 +5731,14 @@ string connectionString,
     /// </param>
     /// <returns>
     /// </returns>
-        public static DataTable rss_topic_latest(string connectionString,
+        public static DataTable rss_topic_latest(
         object boardID, 
         object numOfPostsToRetrieve, 
         object userID, 
         bool useStyledNicks, 
         bool showNoCountPosts)
     {
-        using (FbCommand cmd = FbDbAccess.GetCommand("rss_topic_latest"))
+        using (FbCommand cmd = MsSqlDbAccess.GetCommand("rss_topic_latest"))
         {
            int style = 0;
 				if (useStyledNicks) style = 1;
@@ -5726,11 +5749,10 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
 				cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Boolean)).Value = style;
                 cmd.Parameters.Add(new FbParameter("@I_SHOWNOCOUNTPOSTS", FbDbType.Boolean)).Value = showNoCountPosts;            
-            return FbDbAccess.Current.GetData(cmd, connectionString);
+            return MsSqlDbAccess.Current.GetData(cmd);
         }
     }
         public static DataTable topic_active(
-           [NotNull] string connectionString,
            [NotNull] object boardId,
            [CanBeNull] object categoryId,
            [NotNull] object pageUserId,
@@ -5741,7 +5763,7 @@ string connectionString,
            [NotNull] object useStyledNicks,
            [CanBeNull]bool findLastRead)
         {
-            using (var cmd = FbDbAccess.GetCommand("topic_active"))
+            using (var cmd = MsSqlDbAccess.GetCommand("topic_active"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId ?? DBNull.Value;
@@ -5754,13 +5776,13 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Integer)).Value = useStyledNicks;
                 cmd.Parameters.Add(new FbParameter("@I_FINDLASTREAD", FbDbType.Integer)).Value = findLastRead;
 
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
 
-        static private void topic_deleteAttachments(string connectionString,object topicId)
+        static private void topic_deleteAttachments(object topicId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("topic_listmessages"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("topic_listmessages"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -5769,25 +5791,25 @@ string connectionString,
 
 			 
 
-				using (DataTable dt = FbDbAccess.Current.GetData(cmd, connectionString))
+				using (DataTable dt = MsSqlDbAccess.Current.GetData(cmd))
 				{
 					foreach (DataRow row in dt.Rows)
 					{
-                        message_deleteRecursively(connectionString, row["MessageID"], true, "", 0, true, false);
+                        message_deleteRecursively( row["MessageID"], true, "", 0, true, false);
 					}
 				}
 			}
 		}
 
-        static public void topic_delete(string connectionString,object topicId)
+        static public void topic_delete(object topicId)
 		{
-			topic_delete(connectionString,topicId, false);
+			topic_delete(topicId, false);
 		}
-		static public void topic_delete(string connectionString,object topicId, object eraseTopic)
+		static public void topic_delete(object topicId, object eraseTopic)
 		{          
-			topic_deleteAttachments(connectionString,topicId);
+			topic_deleteAttachments(topicId);
 		  
-			using (FbCommand cmd = FbDbAccess.GetCommand("topic_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("topic_delete"))
 			{
 
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -5796,41 +5818,41 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_ERASETOPIC", FbDbType.Boolean)).Value = eraseTopic ?? 0;
                 cmd.Parameters.Add(new FbParameter("@I_UPDATELASTPOST", FbDbType.Boolean)).Value = true;
 			   
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public DataTable topic_findprev(string connectionString,object topicId)
+        static public DataTable topic_findprev(object topicId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("TOPIC_FINDPREV"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("TOPIC_FINDPREV"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicId;
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public DataTable topic_findnext(string connectionString,object topicId)
+        static public DataTable topic_findnext(object topicId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("TOPIC_FINDNEXT"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("TOPIC_FINDNEXT"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicId;
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static public void topic_lock(string connectionString,object topicId, object locked)
+        static public void topic_lock(object topicId, object locked)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("topic_lock"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("topic_lock"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicId;
 				cmd.Parameters.Add(new FbParameter("@I_LOCKED", FbDbType.Boolean)).Value = locked;      
 			   
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
         static public long topic_save(
-            string connectionString,
+            
             [NotNull] object forumId, 
             [NotNull] object subject,
             [NotNull] object status,
@@ -5846,7 +5868,7 @@ string connectionString,
             [NotNull] object flags,
             ref long messageId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("topic_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("topic_save"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -5865,16 +5887,16 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_FLAGS", FbDbType.Integer)).Value = flags;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;                
 
-				DataTable dt = FbDbAccess.Current.GetData(cmd, connectionString);
+				DataTable dt = MsSqlDbAccess.Current.GetData(cmd);
 				messageId = long.Parse(dt.Rows[0]["MessageID"].ToString());
 				return long.Parse(dt.Rows[0]["TopicID"].ToString());
 			}
 		}
         static public DataRow topic_info(
-            string connectionString,
+            
             object topicId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("topic_info"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("topic_info"))
 			{
 
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -5882,7 +5904,7 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicId ?? DBNull.Value;
 				cmd.Parameters.Add(new FbParameter("@I_SHOWDELETED", FbDbType.Boolean)).Value = false;
 				
-				using (DataTable dt = FbDbAccess.Current.GetData(cmd, connectionString))
+				using (DataTable dt = MsSqlDbAccess.Current.GetData(cmd))
 				{
 					if (dt.Rows.Count > 0)
 						return dt.Rows[0];
@@ -5897,15 +5919,15 @@ string connectionString,
     /// <param name="topicId">
     /// The topic Id.
     /// </param>
-        public static int TopicFavoriteCount(string connectionString,int topicId)
+        public static int TopicFavoriteCount(int topicId)
     {
-      using (FbCommand cmd = FbDbAccess.GetCommand("topic_favorite_count"))
+      using (FbCommand cmd = MsSqlDbAccess.GetCommand("topic_favorite_count"))
       {
         cmd.CommandType = CommandType.StoredProcedure;
 
         cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicId;
 
-        return FbDbAccess.Current.GetData(cmd, connectionString).GetFirstRowColumnAsValue("FavoriteCount", 0);
+        return MsSqlDbAccess.Current.GetData(cmd).GetFirstRowColumnAsValue("FavoriteCount", 0);
       }
     }
 
@@ -5946,7 +5968,6 @@ string connectionString,
 	    /// Returns the List with the Topics Unanswered
 	    /// </returns>
 	    public static DataTable topic_unanswered(
-            [NotNull] string connectionString, 
             [NotNull] object boardId, 
             [CanBeNull] object categoryId, 
             [NotNull] object pageUserId, 
@@ -5957,7 +5978,7 @@ string connectionString,
             [NotNull] object useStyledNicks, 
             [CanBeNull]bool findLastRead)
         {
-            using (var cmd = FbDbAccess.GetCommand("topic_unanswered"))
+            using (var cmd = MsSqlDbAccess.GetCommand("topic_unanswered"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId ?? DBNull.Value;
@@ -5970,12 +5991,11 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Integer)).Value = useStyledNicks;
                 cmd.Parameters.Add(new FbParameter("@I_FINDLASTREAD", FbDbType.Integer)).Value = findLastRead;
 
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
 
         public static DataTable topic_unread(
-    [NotNull] string connectionString,
     [NotNull] object boardId,
     [CanBeNull] object categoryId,
     [NotNull] object pageUserId,
@@ -5986,7 +6006,7 @@ string connectionString,
     [NotNull] object useStyledNicks,
     [CanBeNull]bool findLastRead)
         {
-            using (var cmd = FbDbAccess.GetCommand("topic_unread"))
+            using (var cmd = MsSqlDbAccess.GetCommand("topic_unread"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId ?? DBNull.Value;
@@ -5999,7 +6019,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Integer)).Value = useStyledNicks;
                 cmd.Parameters.Add(new FbParameter("@I_FINDLASTREAD", FbDbType.Integer)).Value = findLastRead;
 
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
 
@@ -6028,7 +6048,7 @@ string connectionString,
         /// Returns the List with the User Topics
         /// </returns>
         public static DataTable Topics_ByUser(
-            [NotNull] string connectionString,
+          
             [NotNull] object boardId,
             [CanBeNull] object categoryId,
             [NotNull] object pageUserId,
@@ -6039,7 +6059,7 @@ string connectionString,
             [NotNull] object useStyledNicks,
             [CanBeNull]bool findLastRead)
         {
-            using (var cmd = FbDbAccess.GetCommand("topics_byuser"))
+            using (var cmd = MsSqlDbAccess.GetCommand("topics_byuser"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId ?? DBNull.Value;
@@ -6052,22 +6072,22 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Integer)).Value = useStyledNicks;
                 cmd.Parameters.Add(new FbParameter("@I_FINDLASTREAD", FbDbType.Integer)).Value = findLastRead;
 
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
         /// <summary>
         /// Delete a topic status.
         /// </summary>
         /// <param name="topicStatusID">The topic status ID.</param>
-        public static void TopicStatus_Delete(string connectionString, [NotNull] object topicStatusID)
+        public static void TopicStatus_Delete( [NotNull] object topicStatusID)
         {
             try
             {
-                using (var cmd = FbDbAccess.GetCommand("TopicStatus_Delete"))
+                using (var cmd = MsSqlDbAccess.GetCommand("TopicStatus_Delete"))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add("i_TopicStatusID", FbDbType.Integer).Value = topicStatusID;
-                    FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+                    MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
                 }
             }
             catch
@@ -6081,13 +6101,13 @@ string connectionString,
         /// </summary>
         /// <param name="topicStatusID">The topic status ID.</param>
         /// <returns></returns>
-        public static DataTable TopicStatus_Edit(string connectionString, [NotNull] object topicStatusID)
+        public static DataTable TopicStatus_Edit( [NotNull] object topicStatusID)
         {
-            using (var cmd = FbDbAccess.GetCommand("TopicStatus_Edit"))
+            using (var cmd = MsSqlDbAccess.GetCommand("TopicStatus_Edit"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("i_TopicStatusID", FbDbType.Integer).Value = topicStatusID;
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
 
@@ -6096,13 +6116,13 @@ string connectionString,
         /// </summary>
         /// <param name="boardID">The board ID.</param>
         /// <returns></returns>
-        public static DataTable TopicStatus_List(string connectionString, [NotNull] object boardID)
+        public static DataTable TopicStatus_List( [NotNull] object boardID)
         {
-            using (var cmd = FbDbAccess.GetCommand("TopicStatus_List"))
+            using (var cmd = MsSqlDbAccess.GetCommand("TopicStatus_List"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("i_BoardID", FbDbType.Integer).Value = boardID;
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
 
@@ -6113,11 +6133,11 @@ string connectionString,
         /// <param name="boardID">The board ID.</param>
         /// <param name="topicStatusName">Name of the topic status.</param>
         /// <param name="defaultDescription">The default description.</param>
-        public static void TopicStatus_Save(string connectionString, [NotNull] object topicStatusID, [NotNull] object boardID, [NotNull] object topicStatusName, [NotNull] object defaultDescription)
+        public static void TopicStatus_Save( [NotNull] object topicStatusID, [NotNull] object boardID, [NotNull] object topicStatusName, [NotNull] object defaultDescription)
         {
             try
             {
-                using (var cmd = FbDbAccess.GetCommand("TopicStatus_Save"))
+                using (var cmd = MsSqlDbAccess.GetCommand("TopicStatus_Save"))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
@@ -6126,7 +6146,7 @@ string connectionString,
                     cmd.Parameters.Add("i_TopicStatusName", FbDbType.VarChar).Value = topicStatusName;
                     cmd.Parameters.Add("i_DefaultDescription", FbDbType.VarChar).Value = defaultDescription;
 
-                    FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+                    MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
                 }
             }
             catch
@@ -6135,20 +6155,20 @@ string connectionString,
             }
         }
         public static int topic_findduplicate(
-            string connectionString,
+            
             object topicName)
         {
-            using (FbCommand cmd = FbDbAccess.GetCommand("topic_findduplicate"))
+            using (FbCommand cmd = MsSqlDbAccess.GetCommand("topic_findduplicate"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_TOPICNAME", FbDbType.VarChar)).Value = topicName;
-                return (int)FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+                return (int)MsSqlDbAccess.Current.ExecuteScalar(cmd);
             }
         }
 
 
         public static DataTable topic_favorite_details(
-          [NotNull] string connectionString,
+          
           [NotNull] object boardId,
           [CanBeNull] object categoryId,
           [NotNull] object pageUserId,
@@ -6159,7 +6179,7 @@ string connectionString,
           [NotNull] object useStyledNicks,
           [CanBeNull]bool findLastRead)
         {
-            using (var cmd = FbDbAccess.GetCommand("TOPIC_FAVORITE_DETAILS"))
+            using (var cmd = MsSqlDbAccess.GetCommand("TOPIC_FAVORITE_DETAILS"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId ?? DBNull.Value;
@@ -6172,7 +6192,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Integer)).Value = useStyledNicks;
                 cmd.Parameters.Add(new FbParameter("@I_FINDLASTREAD", FbDbType.Integer)).Value = findLastRead;
 
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
 
@@ -6184,13 +6204,13 @@ string connectionString,
 		/// </param>
 		/// <returns>
 		/// </returns>
-        public static DataTable topic_favorite_list(string connectionString, object userID)
+        public static DataTable topic_favorite_list( object userID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("TOPIC_FAVORITE_LIST"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("TOPIC_FAVORITE_LIST"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -6203,14 +6223,14 @@ string connectionString,
 		/// <param name="topicID">
 		/// The topic id.
 		/// </param>
-        public static void topic_favorite_remove(string connectionString,object userID, object topicID)
+        public static void topic_favorite_remove(object userID, object topicID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("TOPIC_FAVORITE_REMOVE"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("TOPIC_FAVORITE_REMOVE"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value =userID;
                 cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicID;
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -6223,16 +6243,16 @@ string connectionString,
 		/// <param name="topicID">
 		/// The topic id.
 		/// </param>
-        public static void topic_favorite_add(string connectionString,
+        public static void topic_favorite_add(
             object userID, 
             object topicID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("TOPIC_FAVORITE_ADD"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("TOPIC_FAVORITE_ADD"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value =userID;
                 cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicID;
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -6244,11 +6264,11 @@ string connectionString,
 		/// Gets a list of replace words
 		/// </summary>
 		/// <returns>DataTable with replace words</returns>
-        static public DataTable replace_words_list(string connectionString,
+        static public DataTable replace_words_list(
             [NotNull]object boardId,
             [NotNull]object id)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("replace_words_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("replace_words_list"))
 			{
 
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -6256,7 +6276,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId;
                 cmd.Parameters.Add(new FbParameter("@I_ID", FbDbType.Integer)).Value = id ?? DBNull.Value;
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 		/// <summary>
@@ -6265,13 +6285,13 @@ string connectionString,
 		/// <param name="id">ID of bad/good word</param>
 		/// <param name="badword">bad word</param>
 		/// <param name="goodword">good word</param>
-        static public void replace_words_save(string connectionString,
+        static public void replace_words_save(
             object boardId, 
             object id, 
             object badword, 
             object goodword)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("replace_words_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("replace_words_save"))
 			{
 			
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -6281,74 +6301,74 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@i_BADWORD", FbDbType.VarChar)).Value = badword;
                 cmd.Parameters.Add(new FbParameter("@i_GOODWORD", FbDbType.VarChar)).Value = goodword;
 			 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		/// <summary>
 		/// Deletes a bad/good word
 		/// </summary>
 		/// <param name="ID">ID of bad/good word to delete</param>
-        static public void replace_words_delete(string connectionString,
+        static public void replace_words_delete(
             object id)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("replace_words_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("replace_words_delete"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_ID", FbDbType.Integer)).Value = id;
 			   
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		#endregion
 
 		#region IgnoreUser
 
-        static public void user_addignoreduser(string connectionString,object userId, object ignoredUserId)
+        static public void user_addignoreduser(object userId, object ignoredUserId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("USER_ADDIGNOREDUSER"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("USER_ADDIGNOREDUSER"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
                 cmd.Parameters.Add(new FbParameter("@I_IGNOREDUSERID", FbDbType.Integer)).Value = ignoredUserId;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-        static public void user_removeignoreduser(string connectionString,object userId, object ignoredUserId)
+        static public void user_removeignoreduser(object userId, object ignoredUserId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("USER_REMOVEIGNOREDUSER"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("USER_REMOVEIGNOREDUSER"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value =  userId;
                 cmd.Parameters.Add(new FbParameter("@I_IGNOREDUSERID", FbDbType.Integer)).Value = ignoredUserId;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-        static public bool user_isuserignored(string connectionString,object userId, object ignoredUserId)
+        static public bool user_isuserignored(object userId, object ignoredUserId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("USER_ISUSERIGNORED"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("USER_ISUSERIGNORED"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
 				cmd.Parameters.Add(new FbParameter("@I_IGNOREDUSERID", FbDbType.Integer)).Value = ignoredUserId;
 
-				return Convert.ToBoolean(FbDbAccess.Current.ExecuteScalar(cmd, connectionString));
+				return Convert.ToBoolean(MsSqlDbAccess.Current.ExecuteScalar(cmd));
 			}
 		}
-        static public DataTable user_ignoredlist(string connectionString,object userId)
+        static public DataTable user_ignoredlist(object userId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("USER_IGNOREDLIST"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("USER_IGNOREDLIST"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = userId;
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -6361,7 +6381,7 @@ string connectionString,
 	/// <param name="userID">The UserID. It is always should have a positive > 0 value.</param>
 	/// <param name="styledNicks">If styles should be returned.</param>
 	/// <returns>A DataRow, it should never return a null value.</returns>
-        public static DataRow user_lazydata(string connectionString,
+        public static DataRow user_lazydata(
         object userID, 
         object boardID,
         bool showPendingMails, 
@@ -6375,7 +6395,7 @@ string connectionString,
 	  {
 		try
 		{
-		using (FbCommand cmd = FbDbAccess.GetCommand("user_lazydata"))
+		using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_lazydata"))
 		{
 			cmd.CommandType = CommandType.StoredProcedure;
 			cmd.Parameters.Add("@I_USERID", FbDbType.Integer).Value = userID;
@@ -6385,7 +6405,7 @@ string connectionString,
 			cmd.Parameters.Add("@I_SHOWUNREADPMS", FbDbType.Boolean).Value = showUnreadPMs;
 			cmd.Parameters.Add("@I_SHOWUSERALBUMS", FbDbType.Boolean).Value = showUserAlbums;
 			cmd.Parameters.Add("@I_SHOWUSERSTYLE", FbDbType.Boolean).Value = styledNicks;           
-			return FbDbAccess.Current.GetData(cmd, connectionString).Rows[0];
+			return MsSqlDbAccess.Current.GetData(cmd).Rows[0];
 		}
 		}
 		catch (FbException x)
@@ -6406,10 +6426,10 @@ string connectionString,
 	}
        
     [NotNull]
-        public static IEnumerable<TypedUserList> UserList(string connectionString,
+        public static IEnumerable<TypedUserList> UserList(
       int boardID, int? userID, bool? approved, int? groupID, int? rankID, bool? useStyledNicks)
     {
-        using (var cmd = FbDbAccess.GetCommand("user_list"))
+        using (var cmd = MsSqlDbAccess.GetCommand("user_list"))
         {
             	
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -6423,7 +6443,7 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 							
 
-            return FbDbAccess.Current.GetData(cmd, connectionString).AsEnumerable().Select(x => new TypedUserList(x));
+            return MsSqlDbAccess.Current.GetData(cmd).AsEnumerable().Select(x => new TypedUserList(x));
         }
     }
 		/// <summary>
@@ -6440,9 +6460,9 @@ string connectionString,
 		/// </param>    
 		/// <returns>
 		/// </returns>
-    public static DataTable user_list(string connectionString,object boardID, object userID, object approved)
+    public static DataTable user_list(object boardID, object userID, object approved)
 		{
-            return user_list(connectionString,boardID, userID, approved, null, null, false);
+            return user_list(boardID, userID, approved, null, null, false);
 		}
 
 		/// <summary>
@@ -6462,9 +6482,9 @@ string connectionString,
 		/// </param> 
 		/// <returns>
 		/// </returns>
-    public static DataTable user_list(string connectionString,object boardID, object userID, object approved, object useStyledNicks)
+    public static DataTable user_list(object boardID, object userID, object approved, object useStyledNicks)
 		{
-			return user_list(connectionString,boardID, userID, approved, null, null, useStyledNicks);
+			return user_list(boardID, userID, approved, null, null, useStyledNicks);
 		}
 
 		/// <summary>
@@ -6488,9 +6508,9 @@ string connectionString,
 		/// <returns>
 		/// </returns>
 
-    public static DataTable user_list(string connectionString,object boardID, object userID, object approved, object groupID, object rankID)
+    public static DataTable user_list(object boardID, object userID, object approved, object groupID, object rankID)
 		{
-			return user_list(connectionString,boardID, userID, approved, null, null, false);
+			return user_list(boardID, userID, approved, null, null, false);
 		}
 		/// <summary>
 		/// The user_list.
@@ -6516,9 +6536,9 @@ string connectionString,
 		/// <returns>
 		/// </returns>
 
-    public static DataTable user_list(string connectionString,object boardID, object userID, object approved, object groupID, object rankID, object useStyledNicks)
+    public static DataTable user_list(object boardID, object userID, object approved, object groupID, object rankID, object useStyledNicks)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_list"))
 			{
 				if (userID == null) { userID = DBNull.Value; }
 			   // if (approved == null) { approved = DBNull.Value; }               
@@ -6537,12 +6557,12 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Boolean)).Value = useStyledNicks;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 							 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
     public static DataTable user_listmembers(
-            string connectionString,
+            
             [NotNull] object boardId, 
             [NotNull] object userId, 
             [NotNull] object approved, 
@@ -6563,7 +6583,7 @@ string connectionString,
             [NotNull] object numPosts, 
             [NotNull] object numPostCompare)
         {
-            using (var cmd = FbDbAccess.GetCommand("user_listmembers"))
+            using (var cmd = MsSqlDbAccess.GetCommand("user_listmembers"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("BoardID", FbDbType.Integer)).Value = boardId;
@@ -6584,7 +6604,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("SortLastVisit", FbDbType.Integer)).Value =  sortLastVisit;
                 cmd.Parameters.Add(new FbParameter("NumPosts", FbDbType.Integer)).Value = numPosts;
                 cmd.Parameters.Add(new FbParameter("NumPostsCompare", FbDbType.Integer)).Value = numPostCompare;
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
 
@@ -6620,9 +6640,9 @@ string connectionString,
 		/// <param name="StartID"></param>
 		/// <param name="Limit"></param>
 		/// <returns></returns>
-    static public DataTable user_simplelist(string connectionString,int StartID, int Limit)
+    static public DataTable user_simplelist(int StartID, int Limit)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_simplelist"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_simplelist"))
 			{
 				if (StartID <= 0) { StartID = 0; }
 				if (Limit <= 0) { Limit = 500; }
@@ -6632,27 +6652,27 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_STARTID", FbDbType.Integer)).Value = StartID;
 				cmd.Parameters.Add(new FbParameter("@I_LIMIT", FbDbType.Integer)).Value = Limit;
 			  
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
-    static public void user_delete(string connectionString,object userId)
+    static public void user_delete(object userId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_delete"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
 			
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-    static public void user_setrole(string connectionString,int boardID, object providerUserKey, object role)
+    static public void user_setrole(int boardID, object providerUserKey, object role)
 		{
 		   // System.Guid guid = new System.Guid(providerUserKey.ToString());
 
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_setrole"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_setrole"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -6660,13 +6680,13 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_PROVIDERUSERKEY", FbDbType.VarChar)).Value = providerUserKey;
 				cmd.Parameters.Add(new FbParameter("@I_ROLE", FbDbType.VarChar)).Value = role;
 			
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-    static public void user_setinfo(string connectionString,int boardID, System.Web.Security.MembershipUser user)
+    static public void user_setinfo(int boardID, System.Web.Security.MembershipUser user)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("update {databaseOwner}.objQual_USER set Name=@I_USERNAME,Email=@I_EMAIL where BoardID=@I_BOARDID and ProviderUserKey=@I_PROVIDERUSERKEY", true))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("update {databaseOwner}.objQual_USER set Name=@I_USERNAME,Email=@I_EMAIL where BoardID=@I_BOARDID and ProviderUserKey=@I_PROVIDERUSERKEY", true))
 			{
 				cmd.CommandType = CommandType.Text;
 
@@ -6675,16 +6695,16 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
                 cmd.Parameters.Add(new FbParameter("@I_PROVIDERUSERKEY", FbDbType.VarChar)).Value = user.ProviderUserKey;
 			   
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-    static public void user_migrate(string connectionString,
+    static public void user_migrate(
             object userID, 
             object providerUserKey, 
             object updateProvider)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_migrate"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_migrate"))
 			{
 
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -6693,15 +6713,15 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_PROVIDERUSERKEY", FbDbType.VarChar)).Value = providerUserKey ?? DBNull.Value;
                 cmd.Parameters.Add(new FbParameter("@I_UPDATEPROVIDER", FbDbType.Boolean)).Value = updateProvider ?? DBNull.Value;
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-    static public void user_deleteold(string connectionString,
+    static public void user_deleteold(
             [NotNull]object boardId,
             [NotNull]object days)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_deleteold"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_deleteold"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -6709,38 +6729,38 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_DAYS", FbDbType.Integer)).Value = days;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow; 
 		 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-    static public void user_approve(string connectionString,object userID)
+    static public void user_approve(object userID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_approve"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_approve"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
 			  
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-    static public void user_approveall(string connectionString,
+    static public void user_approveall(
             object boardId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_approveall"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_approveall"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId;
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-    static public void user_suspend(string connectionString,object userID, object suspend)
+    static public void user_suspend(object userID, object suspend)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_suspend"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_suspend"))
 			{
 
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -6748,7 +6768,7 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
 			    cmd.Parameters.Add(new FbParameter("@I_SUSPEND", FbDbType.TimeStamp)).Value = suspend ?? DBNull.Value;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -6758,18 +6778,18 @@ string connectionString,
 		/// <param name="userId">The userID</param>
 		/// <param name="boardId">The boardID</param>
 		/// <returns>Data Table</returns>
-    public static DataTable user_getsignaturedata(string connectionString,
+    public static DataTable user_getsignaturedata(
             [NotNull]object userId,
             [NotNull]object boardId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_getsignaturedata"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_getsignaturedata"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId;
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -6778,27 +6798,27 @@ string connectionString,
 		/// </summary>
 		/// <param name="userID">The userID</param>
 		/// <param name="boardID">The boardID</param>  
-    public static DataTable user_getalbumsdata(string connectionString,
+    public static DataTable user_getalbumsdata(
             [NotNull]object userID,
             [NotNull]object boardID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_getalbumsdata"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_getalbumsdata"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
-    static public bool user_changepassword(string connectionString,
+    static public bool user_changepassword(
             object userId, 
             object oldPassword, 
             object newPassword)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_changepassword"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_changepassword"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -6806,24 +6826,24 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_OLDPASSWORD", FbDbType.VarChar)).Value = oldPassword;
                 cmd.Parameters.Add(new FbParameter("@I_NEWPASSWORD", FbDbType.VarChar)).Value = newPassword;
 
-				return (bool)FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+				return (bool)MsSqlDbAccess.Current.ExecuteScalar(cmd);
 			}
 		}
 
-    static public DataTable user_pmcount(string connectionString,
+    static public DataTable user_pmcount(
             object userId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_pmcount"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_pmcount"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
-    static public void user_save(string connectionString,
+    static public void user_save(
             [NotNull] object userID, 
             [NotNull] object boardID, 
             [NotNull] object userName, 
@@ -6843,7 +6863,7 @@ string connectionString,
             [NotNull] object hideUser, 
             [NotNull] object notificationType)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_save"))
 			{
 				
                 if (useMobileTheme == null || useMobileTheme.ToString() == "false") { useMobileTheme = 0; }
@@ -6883,9 +6903,9 @@ string connectionString,
 				cmd.Parameters.Add("@I_UTCTIMESTAMP", FbDbType.TimeStamp).Value = DateTime.UtcNow;
 				cmd.Parameters.Add("@I_HIDEUSER", FbDbType.Boolean).Value = hideUser;
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 
-				//object o = FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+				//object o = MsSqlDbAccess.Current.ExecuteScalar(cmd);
 			}
 		}
 
@@ -6898,14 +6918,14 @@ string connectionString,
         /// <param name="notificationType">
         /// The notification type.
         /// </param>
-    public static void user_savenotification(string connectionString,
+    public static void user_savenotification(
               object userID,
               object pmNotification,
               object autoWatchTopics,
               object notificationType,
               object dailyDigest)
         {
-            using (FbCommand cmd = FbDbAccess.GetCommand("user_savenotification"))
+            using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_savenotification"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@I_USERID", FbDbType.Integer).Value = userID;
@@ -6913,12 +6933,12 @@ string connectionString,
                 cmd.Parameters.Add("@I_NOTIFICATIONTYPE", FbDbType.Integer).Value = notificationType;
                 cmd.Parameters.Add("@I_AUTOWATCHTOPIC", FbDbType.Boolean).Value = autoWatchTopics;
                 cmd.Parameters.Add("@I_DAILYDIGEST", FbDbType.Boolean).Value = dailyDigest;
-                FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
             }
         }
 
     static public void user_adminsave
-			(string connectionString,object boardId, 
+			(object boardId, 
             object userId, 
             object name, 
             object displayName, 
@@ -6927,7 +6947,7 @@ string connectionString,
             object rankId)
 		{
 
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_adminsave"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_adminsave"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -6939,15 +6959,15 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_FLAGS", FbDbType.Integer)).Value = flags;
 				cmd.Parameters.Add(new FbParameter("@I_RANKID", FbDbType.Integer)).Value = rankId;
 			 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-    static public DataTable user_emails(string connectionString,
+    static public DataTable user_emails(
             object boardId, 
             object groupId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_emails"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_emails"))
 			{
 
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -6955,27 +6975,27 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId;
                 cmd.Parameters.Add(new FbParameter("@I_GROUPID", FbDbType.Integer)).Value = groupId ?? DBNull.Value;
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
-    static public DataTable user_accessmasks(string connectionString,
+    static public DataTable user_accessmasks(
             object boardID,
             object userID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_accessmasks"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_accessmasks"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
                 cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
 
-				return userforumaccess_sort_list(connectionString,FbDbAccess.Current.GetData(cmd, connectionString), 0, 0, 0);
+				return userforumaccess_sort_list(MsSqlDbAccess.Current.GetData(cmd), 0, 0, 0);
 			}
 		}
 
 		//adds some convenience while editing group's access rights (indent forums)
-    static private DataTable userforumaccess_sort_list(string connectionString,DataTable listSource, int parentID, int categoryID, int startingIndent)
+    static private DataTable userforumaccess_sort_list(DataTable listSource, int parentID, int categoryID, int startingIndent)
 		{
 
 			DataTable listDestination = new DataTable();
@@ -6993,11 +7013,11 @@ string connectionString,
 				listDestination.Columns.Add("AccessMaskId", typeof(Int32));
 			}
 			DataView dv = listSource.DefaultView;
-            userforumaccess_sort_list_recursive(connectionString, dv.ToTable(), listDestination, parentID, categoryID, startingIndent);
+            userforumaccess_sort_list_recursive( dv.ToTable(), listDestination, parentID, categoryID, startingIndent);
 			return listDestination;
 		}
 
-    static private void userforumaccess_sort_list_recursive(string connectionString,DataTable listSource, DataTable listDestination, int parentID, int categoryID, int currentIndent)
+    static private void userforumaccess_sort_list_recursive(DataTable listSource, DataTable listDestination, int parentID, int categoryID, int currentIndent)
 		{
 			DataRow newRow;
 
@@ -7032,16 +7052,16 @@ string connectionString,
 					listDestination.Rows.Add(newRow);
 
 					// recurse through the list...
-					userforumaccess_sort_list_recursive(connectionString,listSource, listDestination, (int)row["ForumID"], categoryID, currentIndent + 1);
+					userforumaccess_sort_list_recursive(listSource, listDestination, (int)row["ForumID"], categoryID, currentIndent + 1);
 				}
 			}
 		}
-    public static DataTable recent_users(string connectionString,
+    public static DataTable recent_users(
             [NotNull] object boardID, 
             int timeSinceLastLogin, 
             [NotNull] object styledNicks)
         {
-            using (var cmd = FbDbAccess.GetCommand("recent_users"))
+            using (var cmd = MsSqlDbAccess.GetCommand("recent_users"))
             {
 
                 cmd.CommandType = CommandType.StoredProcedure;
@@ -7050,15 +7070,15 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Boolean)).Value = styledNicks;
                 cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
-    static public object user_recoverpassword(string connectionString,
+    static public object user_recoverpassword(
             object boardID, 
             object userName, 
             object email)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_recoverpassword"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_recoverpassword"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -7066,13 +7086,13 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_USERNAME", FbDbType.VarChar)).Value = userName;
                 cmd.Parameters.Add(new FbParameter("@I_EMAIL", FbDbType.VarChar)).Value = email;
 				
-				return FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+				return MsSqlDbAccess.Current.ExecuteScalar(cmd);
 			}
 		}
 
-    static public void user_savepassword(string connectionString,object userID, object password)
+    static public void user_savepassword(object userID, object password)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_savepassword"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_savepassword"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -7080,13 +7100,13 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_PASSWORD", FbDbType.VarChar)).Value = 
                     FormsAuthentication.HashPasswordForStoringInConfigFile(password.ToString(), "md5");
 			   
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-    static public object user_login(string connectionString,object boardID, object name, object password)
+    static public object user_login(object boardID, object name, object password)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_login"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_login"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -7094,39 +7114,39 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_NAME", FbDbType.VarChar)).Value = name;
                 cmd.Parameters.Add(new FbParameter("@I_PASSWORD", FbDbType.VarChar)).Value = password;
 
-				return FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+				return MsSqlDbAccess.Current.ExecuteScalar(cmd);
 			}
 		}
 
-    static public DataTable user_avatarimage(string connectionString,
+    static public DataTable user_avatarimage(
             object userId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_avatarimage"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_avatarimage"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
 			   
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
-    static public int user_get(string connectionString,
+    static public int user_get(
             int boardId, 
             object providerUserKey)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_get"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_get"))
 			{
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId;
 				cmd.Parameters.Add(new FbParameter("@I_PROVIDERUSERKEY", FbDbType.VarChar)).Value = providerUserKey;
-							   
-				return (int)FbDbAccess.Current.ExecuteScalar(cmd, connectionString);               
+
+                return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd) ?? 0);              
 			}
 		}
 
-    public static DataTable UserFind(string connectionString,int boardID, bool filter, string userName, string email, string displayName, object notificationType, object dailyDigest)
+    public static IEnumerable<TypedUserFind> UserFind(int boardID, bool filter, string userName, string email, string displayName, object notificationType, object dailyDigest)
     {
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_find"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_find"))
 			{
 				// if (userName == null) { userName = DBNull.Value; }
 				// if (email == null) { email = DBNull.Value; }
@@ -7140,40 +7160,40 @@ string connectionString,
 				cmd.Parameters.Add("@I_EMAIL", FbDbType.VarChar).Value = email;				
 				cmd.Parameters.Add("@I_NOTIFICATIONTYPE", FbDbType.Integer).Value = notificationType;
                 cmd.Parameters.Add("@I_DAILYDIGEST", FbDbType.Boolean).Value = dailyDigest;
-                
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+
+                return MsSqlDbAccess.Current.GetData(cmd).AsEnumerable().Select(u => new TypedUserFind(u)); ;
 			}
 		}
 
 
-    static public string user_getsignature(string connectionString,object userId)
+    static public string user_getsignature(object userId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_getsignature"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_getsignature"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add("@I_USERID", FbDbType.Integer).Value = userId;
 			   
-				return FbDbAccess.Current.ExecuteScalar(cmd, connectionString).ToString();
+				return MsSqlDbAccess.Current.ExecuteScalar(cmd).ToString();
 			}
 		}
 
-    static public void user_savesignature(string connectionString,object userID, object signature)
+    static public void user_savesignature(object userID, object signature)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_savesignature"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_savesignature"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add("@I_USERID", FbDbType.Integer).Value = userID;
 				cmd.Parameters.Add("@I_SIGNATURE", FbDbType.Text).Value = signature;
 			   
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-    static public void user_saveavatar(string connectionString,object userID, object avatar, System.IO.Stream stream, object avatarImageType)
+    static public void user_saveavatar(object userID, object avatar, System.IO.Stream stream, object avatarImageType)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_saveavatar"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_saveavatar"))
 			{
 				byte[] data = null;
 
@@ -7195,25 +7215,25 @@ string connectionString,
 				cmd.Parameters.Add("@I_AVATARIMAGE", FbDbType.Binary).Value = data;          
 				cmd.Parameters.Add("@I_AVATARIMAGETYPE", FbDbType.VarChar).Value = avatarImageType;
 			
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-    static public void user_deleteavatar(string connectionString,
+    static public void user_deleteavatar(
             [NotNull]object userId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_deleteavatar"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_deleteavatar"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add("@I_USERID", FbDbType.Integer).Value = userId;                
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
     static public int user_aspnet(
-            string connectionString,
+            
             int boardId, 
             string userName, 
             string displayName, 
@@ -7223,7 +7243,7 @@ string connectionString,
 		{
 			try
 			{
-				using (FbCommand cmd = FbDbAccess.GetCommand("user_aspnet"))
+				using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_aspnet"))
 				{
 					cmd.CommandType = CommandType.StoredProcedure;
 
@@ -7235,34 +7255,34 @@ string connectionString,
 					cmd.Parameters.Add("@I_ISAPPROVED", FbDbType.Boolean).Value = isApproved;
 					cmd.Parameters.Add("@I_UTCTIMESTAMP", FbDbType.TimeStamp).Value = DateTime.UtcNow;                
 														
-					return (int)FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+					return (int)MsSqlDbAccess.Current.ExecuteScalar(cmd);
 				}
 			}
 			catch (Exception x)
 			{
-                YAF.Classes.Data.FirebirdDb.LegacyDb.eventlog_create(null, "user_aspnet in YAF.Classes.Data.DB.cs", x, EventLogTypes.Error);
+                LegacyDb.eventlog_create(null, "user_aspnet in YAF.Classes.Data.DB.cs", x, EventLogTypes.Error);
 				return 0;
 			}
 		}
 
-    static public int? user_guest(string connectionString,
+    static public int? user_guest(
             [NotNull]object boardID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_guest"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_guest"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
 				
-				 return FbDbAccess.Current.ExecuteScalar(cmd, connectionString).ToType<int?>();
+				 return MsSqlDbAccess.Current.ExecuteScalar(cmd).ToType<int?>();
 			}
 		}
 
-    public static bool user_ThankedMessage(string connectionString,
+    public static bool user_ThankedMessage(
             [NotNull] object messageId, 
             [NotNull] object userId)
         {
-            using (var cmd = FbDbAccess.GetCommand("user_thankedmessage"))
+            using (var cmd = MsSqlDbAccess.GetCommand("user_thankedmessage"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -7271,18 +7291,18 @@ string connectionString,
 
                 cmd.CommandTimeout = int.Parse(Config.SqlCommandTimeout);
 
-                var thankCount = (int)FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+                var thankCount = (int)MsSqlDbAccess.Current.ExecuteScalar(cmd);
 
                 return thankCount > 0;
             }
         }
 
-    static public DataTable user_activity_rank(string connectionString,
+    static public DataTable user_activity_rank(
             [NotNull]object boardId, 
             object startDate, 
             object displayNumber)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_activity_rank"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_activity_rank"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -7290,13 +7310,13 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_STARTDATE", FbDbType.TimeStamp)).Value = startDate;
 				cmd.Parameters.Add(new FbParameter("@I_DISPLAYNUMBER", FbDbType.Integer)).Value = displayNumber;
 		   
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
-    static public int user_nntp(string connectionString,object boardID, object userName, object email, object timeZone)
+    static public int user_nntp(object boardID, object userName, object email, object timeZone)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("USER_NNTP"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("USER_NNTP"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				
@@ -7306,7 +7326,7 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_TIMEZONE", FbDbType.Integer)).Value = timeZone;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 
-			  object o=FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+			  object o=MsSqlDbAccess.Current.ExecuteScalar(cmd);
 			  //  if ( o != DBNull.Value)
 			  //  {
 					return Convert.ToInt32(o);
@@ -7317,100 +7337,103 @@ string connectionString,
 			}
 		}
 
-    static public void user_addpoints(string connectionString,
-            object userId, 
-            object points)
-		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_addpoints"))
+public static void user_addpoints([NotNull] object userID, [CanBeNull] object fromUserID, [NotNull] object points)
+         {
+		
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_addpoints"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
-				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
+                cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
+                cmd.Parameters.Add(new FbParameter("@I_FROMUSERID", FbDbType.Integer)).Value = fromUserID;
+                cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 				cmd.Parameters.Add(new FbParameter("@I_POINTS", FbDbType.Integer)).Value = points;
 	   
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-    static public void user_removepointsByTopicID(string connectionString,object topicId, object points)
+    static public void user_removepointsByTopicID(object topicId, object points)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_removepointsbytopicid"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_removepointsbytopicid"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicId;
 				cmd.Parameters.Add(new FbParameter("@I_POINTS", FbDbType.Integer)).Value = points;
 		 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-    static public void user_removepoints(string connectionString,object userId, object points)
-		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_removepoints"))
+    public static void user_removepoints([NotNull] object userID, [CanBeNull] object fromUserID, [NotNull] object points)
+    {
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_removepoints"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
-				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
-				cmd.Parameters.Add(new FbParameter("@I_POINTS", FbDbType.Integer)).Value = points;                
+                cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
+                cmd.Parameters.Add(new FbParameter("@I_FROMUSERID", FbDbType.Integer)).Value = fromUserID;
+                cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
+                cmd.Parameters.Add(new FbParameter("@I_POINTS", FbDbType.Integer)).Value = points;            
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-    public static void user_setnotdirty(string connectionString,int boardId, int userId)
+    public static void user_setnotdirty(int boardId, int userId)
         {
-            using (var cmd = FbDbAccess.GetCommand("user_setnotdirty"))
+            using (var cmd = MsSqlDbAccess.GetCommand("user_setnotdirty"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
-                FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
             }
         }
-    static public void user_setpoints(string connectionString,object userId, object points)
+    static public void user_setpoints(object userId, object points)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_setpoints"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_setpoints"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
 				cmd.Parameters.Add(new FbParameter("@I_POINTS", FbDbType.Integer)).Value = points;
 			   
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-    static public int user_getpoints(string connectionString,
+    static public int user_getpoints(
             object userId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_getpoints"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_getpoints"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
 						
-				return (int)FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+				return (int)MsSqlDbAccess.Current.ExecuteScalar(cmd);
 			}
 		}
 
-    static public int user_getthanks_from(string connectionString,
+    static public int user_getthanks_from(
             object userID, 
             object pageUserId)
 		{
 
-			using (FbCommand cmd = FbDbAccess.GetCommand("USER_GETTHANKS_FROM"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("USER_GETTHANKS_FROM"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add( "@I_USERID", FbDbType.Integer ).Value=userID;
                 cmd.Parameters.Add( "@I_PAGEUSERID", FbDbType.Integer ).Value=pageUserId;
-				return Convert.ToInt32( FbDbAccess.Current.ExecuteScalar( cmd,connectionString ) );
+				return Convert.ToInt32( MsSqlDbAccess.Current.ExecuteScalar( cmd ) );
 			}
 		}
 
-    static public int[] user_getthanks_to(string connectionString,
+    static public int[] user_getthanks_to(
             object userID, 
             object pageUserId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_getthanks_to"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_getthanks_to"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				FbParameter paramThanksToNumber = new FbParameter("@ThanksToNumber", 0);
@@ -7421,7 +7444,7 @@ string connectionString,
                 cmd.Parameters.Add("@I_PAGEUSERID", FbDbType.Integer ).Value=pageUserId;
 				cmd.Parameters.Add(paramThanksToNumber);
 				cmd.Parameters.Add(paramThanksToPostsNumber);
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 
 				int ThanksToPostsNumber, ThanksToNumber;
 				if (paramThanksToNumber.Value == DBNull.Value)
@@ -7447,14 +7470,14 @@ string connectionString,
 		/// </param>
 		/// <returns>
 		/// </returns>
-    public static DataTable user_viewallthanks(string connectionString,object UserID, object pageUserId)
+    public static DataTable user_viewallthanks(object UserID, object pageUserId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("user_viewallthanks"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_viewallthanks"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("I_USERID", FbDbType.Integer).Value = UserID;
                 cmd.Parameters.Add("I_PAGEUSERID", FbDbType.Integer).Value = pageUserId;
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
     /// <summary>
@@ -7469,15 +7492,15 @@ string connectionString,
     /// <param name="isTwitterUser">
     /// The is Twitter User.
     /// </param>
-    public static void user_update_single_sign_on_status(string connectionString, [NotNull] object userID, [NotNull] object isFacebookUser, [NotNull] object isTwitterUser)
+    public static void user_update_single_sign_on_status( [NotNull] object userID, [NotNull] object isFacebookUser, [NotNull] object isTwitterUser)
     {
-        using (var cmd = FbDbAccess.GetCommand("USER_UPDATE_SSN_STATUS"))
+        using (var cmd = MsSqlDbAccess.GetCommand("USER_UPDATE_SSN_STATUS"))
         {
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add("I_USERID", FbDbType.Integer).Value = userID;
             cmd.Parameters.Add("I_ISFACEBOOKUSER", FbDbType.Boolean).Value = isFacebookUser;
             cmd.Parameters.Add("I_ISTWITTERUSER", FbDbType.Boolean).Value = isTwitterUser;
-            FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+            MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
         
         }
     }
@@ -7485,9 +7508,9 @@ string connectionString,
 		#endregion
 		
 		#region yaf_UserForum
-    static public DataTable userforum_list(string connectionString,object userID, object forumID)
+    static public DataTable userforum_list(object userID, object forumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("userforum_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("userforum_list"))
 			{
 				if (userID == null) { userID = DBNull.Value; }
 				if (forumID == null) { forumID = DBNull.Value; }
@@ -7502,24 +7525,24 @@ string connectionString,
 				cmd.Parameters[1].Value = forumID;
 
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-    static public void userforum_delete(string connectionString,object userID, object forumID)
+    static public void userforum_delete(object userID, object forumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("userforum_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("userforum_delete"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userID;
                 cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer)).Value = forumID;
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-    static public void userforum_save(string connectionString,object userID, object forumID, object accessMaskID)
+    static public void userforum_save(object userID, object forumID, object accessMaskID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("userforum_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("userforum_save"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -7528,27 +7551,27 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_ACCESSMASKID", FbDbType.Integer)).Value = accessMaskID;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;   
 		
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		#endregion
 	  
 		#region yaf_UserGroup
-    static public DataTable usergroup_list(string connectionString,object userID)
+    static public DataTable usergroup_list(object userID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("usergroup_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("usergroup_list"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer));
 				cmd.Parameters[0].Value = userID;
 			   
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-    static public void usergroup_save(string connectionString,object userID, object groupID, object member)
+    static public void usergroup_save(object userID, object groupID, object member)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("usergroup_save"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("usergroup_save"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -7562,15 +7585,15 @@ string connectionString,
 				cmd.Parameters[2].Value = Convert.ToBoolean(member);
 
 			   
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		#endregion
 
 		#region yaf_WatchForum
-    static public void watchforum_add(string connectionString,object userID, object forumID)
+    static public void watchforum_add(object userID, object forumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("watchforum_add"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("watchforum_add"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -7578,12 +7601,12 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer)).Value = forumID;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow; 
   
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-    static public DataTable watchforum_list(string connectionString,object userID)
+    static public DataTable watchforum_list(object userID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("watchforum_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("watchforum_list"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -7592,12 +7615,12 @@ string connectionString,
 
 
 			   
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-    static public DataTable watchforum_check(string connectionString,object userID, object forumID)
+    static public DataTable watchforum_check(object userID, object forumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("watchforum_check"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("watchforum_check"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -7607,39 +7630,39 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_FORUMID", FbDbType.Integer));
 				cmd.Parameters[1].Value = forumID;
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-    static public void watchforum_delete(string connectionString,object watchForumID)
+    static public void watchforum_delete(object watchForumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("watchforum_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("watchforum_delete"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_WATCHFORUMID", FbDbType.Integer));
 				cmd.Parameters[0].Value = watchForumID;
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 
 			}
 		}
 		#endregion
 
 		#region yaf_WatchTopic
-    static public DataTable watchtopic_list(string connectionString,object userID)
+    static public DataTable watchtopic_list(object userID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("watchtopic_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("watchtopic_list"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer));
 				cmd.Parameters[0].Value = userID;
 
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-    static public DataTable watchtopic_check(string connectionString,object userID, object topicID)
+    static public DataTable watchtopic_check(object userID, object topicID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("watchtopic_check"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("watchtopic_check"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer));
@@ -7647,12 +7670,12 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer));
 				cmd.Parameters[1].Value = topicID;
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-    static public void watchtopic_delete(string connectionString,object watchTopicID)
+    static public void watchtopic_delete(object watchTopicID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("watchtopic_delete"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("watchtopic_delete"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -7660,12 +7683,12 @@ string connectionString,
 				cmd.Parameters[0].Value = watchTopicID;
 
 			   
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-    static public void watchtopic_add(string connectionString,object userID, object topicID)
+    static public void watchtopic_add(object userID, object topicID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("watchtopic_add"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("watchtopic_add"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -7673,7 +7696,7 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_TOPICID", FbDbType.Integer)).Value = topicID;              
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow; 
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -7686,16 +7709,16 @@ string connectionString,
     /// <param name="topicID">
     /// The topic id.
     /// </param>
-    public static void Readtopic_AddOrUpdate([NotNull]string connectionString, [NotNull] object userID, [NotNull] object topicID)
+    public static void Readtopic_AddOrUpdate([NotNull] object userID, [NotNull] object topicID)
     {
-        using (var cmd = FbDbAccess.GetCommand("readtopic_addorupdate"))
+        using (var cmd = MsSqlDbAccess.GetCommand("readtopic_addorupdate"))
         {
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add(new FbParameter("i_userid", FbDbType.Integer)).Value = userID;
             cmd.Parameters.Add(new FbParameter("i_topicid", FbDbType.Integer)).Value = topicID;
             cmd.Parameters.Add(new FbParameter("I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 
-            FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+            MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
         }
     }
 
@@ -7705,13 +7728,13 @@ string connectionString,
     /// <param name="trackingID">
     /// The tracking id.
     /// </param>
-    /*public static void Readtopic_delete([NotNull]string connectionString, [NotNull] object userID)
+    /*public static void Readtopic_delete([NotNull] [NotNull] object userID)
     {
-        using (var cmd = FbDbAccess.GetCommand("readtopic_delete"))
+        using (var cmd = MsSqlDbAccess.GetCommand("readtopic_delete"))
         {
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add(new FbParameter("i_userid", FbDbType.Integer)).Value = userID;
-            FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+            MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
         }
     } */
 
@@ -7727,16 +7750,16 @@ string connectionString,
     /// <returns>
     /// Returns the Global Last Read DateTime
     /// </returns>
-    public static DateTime User_LastRead([NotNull]string connectionString, [NotNull] object userID, [NotNull] DateTime lastVisitDate)
+    public static DateTime? User_LastRead([NotNull] object userID)
     {
-        using (var cmd = FbDbAccess.GetCommand("user_lastread"))
+        using (var cmd = MsSqlDbAccess.GetCommand("user_lastread"))
         {
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add(new FbParameter("i_userid", FbDbType.Integer)).Value = userID;
 
-            var tableLastRead = FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+            var tableLastRead = MsSqlDbAccess.Current.ExecuteScalar(cmd);
 
-            return tableLastRead != null ? (DateTime)tableLastRead : lastVisitDate;
+            return tableLastRead.ToType<DateTime?>();
         }
     }
 
@@ -7752,15 +7775,15 @@ string connectionString,
     /// <returns>
     /// Returns the Last Read DateTime
     /// </returns>
-    public static DateTime? Readtopic_lastread([NotNull]string connectionString, [NotNull] object userID, [NotNull] object topicID)
+    public static DateTime? Readtopic_lastread([NotNull] object userID, [NotNull] object topicID)
     {
-        using (var cmd = FbDbAccess.GetCommand("readtopic_lastread"))
+        using (var cmd = MsSqlDbAccess.GetCommand("readtopic_lastread"))
         {
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add(new FbParameter("i_userid", FbDbType.Integer)).Value = userID;
             cmd.Parameters.Add(new FbParameter("i_topicid", FbDbType.Integer)).Value = topicID;
 
-            var tableLastRead = FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+            var tableLastRead = MsSqlDbAccess.Current.ExecuteScalar(cmd);
 
             return tableLastRead.ToType<DateTime?>();
         }
@@ -7775,15 +7798,15 @@ string connectionString,
     /// <param name="forumID">
     /// The forum id.
     /// </param>
-    public static void ReadForum_AddOrUpdate([NotNull]string connectionString, [NotNull] object userID, [NotNull] object forumID)
+    public static void ReadForum_AddOrUpdate([NotNull] object userID, [NotNull] object forumID)
     {
-        using (var cmd = FbDbAccess.GetCommand("readforum_addorupdate"))
+        using (var cmd = MsSqlDbAccess.GetCommand("readforum_addorupdate"))
         {
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add(new FbParameter("i_userid", FbDbType.Integer)).Value = userID;
             cmd.Parameters.Add(new FbParameter("i_forumid", FbDbType.Integer)).Value = forumID;
             cmd.Parameters.Add(new FbParameter("I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
-            FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+            MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
         }
     }
 
@@ -7793,13 +7816,13 @@ string connectionString,
     /// <param name="trackingID">
     /// The tracking id.
     /// </param>
-    public static void ReadForum_delete([NotNull]string connectionString, [NotNull] object trackingID)
+    public static void ReadForum_delete([NotNull] object trackingID)
     {
-        using (var cmd = FbDbAccess.GetCommand("readforum_delete"))
+        using (var cmd = MsSqlDbAccess.GetCommand("readforum_delete"))
         {
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add(new FbParameter("i_trackingid", FbDbType.Integer)).Value = trackingID;
-            FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+            MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
         }
     }
 
@@ -7815,15 +7838,15 @@ string connectionString,
     /// <returns>
     /// Returns the Last Read DateTime
     /// </returns>
-    public static DateTime ReadForum_lastread([NotNull]string connectionString, [NotNull] object userID, [NotNull] object forumID)
+    public static DateTime ReadForum_lastread([NotNull] object userID, [NotNull] object forumID)
     {
-        using (var cmd = FbDbAccess.GetCommand("readforum_lastread"))
+        using (var cmd = MsSqlDbAccess.GetCommand("readforum_lastread"))
         {
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add(new FbParameter("i_userid", FbDbType.Integer)).Value = userID;
             cmd.Parameters.Add(new FbParameter("i_forumid", FbDbType.Integer)).Value = forumID;
 
-            var tableLastRead = FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+            var tableLastRead = MsSqlDbAccess.Current.ExecuteScalar(cmd);
 
             return tableLastRead != null && tableLastRead != DBNull.Value
                        ? (DateTime)tableLastRead
@@ -7907,14 +7930,14 @@ string connectionString,
 
 		#region reindex page controls
 
-    static public DataTable rsstopic_list(string connectionString,int forumID)
+    static public DataTable rsstopic_list(int forumID)
 		{
-            return rsstopic_list(connectionString, forumID, 0, 100);
+            return rsstopic_list( forumID, 0, 100);
 		}
 
-    static public DataTable rsstopic_list(string connectionString,int forumID, int start, int limit)
+    static public DataTable rsstopic_list(int forumID, int start, int limit)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("rsstopic_list"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("rsstopic_list"))
 			{
 			  
 				cmd.CommandType = CommandType.StoredProcedure;
@@ -7923,30 +7946,30 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_START", FbDbType.Integer)).Value = start;
 				cmd.Parameters.Add(new FbParameter("@I_LIMIT", FbDbType.Integer)).Value = limit;
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
-        static DataTable db_index_simplelist(string connectionString)
+        static DataTable db_index_simplelist()
 		{
 			
-			using (FbCommand cmd = FbDbAccess.GetCommand(String.Format("SELECT a.RDB$INDEX_NAME FROM RDB$INDICES a WHERE a.RDB$FOREIGN_KEY IS NULL AND a.RDB$SYSTEM_FLAG=0 AND a.RDB$UNIQUE_FLAG IS NULL AND a.RDB$RELATION_NAME LIKE '%{0}%'", FbDbAccess.ObjectQualifier.ToUpper()),true))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand(String.Format("SELECT a.RDB$INDEX_NAME FROM RDB$INDICES a WHERE a.RDB$FOREIGN_KEY IS NULL AND a.RDB$SYSTEM_FLAG=0 AND a.RDB$UNIQUE_FLAG IS NULL AND a.RDB$RELATION_NAME LIKE '%{0}%'", MsSqlDbAccess.ObjectQualifier.ToUpper()),true))
 			{                            
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
         private static string getStatsMessage;
         /// <summary>
         /// The db_getstats_new.
         /// </summary>
-        public static string db_getstats_new(string connectionString)
+        public static string db_getstats_new()
         {
             try
             {
-                using (var connMan = new FbDbConnectionManager())
+                using (var connMan = new MsSqlDbConnectionManager())
                 {
                     connMan.InfoMessage += new YafDBConnInfoMessageEventHandler(getStats_InfoMessage);
 
-                    DataTable indexList = LegacyDb.db_index_simplelist(connectionString);
+                    DataTable indexList = LegacyDb.db_index_simplelist();
                     foreach (DataRow indexName in indexList.Rows)
                     {
                         using (FbCommand cmd1 = new FbCommand(String.Format("SET STATISTICS INDEX {0}", indexName[0])))
@@ -7955,7 +7978,7 @@ string connectionString,
                             // up the command timeout...
                             cmd1.CommandTimeout = int.Parse(Config.SqlCommandTimeout);
                             // run it...
-                            FbDbAccess.Current.ExecuteNonQuery(cmd1, false, connectionString);
+                            MsSqlDbAccess.Current.ExecuteNonQuery(cmd1, false);
 
                         }
                     }
@@ -7984,9 +8007,9 @@ string connectionString,
         {
             getStatsMessage += "\r\n{0}".FormatWith(e.Message);
         }
-        static public void db_getstats(string connectionString,FbDbConnectionManager conn)
+        static public void db_getstats(MsSqlDbConnectionManager conn)
 		{
-			DataTable indexList = LegacyDb.db_index_simplelist(connectionString);            
+			DataTable indexList = LegacyDb.db_index_simplelist();            
 			foreach (DataRow indexName in indexList.Rows)
 			{
 				using (FbCommand cmd1 = new FbCommand(String.Format("SET STATISTICS INDEX {0}", indexName[0])))
@@ -7995,7 +8018,7 @@ string connectionString,
 					// up the command timeout...
 					cmd1.CommandTimeout = int.Parse(Config.SqlCommandTimeout);
 					// run it...
-					FbDbAccess.Current.ExecuteNonQuery(cmd1, false,connectionString);
+					MsSqlDbAccess.Current.ExecuteNonQuery(cmd1, false);
 				}
 			}
 		}
@@ -8004,16 +8027,16 @@ string connectionString,
 			return "Recalculate index statistics is made or in progress.";
 		}
         private static string reindexDbMessage;
-        static public string db_reindex_new(string connectionString)
+        static public string db_reindex_new()
 		{
-            DataTable indexList = LegacyDb.db_index_simplelist(connectionString);
+            DataTable indexList = LegacyDb.db_index_simplelist();
             foreach (DataRow indexName in indexList.Rows)
             {
 
                 // using (FbCommand cmd = new FbCommand(String.Format("EXECUTE BLOCK AS BEGIN EXECUTE STATEMENT 'ALTER INDEX {0} INACTIVE'; EXECUTE STATEMENT 'ALTER INDEX {0} ACTIVE';END", indexName[0])))
                 try
                 {
-                    using (var connMan = new  FbDbConnectionManager())
+                    using (var connMan = new  MsSqlDbConnectionManager())
                     {
                         connMan.InfoMessage += new YafDBConnInfoMessageEventHandler(reindexDb_InfoMessage);
                         using (
@@ -8028,7 +8051,7 @@ string connectionString,
                             cmd.CommandTimeout = int.Parse(Config.SqlCommandTimeout);
 
                             // run it...
-                            FbDbAccess.Current.ExecuteNonQuery(cmd, false, connectionString);
+                            MsSqlDbAccess.Current.ExecuteNonQuery(cmd, false);
                         }
                     }
                 }
@@ -8071,13 +8094,13 @@ string connectionString,
     /// <returns>
     /// The db_runsql.
     /// </returns>
-        public static string db_runsql_new(string connectionString, string sql, bool useTransaction)
+        public static string db_runsql_new( string sql, bool useTransaction)
 		{
 			var results = new System.Text.StringBuilder();
 
             try
             {
-                using (var connMan = new FbDbConnectionManager())
+                using (var connMan = new MsSqlDbConnectionManager())
                 {
                     connMan.InfoMessage += new YafDBConnInfoMessageEventHandler(fb_runSql_InfoMessage);
 
@@ -8088,7 +8111,7 @@ string connectionString,
                         FbDataReader reader = null;
 
                         using (
-                            FbTransaction trans = connMan.OpenDBConnection.BeginTransaction(FbDbAccess.IsolationLevel))
+                            FbTransaction trans = connMan.OpenDBConnection.BeginTransaction(MsSqlDbAccess.IsolationLevel))
                         {
                             try
                             {
@@ -8185,7 +8208,7 @@ string connectionString,
         {
             messageRunSql = "\r\n" + e.Message;
         }
-        public static bool forumpage_initdb(string connectionString,
+        public static bool forumpage_initdb(
         [NotNull] out string errorStr, 
         bool debugging)
 		{
@@ -8193,7 +8216,7 @@ string connectionString,
 			try
 			{
 			   
-				using (var connMan = new FbDbConnectionManager())
+				using (var connMan = new MsSqlDbConnectionManager())
 				{                    // just attempt to open the connection to test if a DB is available.           
 					FbConnection getConn = connMan.OpenDBConnection;
 				}
@@ -8222,12 +8245,12 @@ string connectionString,
 			}
 
 		}
-        public static string forumpage_validateversion(string connectionString,int appVersion)
+        public static string forumpage_validateversion(int appVersion)
 		{
             string redirect = string.Empty;
 			try
 			{
-                DataTable registry = YAF.Classes.Data.FirebirdDb.LegacyDb.registry_list("Version");
+                DataTable registry = LegacyDb.registry_list("Version");
 
 				if ((registry.Rows.Count == 0) || (Convert.ToInt32(registry.Rows[0]["VALUE"]) < appVersion))
 				{
@@ -8260,7 +8283,7 @@ string connectionString,
 
 		private static string _fullTextScript = "firebird/fulltext.sql";
 
-        public static string fullTextScript
+        public static string FullTextScript
 		{
 			get
 			{
@@ -8271,48 +8294,15 @@ string connectionString,
 				_fullTextScript = value;
 			}
 		}
-	 private static readonly string [] _scriptRecreateList = { 
-													   "firebird/preinstall.sql", 
-                                                       "firebird/exceptions_drop.sql", 
-													   "firebird/procedures_drop.sql",													  
-													   "firebird/functions_drop.sql",
-													   "firebird/fkeys_drop.sql",                                                       
-													   "firebird/triggers_drop.sql",
-													   "firebird/indexes_drop.sql",
-													   "firebird/ukeys_drop.sql",                                                                                                  
-													   "firebird/pkeys_drop.sql",                                                                                                         
-													   "firebird/views_drop.sql",
-													   "firebird/providers/procedures_drop.sql", 
-													   "firebird/providers/indexes_drop.sql",
-													   "firebird/providers/pkeys_drop.sql",       
-													   "firebird/domains.sql",
-													   "firebird/tables.sql",
-													   "firebird/pkeys.sql",                                                        
-													   "firebird/indexes.sql",
-													   "firebird/ukeys.sql",
-													   "firebird/sequences.sql",                                                        
-													   "firebird/fkeys.sql",
-													   "firebird/triggers.sql",
-													   "firebird/views.sql",                                              
-													   "firebird/exceptions.sql",                                               
-													   "firebird/functions.sql",                                                                                                                                        
-													   "firebird/providers/tables.sql",
-													   "firebird/providers/pkeys.sql",
-													   "firebird/providers/indexes.sql",                                                       
-													   "firebird/providers/procedures.sql",                                                                                                           
-													   "firebird/procedures.sql",
-													   "firebird/procedures1.sql", 
-													   "firebird/procedures2.sql", 
-													   "firebird/postinstall.sql"
-													   };      
+     
  
-		private static readonly string [] _scriptList = {                                                                                                    
-													   "firebird/procedures_drop.sql",                                                        
+		private static readonly string [] _scriptList = {                                                                                                          
+													   "firebird/procedures_drop.sql",
 													   "firebird/providers/procedures_drop.sql",
 													   "firebird/functions_drop.sql", 
 													   "firebird/test_drop.sql",                                                                                                                                                                                                              
-													   "firebird/views_drop.sql",	
-												       "firebird/exceptions_drop.sql",                                              
+													   "firebird/views_drop.sql",
+													   "firebird/exceptions_drop.sql",                                                     
 													   "firebird/domains.sql",
 													   "firebird/sequences.sql",
 													   "firebird/tables.sql",
@@ -8327,7 +8317,8 @@ string connectionString,
 													   "firebird/providers/tables.sql",
 													   "firebird/providers/pkeys.sql",
 													   "firebird/providers/indexes.sql",                                                       
-													   "firebird/providers/procedures.sql",                                                                                                           
+													   "firebird/providers/procedures.sql", 
+                                                       // "firebird/nestedsets.sql",                                     
 													   "firebird/procedures.sql",
 													   "firebird/procedures1.sql",
                                                        "firebird/procedures2.sql"
@@ -8341,7 +8332,7 @@ string connectionString,
 		}
         static private bool GetBooleanRegistryValue(string name)
  {
-     using (DataTable dt = YAF.Classes.Data.FirebirdDb.LegacyDb.registry_list(name))
+     using (DataTable dt = LegacyDb.registry_list(name))
 	 {
 		 foreach (DataRow dr in dt.Rows)
 		 {
@@ -8353,35 +8344,35 @@ string connectionString,
 	 }
 	 return false;
  }
- public static void system_deleteinstallobjects(string connectionString)
+ public static void system_deleteinstallobjects()
 		{
-			string tSQL = "DROP FUNCTION" + FbDbAccess.GetObjectName("system_initialize");
-			using (FbCommand cmd = FbDbAccess.GetCommand(tSQL, true))
+			string tSQL = "DROP FUNCTION" + MsSqlDbAccess.GetObjectName("system_initialize");
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand(tSQL, true))
 			{
 				cmd.CommandType = CommandType.Text;
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
- public static void system_initialize_executescripts(string connectionString,
+ public static void system_initialize_executescripts(
             string script, 
             string scriptFile, 
             bool useTransactions)
 		{
 			CreateDatabase();
-			script = FbDbAccess.GetCommandTextReplaced(script);
+			script = MsSqlDbAccess.GetCommandTextReplaced(script);
 			// apply database owner
-			if (!String.IsNullOrEmpty(FbDbAccess.SchemaName))
-			{ script = script.Replace("dbN", FbDbAccess.DBName.ToUpper()); }
+			if (!String.IsNullOrEmpty(MsSqlDbAccess.SchemaName))
+			{ script = script.Replace("dbN", MsSqlDbAccess.DBName.ToUpper()); }
 			else
 			{ script = script.Replace("dbN", "YAFNET"); }
 		  
 			// apply grantee name
-			if (!String.IsNullOrEmpty(FbDbAccess.GranteeName))
-			{ script = script.Replace("grantName", FbDbAccess.GranteeName.ToUpper()); }
+			if (!String.IsNullOrEmpty(MsSqlDbAccess.GranteeName))
+			{ script = script.Replace("grantName", MsSqlDbAccess.GranteeName.ToUpper()); }
 			else
 			{ script = script.Replace("grantName", "PUBLIC");}
 			// apply host name
-			script = script.Replace("hostName", FbDbAccess.HostName);
+			script = script.Replace("hostName", MsSqlDbAccess.HostName);
 		  
 		  
 		   
@@ -8390,13 +8381,13 @@ string connectionString,
 				// Here comes add SET ARITHABORT ON for MSSQL amd Linq class
 			   // statements.Insert(0, "SET ARITHABORT ON");
 
-			using (YAF.Classes.Data.FbDbConnectionManager connMan = new FbDbConnectionManager())
+			using (YAF.Classes.Data.MsSqlDbConnectionManager connMan = new MsSqlDbConnectionManager())
 			{                          
 
 				// use transactions...
 				if (useTransactions)
 				{
-					using (FbTransaction trans = connMan.OpenDBConnection.BeginTransaction(YAF.Classes.Data.FbDbAccess.IsolationLevel))
+					using (FbTransaction trans = connMan.OpenDBConnection.BeginTransaction(YAF.Classes.Data.MsSqlDbAccess.IsolationLevel))
 					{
 						foreach (string sql0 in statements)
 						{
@@ -8461,12 +8452,12 @@ string connectionString,
 
 
 		}
- public static void system_initialize_fixaccess(string connectionString,bool bGrant)
+ public static void system_initialize_fixaccess(bool bGrant)
 		{
           // USED FOR UPGRADE FROM VERY OLD VERSIONS
 
 		}
- public static void system_initialize(string connectionString,
+ public static void system_initialize(
             string forumName,
             string timeZone,
             string culture, 
@@ -8480,7 +8471,7 @@ string connectionString,
 		{
 			string gs =providerUserKey.ToString();
 
-			using (FbCommand cmd = FbDbAccess.GetCommand("SYSTEM_INITIALIZE"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("SYSTEM_INITIALIZE"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
                 // added so command won't timeout anymore...
@@ -8501,24 +8492,24 @@ string connectionString,
                 cmd.Parameters.Add("@I_ROLEPREFIX", FbDbType.VarChar).Value = rolePrefix;  
 				cmd.Parameters.Add("@I_UTCTIMESTAMP", FbDbType.TimeStamp).Value = DateTime.UtcNow; 
 					  
-				YAF.Classes.Data.FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				YAF.Classes.Data.MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			
 			}           
 
 		   
 		}
- static public void system_updateversion(string connectionString,
+ static public void system_updateversion(
             int version, 
             string name)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("SYSTEM_UPDATEVERSION"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("SYSTEM_UPDATEVERSION"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new FbParameter("@I_VERSION", FbDbType.Integer)).Value = version;
                 cmd.Parameters.Add(new FbParameter("@I_VERSIONNAME", FbDbType.VarChar)).Value = name;
 
-				YAF.Classes.Data.FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				YAF.Classes.Data.MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 		/// <summary>
@@ -8526,15 +8517,15 @@ string connectionString,
 		/// Used in GroupRankStyles cache.
 		/// Usage: LegendID = 1 - Select Groups, LegendID = 2 - select Ranks by Name 
 		/// </summary>
- public static DataTable group_rank_style(string connectionString,object boardID)
+ public static DataTable group_rank_style(object boardID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("group_rank_style"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("group_rank_style"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
 			  
-				return YAF.Classes.Data.FbDbAccess.Current.GetData(cmd, connectionString);
+				return YAF.Classes.Data.MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 		#endregion
@@ -8572,12 +8563,12 @@ string connectionString,
 		/// </param>
 		/// <returns>
 		/// </returns>
-        public static DataTable shoutbox_getmessages(string connectionString,
+        public static DataTable shoutbox_getmessages(
             int boardId, 
             int numberOfMessages, 
             object useStyledNicks)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("SHOUTBOX_GETMESSAGES"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("SHOUTBOX_GETMESSAGES"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -8585,18 +8576,18 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_NUMBEROFMESSAGES", FbDbType.Integer)).Value = numberOfMessages;               
 				cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Boolean)).Value = useStyledNicks;
 				
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
-        public static bool shoutbox_savemessage(string connectionString,
+        public static bool shoutbox_savemessage(
             int boardId, 
             string message, 
             string userName, 
             int userID, 
             object ip)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("SHOUTBOX_SAVEMESSAGE"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("SHOUTBOX_SAVEMESSAGE"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId;
@@ -8607,22 +8598,22 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_IP", FbDbType.VarChar)).Value = ip;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
                 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			   
 				return true;
 			}
 		}
 
-        public static Boolean shoutbox_clearmessages(string connectionString,
+        public static Boolean shoutbox_clearmessages(
             int boardId)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("SHOUTBOX_CLEARMESSAGES"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("SHOUTBOX_CLEARMESSAGES"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;     
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				return true;
 			}
 		}
@@ -8636,7 +8627,7 @@ string connectionString,
 			return null;
 		}
 
-        public static string db_shrink_new(string connectionString)
+        public static string db_shrink_new()
 		{
 			/* String ShrinkSql = "DBCC SHRINKDATABASE(N'" + DBName.DBConnection.Database + "')";
 			FbConnection ShrinkConn = new FbConnection(YAF.Classes.Config.ConnectionString);
@@ -8658,7 +8649,7 @@ string connectionString,
             return string.Empty;
 		}
 
-        public static string db_recovery_mode_new(string connectionString, string dbRecoveryMode)
+        public static string db_recovery_mode_new( string dbRecoveryMode)
 		{
 			/* String RecoveryMode = "ALTER DATABASE " + DBName.DBConnection.Database + " SET RECOVERY " + dbRecoveryMode;
 			 FbConnection RecoveryModeConn = new FbConnection(YAF.Classes.Config.ConnectionString);
@@ -8691,11 +8682,11 @@ string connectionString,
 		/// The name of the second user + Whether this request is approved or not.
 		/// </returns>
         public static string[] buddy_addrequest(
-            string connectionString,
+            
             [NotNull] object FromUserID, 
             [NotNull] object ToUserID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("BUDDY_ADDREQUEST"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("BUDDY_ADDREQUEST"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 			  
@@ -8703,7 +8694,7 @@ string connectionString,
 				cmd.Parameters.Add("@I_TOUSERID", FbDbType.VarChar, 128).Value = ToUserID;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;        
 				
-				DataRow drow = FbDbAccess.Current.GetData(cmd, connectionString).Rows[0];
+				DataRow drow = MsSqlDbAccess.Current.GetData(cmd).Rows[0];
 				return new string[] { drow["I_PARAMOUTPUT"].ToString(), drow["I_APPROVED"].ToString() };
 			}
 		}
@@ -8724,12 +8715,12 @@ string connectionString,
 		/// the name of the second user.
 		/// </returns>
         public static string buddy_approveRequest(
-            string connectionString,
+            
             [NotNull] object FromUserID, 
             [NotNull] object ToUserID, 
             [NotNull] object Mutual)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("BUDDY_APPROVEREQUEST"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("BUDDY_APPROVEREQUEST"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;               
 				cmd.Parameters.Add("@I_FROMUSERID", FbDbType.Integer).Value = FromUserID;
@@ -8742,7 +8733,7 @@ string connectionString,
 				
 				cmd.Parameters.Add(paramOutput);
 				
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				return paramOutput.Value.ToString();
 			}
 		}
@@ -8759,9 +8750,9 @@ string connectionString,
 		/// <returns>
 		/// the name of the second user.
 		/// </returns>
-        public static string buddy_denyRequest(string connectionString,object FromUserID, object ToUserID)
+        public static string buddy_denyRequest(object FromUserID, object ToUserID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("BUDDY_DENYREQUEST"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("BUDDY_DENYREQUEST"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				var paramOutput = new FbParameter("@I_PARAMOUTPUT", FbDbType.VarChar, 255);
@@ -8769,7 +8760,7 @@ string connectionString,
 				cmd.Parameters.Add("@I_FROMUSERID", FbDbType.Integer).Value = FromUserID;
                 cmd.Parameters.Add("@I_TOUSERID", FbDbType.Integer).Value = ToUserID;
 				cmd.Parameters.Add(paramOutput);
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				return paramOutput.Value.ToString();
 			}
 		}
@@ -8786,9 +8777,9 @@ string connectionString,
 		/// <returns>
 		/// The name of the second user.
 		/// </returns>
-        public static string buddy_remove(string connectionString,object FromUserID, object ToUserID)
+        public static string buddy_remove(object FromUserID, object ToUserID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("BUDDY_REMOVE"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("BUDDY_REMOVE"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				var paramOutput = new FbParameter("@I_PARAMOUTPUT", FbDbType.VarChar, 128);
@@ -8796,7 +8787,7 @@ string connectionString,
 				cmd.Parameters.Add("@I_FROMUSERID", FbDbType.Integer).Value = FromUserID;
 				cmd.Parameters.Add("@I_TOUSERID", FbDbType.Integer).Value = ToUserID;
 				cmd.Parameters.Add(paramOutput);
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				return paramOutput.Value.ToString();
 			}
 		}
@@ -8812,13 +8803,13 @@ string connectionString,
 		/// <returns>
 		/// a Datatable containing the buddy list.
 		/// </returns>
-        public static DataTable buddy_list(string connectionString,object FromUserID)
+        public static DataTable buddy_list(object FromUserID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("BUDDY_LIST"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("BUDDY_LIST"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add("@I_FROMUSERID", FbDbType.Integer).Value = FromUserID;
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 		#endregion
@@ -8826,28 +8817,28 @@ string connectionString,
         /// <summary>
         /// The activeaccess_reset.
         /// </summary>
-        public static void activeaccess_reset(string connectionString)
+        public static void activeaccess_reset()
         {
-            using (var cmd = FbDbAccess.GetCommand("activeaccess_reset"))
+            using (var cmd = MsSqlDbAccess.GetCommand("activeaccess_reset"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
-                FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
             }
         }
-        private static DataTable GetTableColumnsInfo(string connectionString, string tableName)
+        private static DataTable GetTableColumnsInfo( string tableName)
         {
-            string sql = @"SELECT FIRST 1 * FROM {0}".FormatWith(FbDbAccess.GetObjectName("UserProfile"));
+            string sql = @"SELECT FIRST 1 * FROM {0}".FormatWith(MsSqlDbAccess.GetObjectName("UserProfile"));
 
-           // using (var cmd = FbDbAccess.GetCommand("DBINFO_TABLE_COLUMNS_INFO"))
-            using (var cmd = FbDbAccess.GetCommand(sql,true))
+           // using (var cmd = MsSqlDbAccess.GetCommand("DBINFO_TABLE_COLUMNS_INFO"))
+            using (var cmd = MsSqlDbAccess.GetCommand(sql,true))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("@I_TABLENAME", FbDbType.Integer)).Value = tableName;
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
 
-	    public static DataTable User_ListTodaysBirthdays(string connectionString, [NotNull] object boardID, [CanBeNull] object useStyledNicks)
+	    public static DataTable User_ListTodaysBirthdays( [NotNull] object boardID, [CanBeNull] object useStyledNicks)
         {
             // Profile columns cannot yet exist when we first are gettinng data.
             try
@@ -8855,7 +8846,7 @@ string connectionString,
                 var sqlBuilder =
                     new StringBuilder(@"EXECUTE BLOCK (I_STYLEDNICKS BOOL = :II_STYLEDNICKS, I_UTCTIMESTAMP TIMESTAMP = :II_UTCTIMESTAMP) RETURNS (""Birthday"" TIMESTAMP, ""UserName"" VARCHAR(255), ""DisplayName"" VARCHAR(255),""Style"" VARCHAR(255) ");
                 // objQual_DBINFO_TABLE_COLUMNS_INFO
-                var dt = GetTableColumnsInfo(connectionString, FbDbAccess.GetObjectName("USERPROFILE"));
+                var dt = GetTableColumnsInfo( MsSqlDbAccess.GetObjectName("USERPROFILE"));
               /*  foreach (DataRow dr in dt.Rows)
                 {
                     if (dr["ActualTypeName"].ToString() == "blob")
@@ -8879,24 +8870,24 @@ string connectionString,
 
                 sqlBuilder = new StringBuilder();
                 sqlBuilder.Append("SELECT up.Birthday, u.USERID as \"UserID\", u.Name as UserName,u.DisplayName,(case(?) when 1 then  COALESCE(( SELECT FIRST 1 f.Style FROM ");
-                sqlBuilder.Append(FbDbAccess.GetObjectName("UserGroup"));
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserGroup"));
                 sqlBuilder.Append(" e JOIN ");
-                sqlBuilder.Append(FbDbAccess.GetObjectName("GROUP"));
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("GROUP"));
                 sqlBuilder.Append(" f on f.GroupID=e.GroupID WHERE e.UserID=u.UserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder), r.Style) else '' end) AS Style ");
                 sqlBuilder.Append(" FROM ");
-                sqlBuilder.Append(FbDbAccess.GetObjectName("UserProfile"));
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserProfile"));
                 sqlBuilder.Append(" up JOIN ");
-                sqlBuilder.Append(FbDbAccess.GetObjectName("USER"));
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("USER"));
                 sqlBuilder.Append(" u ON u.USERID = up.USERID JOIN ");
-                sqlBuilder.Append(FbDbAccess.GetObjectName("Rank"));
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Rank"));
                 sqlBuilder.Append(" r ON r.RankID = u.RankID where EXTRACT(MONTH FROM up.Birthday) = EXTRACT(MONTH FROM current_timestamp) AND EXTRACT(DAY FROM up.Birthday) = EXTRACT(DAY FROM current_timestamp)");
                
-                using (var cmd = FbDbAccess.GetCommand(sqlBuilder.ToString(), true))
+                using (var cmd = MsSqlDbAccess.GetCommand(sqlBuilder.ToString(), true))
                 {
                     cmd.Parameters.Add(new FbParameter("II_STYLEDNICKS", FbDbType.Boolean)).Value = useStyledNicks;
                    /* cmd.Parameters.Add(new FbParameter("II_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow.Date;
                     cmd.Parameters.Add(new FbParameter("II_UTCTIMESTAMP2", FbDbType.TimeStamp)).Value = DateTime.UtcNow.Date; */
-                    return FbDbAccess.Current.GetData(cmd, connectionString);
+                    return MsSqlDbAccess.Current.GetData(cmd);
                 }
             }
             catch (Exception e)
@@ -8919,7 +8910,7 @@ string connectionString,
         /// <returns>
         /// The user_ list profiles.
         /// </returns>
-        public static DataTable User_ListProfilesByIdsList(string connectionString, [NotNull] int[] userIdsList, [CanBeNull] object useStyledNicks)
+        public static DataTable User_ListProfilesByIdsList( [NotNull] int[] userIdsList, [CanBeNull] object useStyledNicks)
         {
             string stIds = userIdsList.Aggregate(string.Empty, (current, userId) => current + (',' + userId)).Trim(',');
             // Profile columns cannot yet exist when we first are gettinng data.
@@ -8928,7 +8919,7 @@ string connectionString,
                 var sqlBuilder =
                                    new StringBuilder("EXECUTE BLOCK (I_STYLEDNICKS BOOL = ?, I_UTCTIMESTAMP TIMESTAMP = ?) RETURNS (");
                 // objQual_DBINFO_TABLE_COLUMNS_INFO
-                var dt = GetTableColumnsInfo(connectionString, FbDbAccess.GetObjectName("USERPROFILE"));
+                var dt = GetTableColumnsInfo( MsSqlDbAccess.GetObjectName("USERPROFILE"));
                 foreach (DataRow dr in dt.Rows)
                 {
                     if (dr["ActualTypeName"].ToString() == "blob")
@@ -8953,21 +8944,21 @@ string connectionString,
                 sqlBuilder = new StringBuilder(sqlBuilder.ToString().Trim(','));
                 sqlBuilder.Append(") ");
                 sqlBuilder.Append(" AS BEGIN SELECT up.*, u.Name as UserName,u.DisplayName,Style = case(?) when 1 then  COALESCE(( SELECT FIRST 1 f.Style FROM ");
-                sqlBuilder.Append(FbDbAccess.GetObjectName("UserGroup"));
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserGroup"));
                 sqlBuilder.Append(" e JOIN ");
-                sqlBuilder.Append(FbDbAccess.GetObjectName("GROUP"));
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("GROUP"));
                 sqlBuilder.Append(" f on f.GroupID=e.GroupID WHERE e.UserID=u.UserID AND LEN(f.Style) > 2 ORDER BY f.SortOrder), r.Style) else '' end ");
                 sqlBuilder.Append(" FROM ");
-                sqlBuilder.Append(FbDbAccess.GetObjectName("UserProfile"));
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserProfile"));
                 sqlBuilder.Append(" up JOIN ");
-                sqlBuilder.Append(FbDbAccess.GetObjectName("USER"));
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("USER"));
                 sqlBuilder.Append(" u ON u.USERID = up.USERID JOIN ");
-                sqlBuilder.Append(FbDbAccess.GetObjectName("Rank"));
+                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Rank"));
                 sqlBuilder.AppendFormat(" r ON r.RankID = u.RankID where UserID IN ({0})  ", stIds);
-                using (var cmd = FbDbAccess.GetCommand(sqlBuilder.ToString(), true))
+                using (var cmd = MsSqlDbAccess.GetCommand(sqlBuilder.ToString(), true))
                 {
                     cmd.Parameters.Add("@I_STYLEDNICKS",FbDbType.Boolean).Value = useStyledNicks;
-                    return FbDbAccess.Current.GetData(cmd, connectionString);
+                    return MsSqlDbAccess.Current.GetData(cmd);
                 }
             }
             catch (Exception e)
@@ -8988,7 +8979,7 @@ string connectionString,
         /// <param name="collection">
         /// The collection.
         /// </param>
-        public static void SetPropertyValues(string connectionString, int boardId, string appname, int userId, SettingsPropertyValueCollection collection, bool dirtyOnly = true)
+        public static void SetPropertyValues( int boardId, string appname, int userId, SettingsPropertyValueCollection collection, bool dirtyOnly = true)
         {
             if (userId == 0 || collection.Count < 1)
             {
@@ -9008,12 +8999,12 @@ string connectionString,
             }
 
             // load the data for the configuration
-            List<FbSettingsPropertyColumn> spc = LoadFromPropertyValueCollection(connectionString,collection);
+            List<SettingsPropertyColumn> spc = LoadFromPropertyValueCollection(collection);
 
             if (spc != null && spc.Count > 0)
             {
                 // start saving...
-                LegacyDb.SetProfileProperties(connectionString, boardId, appname, userId, collection, spc, dirtyOnly);
+                LegacyDb.SetProfileProperties( boardId, appname, userId, collection, spc, dirtyOnly);
             }
         }
         /// <summary>
@@ -9031,10 +9022,10 @@ string connectionString,
         /// <param name="settingsColumnsList">
         /// The settings columns list.
         /// </param>
-        public static void SetProfileProperties(string connectionString, [NotNull] int boardId, [NotNull] object appName, [NotNull] int userID, [NotNull] SettingsPropertyValueCollection values, [NotNull] List<FbSettingsPropertyColumn> settingsColumnsList, bool dirtyOnly)
+        public static void SetProfileProperties( [NotNull] int boardId, [NotNull] object appName, [NotNull] int userID, [NotNull] SettingsPropertyValueCollection values, [NotNull] List<SettingsPropertyColumn> settingsColumnsList, bool dirtyOnly)
         {
             string userName = string.Empty;
-            var dtu = LegacyDb.UserList(connectionString,boardId, userID, true, null, null, true);
+            var dtu = LegacyDb.UserList(boardId, userID, true, null, null, true);
             foreach (var typedUserList in dtu)
             {
                 userName = typedUserList.Name;
@@ -9045,7 +9036,7 @@ string connectionString,
             {
                 return;
             }
-            using (var conn = new FbDbConnectionManager().OpenDBConnection)
+            using (var conn = new MsSqlDbConnectionManager().OpenDBConnection)
             {
                 var cmd = new FbCommand();
 
@@ -9054,7 +9045,7 @@ string connectionString,
 
             cmd.Parameters.AddWithValue("@UserID", userID);
             cmd.Parameters.AddWithValue("@ApplicationName", appName);
-                string table = FbDbAccess.GetObjectName("UserProfile");
+                string table = MsSqlDbAccess.GetObjectName("UserProfile");
                 StringBuilder sqlCommand = new StringBuilder();
                 /* StringBuilder sqlCommand = new StringBuilder("EXECUTE BLOCK AS BEGIN IF (EXISTS (SELECT 1 FROM ").Append(table);
                  sqlCommand.Append(" WHERE USERID = @UserID AND ApplicationName = @ApplicationName)) THEN "); 
@@ -9068,7 +9059,7 @@ string connectionString,
                 var setStr = new StringBuilder();
                 int count = 0;
 
-                foreach (FbSettingsPropertyColumn column in settingsColumnsList)
+                foreach (SettingsPropertyColumn column in settingsColumnsList)
                 {
                     // only write if it's dirty
                     if (!dirtyOnly || values[column.Settings.Name].IsDirty)
@@ -9150,14 +9141,14 @@ string connectionString,
         /// </summary>
         /// <returns>
         /// </returns>
-        public static DataTable GetProfileStructure(string connectionString)
+        public static DataTable GetProfileStructure()
         {
-            string sql = @"SELECT FIRST 1 * FROM {0}".FormatWith(FbDbAccess.GetObjectName("UserProfile"));
+            string sql = @"SELECT FIRST 1 * FROM {0}".FormatWith(MsSqlDbAccess.GetObjectName("UserProfile"));
 
-            using (var cmd = FbDbAccess.GetCommand(sql, true))
+            using (var cmd = MsSqlDbAccess.GetCommand(sql, true))
             {
                 cmd.CommandType = CommandType.Text;
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
 
@@ -9173,7 +9164,7 @@ string connectionString,
         /// <param name="size">
         /// The size.
         /// </param>
-        public static void AddProfileColumn(string connectionString, [NotNull] string name, FbDbType columnType, int size)
+        public static void AddProfileColumn( [NotNull] string name, FbDbType columnType, int size)
         {
             // get column type...
             string type = columnType.ToString();
@@ -9184,12 +9175,12 @@ string connectionString,
             }
 
             string sql = "ALTER TABLE {0} ADD {1} {2} ".FormatWith(
-              FbDbAccess.GetObjectName("UserProfile"), name, type);
+              MsSqlDbAccess.GetObjectName("UserProfile"), name, type);
 
-            using (var cmd = FbDbAccess.GetCommand(sql, true))
+            using (var cmd = MsSqlDbAccess.GetCommand(sql, true))
             {
                 cmd.CommandType = CommandType.Text;
-                FbDbAccess.Current.ExecuteNonQuery(cmd,connectionString);
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
             }
         }
         /// <summary>
@@ -9247,9 +9238,9 @@ string connectionString,
             return true;
         }
 
-        public static List<FbSettingsPropertyColumn> LoadFromPropertyValueCollection(string connectionString, SettingsPropertyValueCollection collection)
+        public static List<SettingsPropertyColumn> LoadFromPropertyValueCollection( SettingsPropertyValueCollection collection)
         {
-           List<FbSettingsPropertyColumn> settingsColumnsList = new List<FbSettingsPropertyColumn>();
+           List<SettingsPropertyColumn> settingsColumnsList = new List<SettingsPropertyColumn>();
                 // clear it out just in case something is still in there...
 
                 // validiate all the properties and populate the internal settings collection
@@ -9266,20 +9257,20 @@ string connectionString,
                     {
                         size = 256;
                     }
-                    settingsColumnsList.Add(new FbSettingsPropertyColumn(value.Property, dbType, size));
+                    settingsColumnsList.Add(new SettingsPropertyColumn(value.Property, dbType, size));
                 }
 
                 // sync profile table structure with the FbDB...
-                DataTable structure = LegacyDb.GetProfileStructure(connectionString);
+                DataTable structure = LegacyDb.GetProfileStructure();
 
                 // verify all the columns are there...
-                foreach (FbSettingsPropertyColumn column in settingsColumnsList)
+                foreach (SettingsPropertyColumn column in settingsColumnsList)
                 {
                     // see if this column exists
                     if (!structure.Columns.Contains(column.Settings.Name))
                     {
                         // if not, create it...
-                        LegacyDb.AddProfileColumn(connectionString, column.Settings.Name, column.DataType, column.Size);
+                        LegacyDb.AddProfileColumn( column.Settings.Name, column.DataType, column.Size);
                     }
                 }
 
@@ -9287,9 +9278,9 @@ string connectionString,
         }
 
         #endregion
-        public static DataTable admin_list(string connectionString, [NotNull] object boardId, [NotNull] object useStyledNicks)
+        public static DataTable admin_list( [NotNull] object boardId, [NotNull] object useStyledNicks)
         {
-            using (var cmd = FbDbAccess.GetCommand("admin_list"))
+            using (var cmd = MsSqlDbAccess.GetCommand("admin_list"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
 
@@ -9297,7 +9288,7 @@ string connectionString,
                 cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Integer)).Value = useStyledNicks;
                 cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
 
@@ -9318,13 +9309,13 @@ string connectionString,
 		/// New Cover image id.
 		/// </param>
         public static int album_save(
-            string connectionString,
+            
             [NotNull] object albumId, 
             [NotNull] object userID, 
             [NotNull] object title, 
             [NotNull] object coverImageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("ALBUM_SAVE"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("ALBUM_SAVE"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -9334,7 +9325,7 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("@I_COVERIMAGEID", FbDbType.Integer)).Value = coverImageID;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;        
 
-				return Convert.ToInt32(FbDbAccess.Current.ExecuteScalar(cmd, connectionString));
+				return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
 			}
 		}
 
@@ -9351,14 +9342,14 @@ string connectionString,
 		/// <returns>
 		/// a Datatable containing the albums.
 		/// </returns>
-		public static DataTable album_list(string connectionString,object UserID, object AlbumID)
+		public static DataTable album_list(object UserID, object AlbumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("ALBUM_LIST"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("ALBUM_LIST"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("I_USERID", FbDbType.Integer)).Value = UserID;
 				cmd.Parameters.Add(new FbParameter("I_ALBUMID", FbDbType.Integer)).Value = AlbumID;
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -9368,13 +9359,13 @@ string connectionString,
 		/// <param name="AlbumID">
 		/// the album id.
 		/// </param>
-		public static void album_delete(string connectionString,object AlbumID)
+		public static void album_delete(object AlbumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("ALBUM_DELETE"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("ALBUM_DELETE"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("I_ALBUMID", FbDbType.Integer)).Value = AlbumID;
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -9384,15 +9375,15 @@ string connectionString,
 		/// <param name="AlbumID">
 		/// the album id.
 		/// </param>
-		public static string album_gettitle(string connectionString,object AlbumID)
+		public static string album_gettitle(object AlbumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("ALBUM_GETTITLE"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("ALBUM_GETTITLE"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("I_ALBUMID", FbDbType.Integer)).Value = AlbumID;
 
-				return FbDbAccess.Current.ExecuteScalar(cmd, connectionString).ToString();
+				return MsSqlDbAccess.Current.ExecuteScalar(cmd).ToString();
 			}
 		}
 
@@ -9407,16 +9398,16 @@ string connectionString,
 		/// the album id.
 		/// </param>
 		/// <returns></returns>
-        public static int[] album_getstats(string connectionString,[NotNull] object userID, [NotNull] object albumID)
+        public static int[] album_getstats([NotNull] object userID, [NotNull] object albumID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("ALBUM_GETSTATS"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("ALBUM_GETSTATS"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new FbParameter("I_USERID", FbDbType.Integer)).Value = userID;
 				cmd.Parameters.Add(new FbParameter("I_ALBUMID", FbDbType.Integer)).Value = albumID;
 
-				DataRow dr = FbDbAccess.Current.GetData(cmd, connectionString).Rows[0];
+				DataRow dr = MsSqlDbAccess.Current.GetData(cmd).Rows[0];
 
 				return new int[]
 		  {
@@ -9446,7 +9437,7 @@ string connectionString,
 		/// <param name="ContentType">
 		/// the content type.
 		/// </param>
-        public static void album_image_save(string connectionString,
+        public static void album_image_save(
             [NotNull] object imageID, 
             [NotNull] object albumID, 
             [NotNull] object caption, 
@@ -9454,7 +9445,7 @@ string connectionString,
             [NotNull] object bytes, 
             [NotNull] object contentType)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("ALBUM_IMAGE_SAVE"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("ALBUM_IMAGE_SAVE"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add(new FbParameter("I_IMAGEID", FbDbType.Integer)).Value = imageID;
@@ -9465,7 +9456,7 @@ string connectionString,
 				cmd.Parameters.Add(new FbParameter("I_CONTENTTYPE", FbDbType.VarChar)).Value = contentType;
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;        
 
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -9482,16 +9473,16 @@ string connectionString,
 		/// <returns>
 		/// a Datatable containing the image(s).
 		/// </returns>
-        public static DataTable album_image_list(string connectionString,
+        public static DataTable album_image_list(
             [NotNull] object albumID, 
             [NotNull] object imageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("ALBUM_IMAGE_LIST"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("ALBUM_IMAGE_LIST"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("I_ALBUMID", FbDbType.Integer)).Value = albumID;
 				cmd.Parameters.Add(new FbParameter("I_IMAGEID", FbDbType.Integer)).Value = imageID;
-				return FbDbAccess.Current.GetData(cmd, connectionString);
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 
@@ -9501,13 +9492,13 @@ string connectionString,
 		/// <param name="ImageID">
 		/// the image id.
 		/// </param>
-		public static void album_image_delete(string connectionString,object ImageID)
+		public static void album_image_delete(object ImageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("ALBUM_IMAGE_DELETE"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("ALBUM_IMAGE_DELETE"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("I_IMAGEID", FbDbType.Integer)).Value = ImageID;
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
@@ -9517,13 +9508,13 @@ string connectionString,
 		/// <param name="ImageID">
 		/// the image id.
 		/// </param>
-		public static void album_image_download(string connectionString,object ImageID)
+		public static void album_image_download(object ImageID)
 		{
-			using (FbCommand cmd = FbDbAccess.GetCommand("ALBUM_IMAGE_DOWNLOAD"))
+			using (FbCommand cmd = MsSqlDbAccess.GetCommand("ALBUM_IMAGE_DOWNLOAD"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 				cmd.Parameters.Add(new FbParameter("I_IMAGEID", FbDbType.Integer)).Value = ImageID;
-				FbDbAccess.Current.ExecuteNonQuery(cmd, connectionString);
+				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
         /// <summary>
@@ -9531,21 +9522,21 @@ string connectionString,
         /// </summary>
         /// <param name="userID">The user ID.</param>
         /// <returns>All Albbum Images of the User</returns>
-        public static DataTable album_images_by_user([NotNull] string connectionString, [NotNull] object userID)
+        public static DataTable album_images_by_user([NotNull] object userID)
         {
-            using (var cmd = FbDbAccess.GetCommand("album_images_by_user"))
+            using (var cmd = MsSqlDbAccess.GetCommand("album_images_by_user"))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("I_USERID", FbDbType.Integer).Value = userID;
-                return FbDbAccess.Current.GetData(cmd, connectionString);
+                return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
 		#endregion
 
-    public static void unencode_all_topics_subjects(string connectionString,
+    public static void unencode_all_topics_subjects(
      [NotNull]Func<string, string> decodeTopicFunc)
     {
-      var topics = LegacyDb.topic_simplelist(connectionString, 0, 99999999).SelectTypedList(r => new TypedTopicSimpleList(r)).ToList();
+      var topics = LegacyDb.topic_simplelist( 0, 99999999).SelectTypedList(r => new TypedTopicSimpleList(r)).ToList();
     
       foreach (var topic in topics.Where(t => t.TopicID.HasValue && t.Topic.IsSet()))
       {
@@ -9556,7 +9547,7 @@ string connectionString,
               if (!decodedTopic.Equals(topic.Topic))
               {
                   // unencode it and update.
-                  topic_updatetopic(connectionString, topic.TopicID.Value, decodedTopic);
+                  topic_updatetopic( topic.TopicID.Value, decodedTopic);
               }
           }
           catch
@@ -9575,9 +9566,9 @@ string connectionString,
  /// <returns>
  /// Returns the Thank Count.
  /// </returns>
- public static int user_ThankFromCount(string connectionString,[NotNull] object userId)
+ public static int user_ThankFromCount([NotNull] object userId)
  {
-     using (var cmd = FbDbAccess.GetCommand("user_thankfromcount"))
+     using (var cmd = MsSqlDbAccess.GetCommand("user_thankfromcount"))
      {
          cmd.CommandType = CommandType.StoredProcedure;
 
@@ -9585,7 +9576,7 @@ string connectionString,
 
          cmd.CommandTimeout = int.Parse(Config.SqlCommandTimeout);
 
-         var thankCount = (int)FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+         var thankCount = (int)MsSqlDbAccess.Current.ExecuteScalar(cmd);
 
          return thankCount;
      }
@@ -9603,9 +9594,9 @@ string connectionString,
  /// <returns>
  /// Returns if true or not
  /// </returns>
- public static bool user_RepliedTopic(string connectionString,[NotNull] object messageId, [NotNull] object userId)
+ public static bool user_RepliedTopic([NotNull] object messageId, [NotNull] object userId)
  {
-     using (var cmd = FbDbAccess.GetCommand("user_repliedtopic"))
+     using (var cmd = MsSqlDbAccess.GetCommand("user_repliedtopic"))
      {
          cmd.CommandType = CommandType.StoredProcedure;
 
@@ -9614,7 +9605,7 @@ string connectionString,
 
          cmd.CommandTimeout = int.Parse(Config.SqlCommandTimeout);
 
-         var messageCount = (int)FbDbAccess.Current.ExecuteScalar(cmd, connectionString);
+         var messageCount = (int)MsSqlDbAccess.Current.ExecuteScalar(cmd);
 
          return messageCount > 0;
      }

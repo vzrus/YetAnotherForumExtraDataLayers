@@ -123,7 +123,7 @@ code    {
       <div id="column2">     
       <h1>MySQL System Requirements</h1>
           <blockquote>
-             <p>Database: The minimal version is 5.30 for 1.9.3 and 5.1.x for 1.9.6 and higher. 
+             <p>Database: The minimal version is 5.1.x for 1.9.6 and higher. 
              You should have a possibility to create functions on your MySQL hoster's server. 
 			 Check it first. </p>
 			  <p>
@@ -135,13 +135,13 @@ code    {
 			  privilege to install functions, as described in
 			  <a href="http://dev.mysql.com/doc/refman/5.6/en/stored-programs-logging.html" title="17.7. Binary Logging of Stored Programs">
 			  Section 17.7, &#8220;Binary Logging of Stored Programs&#8221;</a>.&nbsp; Che&#1089;k 
-			  it befor installing.</p>
+			  it before installing to your hosting provider.</p>
 			  <p>The db object names should be case insensitive.</p>
               <p>OS: Windows XP,Windows Vista,Windows Server 2003,Windows Server 2008.</p>
-              <p>.NET Framework: 4.0 for 1.9.6 Beta1 and higher and 2.0 for 1.9.3</p>
-          </blockquote>  
-
-        <h1>
+              <p>.NET Framework: 4.0 for 1.9.6 Beta1 and higher and 2.0 for 
+			  1.9.6 Rc1 and higher</p>
+          </blockquote>
+		  <h1>
 		My SQL INSTALLATION
 			  </h1>
         <!-- **** INSERT PAGE CONTENT HERE **** -->
@@ -149,30 +149,17 @@ code    {
         <h2>STEP 1.Download and unpack archive.</h2>        
         <ol>
           <li>
-       Download the archive from <a href="http://yaf-datalayers.sourceforge.net">here</a> . The files named like <strong>yaf_mysql_</strong>193.
-	Releases like <strong>yaf_mysql_193-r1...</strong> - are simply bugfixes to 
-		 main 1.9.3 release&nbsp; and contain 
-	all the files from above version and a separate upgrade file and/or folder.
-	    <blockquote>
+       &nbsp;<blockquote>
     For new YAF versions 1.9.6 Beta 1 and higher use source code 
 	from <a href="https://github.com/vzrus/YetAnotherForumExtraDataLayers">here</a>.
 	Installation details are mostly for the old version. For the version simply 
-		 replace corresponding files according to folder structure. Delete 
-		 /mssql folder in YAF.Classes.Data too. Configuration details are mostly common.
+		 replace corresponding files according to folder structure. Configuration details are mostly common.
 	You can use MySQL 5.1 and higher.  
 	</blockquote>
- 
-	</li>
-
-
-	 	
- <li>
-   Unzip the entire archive to a folder you want to run YAF in on your web 
-	server.
-</li>    
- </ol>        
-        <h2>STEP 2. INSTALL/CHECK MySQL DB SETTINGS.</h2>
-        	It supports MySQL  5.0.30 incl. 5.1.x. and  5.1.x. and higher beginning with 1.9.6 Beta.
+&nbsp;</li>
+ </ol>
+		  <h2>STEP 2. INSTALL/CHECK MySQL DB SETTINGS.</h2>
+        	It supports&nbsp;  5.1.x. and higher beginning with 1.9.6 Beta.
         	Other versions support is not garanteed.
 		 
 
@@ -185,7 +172,7 @@ code    {
 		 In latest data layer options for 5.1.x i<span class="style1">n</span> 
 		 connection string in db.config you can use option<font COLOR="#008000" SIZE="2">
 		 <br />
-		 Use Procedure Bodies=false 		 <p>&nbsp;</p>
+		 Use Procedure Bodies=false 		 
 		 </font>
      	</blockquote>
      	<p>Required connection string settings: 
@@ -212,29 +199,15 @@ code    {
 	  </ul>
 	
 	
-         <h2>STEP 4a. COMPILE YAF from source files (Optional for YAF 1.9.3)</h2> 
-       If you have chosen this option than omit Step 4b. 
- <p>
-          Use <em>/Source</em> folder files. Replace all other files in included folders.        
-		  Distribution folder contains ready code to simply replace it in a 
-		  ready 
-		  site.
-		  		  Source folder contains source code. 
-			  </p>
-		  
-          <blockquote><p>For YAF beginning with version 1.9.6 Beta 1 you should compile YAF 
-		  from source code.</p></blockquote>			
-			<hr></hr> 
-        
-          <h2>STEP 4b. INSTALL YAF MYSQL data layer(YAF 1.9.3 only).</h2>
-          If you have chosen this option than omit Step 4b.
-
-        <ol>
-          <li>To use the data layer on existing site, simply add or replace files in 
-		  <em>/Distribution</em> folder in respective folders. This contains 
-		  ready files.</li>
-          <li>Ajust your <em>db.config</em> file settings.</li>
-        </ol>        
+         <h2>STEP 4. Repla&#1089;e files and&nbsp; COMPILE YAF from source files. &nbsp;</h2>
+		  Replace all the files in the archive. If you see a folder with a MS Visual 
+Studio , simply replace a corresponding project. You should completely replace 
+YAF.Calasses.Data and YAF.Providers projects and their folders in YAF solution. All other files 
+you should add, if they're missing&nbsp; or replace. Providers are optional but 
+it's recommended to use them first to test the functionality.&nbsp; The source 
+		  code contains sample configuration files.<br />
+		  <br />
+		  Compile YAF with the replaced files.<br />
        <hr></hr>
         <h2>Follow General YAF compilation and install directions</h2>        
       

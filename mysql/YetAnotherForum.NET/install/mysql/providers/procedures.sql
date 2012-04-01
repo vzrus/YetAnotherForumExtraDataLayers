@@ -83,14 +83,15 @@
 CREATE PROCEDURE {databaseName}.{objectQualifier}prov_upgrade
 (
 i_PreviousVersion int,
-i_NewVersion int
+i_NewVersion int,
+i_UTCTIMESTAMP datetime
 )
 MODIFIES SQL DATA
 BEGIN
 -- RESOLVE SALT ISSUE IN 193 RC2
 IF ((i_PreviousVersion = 31) OR (i_PreviousVersion = 32)) THEN					
 		UPDATE {databaseName}.{objectQualifier}prov_Membership SET PasswordSalt='UwB5AHMAdABlAG0ALgBCAHkAdABlAFsAXQA=' WHERE PasswordSalt IS NOT NULL;
-		UPDATE {databaseName}.{objectQualifier}prov_Membership SET Joined=UTC_TIMESTAMP() WHERE Joined IS NULL;
+		UPDATE {databaseName}.{objectQualifier}prov_Membership SET Joined=i_UTCTIMESTAMP WHERE Joined IS NULL;
 		END IF;	
 	
 END; 
@@ -258,7 +259,8 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}prov_resetpassword
  i_ApplicationName VARCHAR(256),
  i_UserName VARCHAR(256),
  i_UserKey CHAR(36),
- i_UserIsOnline TINYINT(1)
+ i_UserIsOnline TINYINT(1),
+i_UTCTIMESTAMP datetime
  )
  MODIFIES SQL DATA
  BEGIN
@@ -276,7 +278,7 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}prov_resetpassword
  	
  	/*IF USER IS ONLINE DO AN UPDATE USER*/	
  	IF (i_UserIsOnline = 1) THEN 	
- 		UPDATE {databaseName}.{objectQualifier}prov_Membership SET LastActivity = UTC_TIMESTAMP() WHERE UsernameLwd = LOWER(i_UserName) and ApplicationID = ici_ApplicationID;
+ 		UPDATE {databaseName}.{objectQualifier}prov_Membership SET LastActivity = i_UTCTIMESTAMP WHERE UsernameLwd = LOWER(i_UserName) and ApplicationID = ici_ApplicationID;
  	END IF;		
 END;
 --GO 

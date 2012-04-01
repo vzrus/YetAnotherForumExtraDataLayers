@@ -1,4 +1,4 @@
-﻿/* Yet Another Forum.NET MySQL data layer by vzrus
+﻿/* Yet Another Forum.NET Firebird data layer by vzrus
  * Copyright (C) 2006-2012 Vladimir Zakharov
  * https://github.com/vzrus
  * http://sourceforge.net/projects/yaf-datalayers/
@@ -1558,6 +1558,7 @@ RETURNS
 "TopicMovedID" INTEGER,
 "LastUserID" INTEGER, 
 "LastUser" varchar(128) CHARACTER SET UTF8,
+"LastUserDisplayName" varchar(128) CHARACTER SET UTF8,
 "Style" varchar(255) CHARACTER SET UTF8,
 "LastForumAccess" timestamp,
 "LastTopicAccess" timestamp
@@ -1566,10 +1567,11 @@ as
 DECLARE VARIABLE ici_LastPosted timestamp;
 DECLARE VARIABLE ici_LastMessageID integer default 2;
 DECLARE VARIABLE ici_LastMessageFlags integer default 23;
-DECLARE VARIABLE ici_LastTopicName varchar(128) default 'ggg';
+DECLARE VARIABLE ici_LastTopicName varchar(128) default '';
 DECLARE VARIABLE ici_LastUserID integer default 2; 
 DECLARE VARIABLE ici_LastTopicID integer default 2;
-DECLARE VARIABLE ici_LastUserName varchar(128) default 'admin';
+DECLARE VARIABLE ici_LastUserName varchar(128) default '';
+DECLARE VARIABLE ici_LastUserDisplayName varchar(128) default '';
 DECLARE VARIABLE ici_TopicMovedID integer default 0;
 
 
@@ -1620,9 +1622,9 @@ select
 
  	for	select 
 		a.CategoryID, 
-		a.Name AS Category, 
+		a.NAME AS Category, 
 		b.ForumID AS ForumID,
-		b.Name AS Forum, 
+		b.NAME AS Forum, 
 		b.Description,
 		b.ImageUrl,
 		b.Styles,
@@ -1635,6 +1637,7 @@ select
 		t.LASTMESSAGEFLAGS AS LastMessageFlags,
 		t.LASTUSERID AS LastUserID,
 		(SELECT :ici_LastUserName FROM RDB$DATABASE),
+		(SELECT :ici_LastUserDisplayName FROM RDB$DATABASE),
 		t.TOPICID AS LastTopicID,
 		t.TOPICMOVEDID AS TopicMovedID,
 		t.TOPIC AS LastTopicName,
@@ -1684,6 +1687,7 @@ select
 		 :"LastMessageFlags",
 		 :"LastUserID",
          :"LastUser",
+		 :"LastUserDisplayName",
 		 :"LastTopicID",
 		 :"TopicMovedID",
 		 :"LastTopicName",
@@ -1699,8 +1703,8 @@ select
 		 DO 
 		 BEGIN
 		 IF (:"LastUser" IS NULL) THEN
-         select NAME from objQual_USER x 
-		 where x.USERID=:"LastUserID" INTO :"LastUser";		
+         select x.NAME, x.DISPLAYNAME from objQual_USER x 
+		 where x.USERID=:"LastUserID" INTO :"LastUser",:"LastUserDisplayName";		
 		 SUSPEND; 
 		 END
 end;
@@ -1726,14 +1730,18 @@ RETURNS
 		"TopicID" INTEGER,
 		"TopicMovedID" INTEGER,
 		"UserID" INTEGER,
-		"UserName" VARCHAR(128),	
+		"UserName" VARCHAR(128),
+		"UserDisplayName" VARCHAR(128),
+		"StarterIsGuest" BOOL,
 		"LastMessageID" INTEGER,
 		"LastMessageFlags" INTEGER,
 		"LastUserID" INTEGER,
 		"NumPosts" INTEGER,	
 		"Posted" TIMESTAMP,
 		"LastUserName" varchar(128),
-		"LastUserStyle"  varchar(255),		
+		"LastUserDisplayName" varchar(128),
+		"LastUserStyle"  varchar(255),
+		"LastUserIsGuest" BOOL,	
 		"LastForumAccess" timestamp,
 		"LastTopicAccess" timestamp		
 )
@@ -1751,17 +1759,25 @@ BEGIN
 		t.TOPICMOVEDID,
 		t.USERID,
 		t.USERNAME,	
+		t.USERDISPLAYNAME,
+		(select x.ISGUEST from objQual_USER x 
+		where x.USERID = t.USERID),	
 		t.LASTMESSAGEID,
 		t.LASTMESSAGEFLAGS,
 		t.LASTUSERID,
 		t.NUMPOSTS,
 		t.POSTED,
 		COALESCE(t.LASTUSERNAME,
-		(select NAME from objQual_USER x 
+		(select x.NAME from objQual_USER x 
 		where x.USERID = t.LASTUSERID)) AS "LastUserName",
+		COALESCE(t.LASTUSERNAME,
+		(select x.DISPLAYNAME from objQual_USER x 
+		where x.USERID = t.LASTUSERID)) AS "LastUserDisplayName",
 	    case(:I_STYLEDNICKS)
 	        when 1 then (SELECT FIRST 1 usr.USERSTYLE FROM objQual_USER usr WHERE usr.USERID = t.LASTUSERID)  
 	        else (SELECT '' FROM RDB$DATABASE)	 end,
+        (select x.ISGUEST from objQual_USER x 
+		where x.USERID = t.LASTUSERID) AS "LastUserIsGuest",
 		(case(:I_FINDLASTUNREAD)
 		     when 1 then
 		       (SELECT FIRST 1 LASTACCESSDATE FROM objQual_FORUMREADTRACKING x WHERE x.FORUMID=f.FORUMID AND x.USERID = :I_PAGEUSERID)
@@ -1798,14 +1814,18 @@ BEGIN
 		:"TopicID",
 		:"TopicMovedID",
 		:"UserID",
-		:"UserName",	
+		:"UserName",
+		:"UserDisplayName",
+		:"StarterIsGuest",
 		:"LastMessageID",
 		:"LastMessageFlags",
 		:"LastUserID",
 		:"NumPosts",
 		:"Posted",		
-		:"LastUserName",		
+		:"LastUserName",
+		:"LastUserDisplayName",
 		:"LastUserStyle",
+		:"LastUserIsGuest",
 		:"LastForumAccess",
 		:"LastTopicAccess"
 		DO SUSPEND;
@@ -1831,11 +1851,15 @@ RETURNS
 		"TopicMovedID" INTEGER,
 		"UserID" INTEGER,
 		"UserName" varchar(128),
+		"UserDisplayName" varchar(128),
+		"StarterIsGuest" BOOL,
 		"LastMessageID" INTEGER,
 		"LastMessageFlags" INTEGER,
 		"LastUserID" INTEGER,
 		"Posted" timestamp,		
-		"LastUserName" varchar(128)		
+		"LastUserName" varchar(128),
+		"LastUserDisplayName" varchar(128),
+		"LastUserIsGuest" BOOL
 )
 AS
 BEGIN	
@@ -1850,13 +1874,21 @@ BEGIN
 		t.TOPICMOVEDID,
 		t.USERID,
 		t.USERNAME,
+		t.USERDISPLAYNAME,
+		(select x.ISGUEST from objQual_USER x 
+		where x.USERID = t.USERID),		
 		t.LASTMESSAGEID,
 		t.LASTMESSAGEFLAGS,
 		t.LASTUSERID,
 		t.POSTED,
 		COALESCE(t.LASTUSERNAME,
-		(select NAME from objQual_USER x 
-		where x.USERID = t.LASTUSERID)) AS "LastUserName"	
+		(select x.NAME from objQual_USER x 
+		where x.USERID = t.LASTUSERID)) AS "LastUserName",
+		COALESCE(t.LASTUSERNAME,
+		(select x.DISPLAYNAME from objQual_USER x 
+		where x.USERID = t.LASTUSERID)) AS "LastUserDisplayName",		
+        (select x.ISGUEST from objQual_USER x 
+		where x.USERID = t.LASTUSERID) AS "LastUserIsGuest"
 	FROM
 	    objQual_MESSAGE m 
 	INNER JOIN	
@@ -1888,11 +1920,15 @@ BEGIN
 		:"TopicMovedID",
 		:"UserID",
 		:"UserName",
+		:"UserDisplayName",
+		:"StarterIsGuest",
 		:"LastMessageID",
 		:"LastMessageFlags",
 		:"LastUserID",		
 		:"Posted",		
-		:"LastUserName"
+		:"LastUserName",
+		:"LastUserDisplayName",
+		:"LastUserIsGuest"
 		DO SUSPEND;
 END;
 --GO
@@ -1908,6 +1944,7 @@ RETURNS
 (
 		"UserID" INTEGER,
 		"UserName" VARCHAR(128),
+		"UserDisplayName" VARCHAR(128),
 		"IP" VARCHAR(39),
 		"SessionID" VARCHAR(36),
 		"ForumID" INTEGER,
@@ -1939,6 +1976,7 @@ begin
 		for select 
 			a.USERID,
 			a.NAME AS "UserName",
+			a.DISPLAYNAME,
 			c.IP,
 			c.SESSIONID,
 			c.FORUMID,
@@ -1975,6 +2013,7 @@ begin
 			INTO
 		:"UserID",
 		:"UserName",
+		:"UserDisplayName",
 		:"IP",
 		:"SessionID",
 		:"ForumID",
@@ -1998,6 +2037,7 @@ begin
 			for select 
 			a.USERID,
 			a.NAME AS "UserName",
+			a.DISPLAYNAME,
 			c.IP,
 			c.SESSIONID,
 			c.FORUMID,
@@ -2035,6 +2075,7 @@ begin
 			INTO
 		:"UserID",
 		:"UserName",
+		:"UserDisplayName",
 		:"IP",
 		:"SessionID",
 		:"ForumID",
@@ -2058,6 +2099,7 @@ begin
 	for	select
 			a.USERID,
 			a.NAME AS "UserName",
+			a.DISPLAYNAME,
 			c.IP,
 			c.SESSIONID,
 			c.FORUMID,
@@ -2100,6 +2142,7 @@ begin
 			INTO
 		:"UserID",
 		:"UserName",
+		:"UserDisplayName",
 		:"IP",
 		:"SessionID",
 		:"ForumID",
@@ -3191,7 +3234,7 @@ CREATE procedure objQual_USER_ASPNET
 BEGIN  
  
  	ICI_DISPLAYNAME  = :I_DISPLAYNAME ;
- 	IF (I_ISAPPROVED = 1) THEN ici_approvedFlag = 2;
+ 	IF (:I_ISAPPROVED = 1) THEN ici_approvedFlag = 2;
  	
  	IF (EXISTS(SELECT FIRST 1 1 FROM objQual_USER 
                   WHERE BOARDID=:I_BOARDID 
@@ -3991,3 +4034,13 @@ BEGIN
 end;
 --GO
 
+CREATE PROCEDURE objQual_FORUM_MAXID(I_BOARDID INTEGER)
+RETURNS ("ForumID" integer)
+	AS
+begin	
+	select first 1 a.FORUMID from objQual_FORUM a join objQual_CATEGORY b 
+	on b.CATEGORYID=a.CATEGORYID where b.BOARDID=:I_BOARDID order by a.FORUMID desc
+	INTO :"ForumID";
+	SUSPEND;
+end;
+--GO

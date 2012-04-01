@@ -726,12 +726,10 @@ namespace YAF.Classes.Data
             if (!MsSqlDbAccess.LargeForumTree)
             {
 
-
                 return forum_listall_sorted(boardId, userId, null, false, 0);
             }
             else
-            {
-                // return forum_listall_sorted(boardId, userId, null, false, 0);
+            {                
                 return forum_ns_getchildren_activeuser((int)boardId, 0, 0, (int)userId,false,false,"-");
             }
         }
@@ -740,8 +738,6 @@ namespace YAF.Classes.Data
         {
             return forum_listall_sorted(boardId, userId, null, false, 0);
         }
-
-
 
         //Here
         static public DataTable forum_listall_sorted( object boardId, object userId, int[] forumidExclusions, bool emptyFirstRow, int startAt)
@@ -2302,6 +2298,24 @@ namespace YAF.Classes.Data
 			}
 		}
 
+        /// <summary>
+        /// Gets a max id of forums.
+        /// </summary>
+        /// <param name="boardID">
+        /// boardID
+        /// </param>
+        /// <returns>
+        /// Max forum id for a board
+        /// </returns>
+        public static int forum_maxid([NotNull] object boardID)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("forum_maxid"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardID;
+                return Convert.ToInt32(MsSqlDbAccess.Current.ExecuteScalar(cmd));
+            }
+        }
 
 		/// <summary>
 		/// Lists all forums accessible to a user
@@ -2381,6 +2395,7 @@ namespace YAF.Classes.Data
 				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
+
         static public void forum_sort_list_recursive(DataTable listSource, DataTable listDestination, int parentID, int categoryID, int currentIndent)
         {
             DataRow newRow;
@@ -2421,7 +2436,6 @@ namespace YAF.Classes.Data
                 }
             }
         }
-
 
         static public DataTable forum_sort_list(DataTable listSource, int parentID, int categoryID, int startingIndent, int[] forumidExclusions, bool emptyFirstRow)
         {
@@ -2546,8 +2560,6 @@ namespace YAF.Classes.Data
 			if (parentID == null) { parentID = DBNull.Value; }
             if (!MsSqlDbAccess.LargeForumTree)
             {
-
-
                 using (NpgsqlCommand cmd1 = MsSqlDbAccess.GetCommand("forum_listread"))
                 {
                     cmd1.CommandType = CommandType.StoredProcedure;
@@ -5500,6 +5512,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_forumid", NpgsqlDbType.Integer)).Value = forumID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_showmoved", NpgsqlDbType.Boolean)).Value = showMoved;
                 cmd.Parameters.Add(new NpgsqlParameter("i_linkdays", NpgsqlDbType.Integer)).Value = linkDays;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}

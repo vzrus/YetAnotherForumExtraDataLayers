@@ -1,4 +1,4 @@
-/* Yet Another Forum.NET
+﻿/* Yet Another Forum.NET
  * Copyright (C) 2006-2012 Jaben Cargman
  * http://www.yetanotherforum.net/
  * 
@@ -16,38 +16,21 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-
-
 namespace YAF.Classes.Data
 {
-  #region Using
-
-  using Autofac;
-
-  using YAF.Types;
-  using YAF.Types.Interfaces;
-
-  #endregion
-
   /// <summary>
-  /// The data module.
+  /// The search condition type.
   /// </summary>
-  public class DataModule : Module
+  public enum SearchConditionType
   {
-    #region Methods
+    /// <summary>
+    ///   The and.
+    /// </summary>
+    AND, 
 
     /// <summary>
-    /// The load.
+    ///   The or.
     /// </summary>
-    /// <param name="builder">
-    /// The builder.
-    /// </param>
-    protected override void Load([NotNull] ContainerBuilder builder)
-    {
-      builder.RegisterType<MsSqlDbAccess>().As<IDbAccess>().InstancePerLifetimeScope();
-      builder.RegisterType<MsSqlDbConnectionManager>().As<IDbConnectionManager>().InstancePerLifetimeScope();
-    }
-
-    #endregion
+    OR
   }
 }

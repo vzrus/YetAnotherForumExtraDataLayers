@@ -342,34 +342,8 @@ ON a.UserID = x_1.UserID
 INNER JOIN {databaseName}.{objectQualifier}Group AS b
 ON b.GroupID = a.GroupID
 GROUP BY a.UserID, x_1.ForumID;
---GO   
+--GO  
 
- CREATE VIEW {databaseName}.{objectQualifier}TopicSelectView
- AS
- SELECT
-a.TopicID,
-a.ForumID,
-a.UserID,
-a.UserName,
-a.Posted,
-a.Topic,
-a.Views,
-a.Priority,
-a.PollID,
-a.TopicMovedID,
-a.LastPosted,
-a.LastMessageID,
-a.LastUserID,
-a.LastUserName,
-a.NumPosts,
-a.AnswerMessageId,
-CAST(IFNULL(a.Flags,0) AS UNSIGNED) AS Flags,
-IFNULL(SIGN(a.Flags & 8)>0,false) AS IsDeleted,
-IFNULL(SIGN(a.Flags & 1024)>0,false)  AS IsQuestion
-
- FROM
- 	{databaseName}.{objectQualifier}Topic a;
---GO 
 
  CREATE VIEW {databaseName}.{objectQualifier}MessageSelectView
  AS
@@ -396,7 +370,6 @@ a.BlogPostID
  	{databaseName}.{objectQualifier}Message a;
 --GO
 
-DROP VIEW IF EXISTS {databaseName}.{objectQualifier}TopicSelectView;
  CREATE VIEW {databaseName}.{objectQualifier}TopicSelectView
  AS
  SELECT
@@ -416,7 +389,8 @@ a.LastUserID,
 a.LastUserName,
 a.NumPosts,
 IFNULL(a.Flags,0) AS Flags,
-IFNULL(SIGN(a.Flags & 8)>0,false) AS IsDeleted
+IFNULL(SIGN(a.Flags & 8)>0,false) AS IsDeleted,
+IFNULL(SIGN(a.Flags & 1024)>0,false)  AS IsQuestion
  FROM
  	{databaseName}.{objectQualifier}Topic a;
 --GO

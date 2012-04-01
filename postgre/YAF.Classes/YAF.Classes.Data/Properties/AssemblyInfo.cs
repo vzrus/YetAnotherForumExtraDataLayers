@@ -1,12 +1,12 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="AssemblyInfo.cs" company="Tiny Gecko">
+// <copyright file="AssemblyInfo.cs" company="vzrus">
 //  YetAnotherForum.NET
-//  Copyright (C) 2006-2012 Jaben Cargman
-//  http://www.yetanotherforum.net/
+//  Copyright © 2006-2012 Vladimir Zakharov
+//  https://github.com/vzrus
 //  This program is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU General Public License
-//  as published by the Free Software Foundation; either version 2
-//  of the License, or (at your option) any later version.
+//  as published by the Free Software Foundation; version 2 only
+//  of the License.
 //  This program is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -32,7 +32,7 @@ using System.Security;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("vzrus https://github.com/vzrus")]
 [assembly: AssemblyProduct("YAF.Classes.Data")]
-[assembly: AssemblyCopyright("Copyright © 2006-2011 Vladimir Zakharov")]
+[assembly: AssemblyCopyright("Copyright © 2006-2012 Vladimir Zakharov")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -51,8 +51,8 @@ using System.Security;
 //      Revision
 // You can specify all the values or you can default the Revision and Build Numbers 
 // by using the '*' as shown below:
-[assembly: AssemblyVersion("1.9.6.0")]
-[assembly: AssemblyFileVersion("1.9.6.0")]
+[assembly: AssemblyVersion("1.9.6.1")]
+[assembly: AssemblyFileVersion("1.9.6.1")]
 
 #if (!COMPACT_FRAMEWORK)
 

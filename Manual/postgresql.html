@@ -143,10 +143,13 @@ Grant all privileges to public to be sure.
 	Change db.config and app.config to your preferred settings.<br />
 &nbsp;<br />
 Change db.config and app.config to your preferred settings. <br />
+		  <br />
 Defaults:<br />
 user - yafuser<br />
 database -yafnet<br />
 schema -public<br />
+		  <br />
+			  You can use your custom schema.
 			  <br />
 			  <blockquote>Remember that default performance will be low.
 			   You should configure PostgreSql manually to get an acceptable performance. </blockquote><br />
@@ -157,19 +160,19 @@ schema -public<br />
 <div  class="newStyle2" align="center">REPLACE FILES and folders in the archive.</div>
 <br />
 
-<p>Replace all the files in the archive. If a folder misses, create it.</p>
-<hr />
-<br />
-<div  class="newStyle2" align="center">REPLACE OR ADD FILES IN FOLDERS.	</div>
-Simply replace YAF distribution files with /Distribution folder content or add new ones.
-	<br />
+<p>Replace all the files in the archive. If you see a folder with a MS Visual 
+Studio , simply replace a corresponding project. You should completely replace 
+YAF.Calasses.Data and YAF.Providers projects and their folders in YAF solution. All other files 
+you should add, if they're missing&nbsp; or replace. Providers are optional but 
+it's recommended to use them first to test the functionality.&nbsp; The source 
+code contains sample configuration files.</p>
 <hr />
 
 	
 <br />
 <div  class="newStyle2" align="center">COMPILE YAF(optional).	</div>
 
-<p>Use /Source folder content.Put Npgsql.dll and Mono.Security.dll in /Bin folder .Do so with all other files in other folders too.</p>
+<p>Compile YAF with the replaced files.</p>
 <hr />
 <div  class="newStyle2" align="center">FOLLOW YAF COMPILLATION and INSTALLATION COMMON DIRECTIONS	</div>
 	

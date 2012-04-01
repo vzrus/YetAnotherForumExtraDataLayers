@@ -232,6 +232,7 @@ namespace YAF.Providers.Membership
 				cmd.Parameters.Add("i_UserName", MySqlDbType.VarChar ).Value = userName;               
                 cmd.Parameters.Add("i_UserKey", MySqlDbType.String ).Value = providerUserKey;
 				cmd.Parameters.Add("i_UserIsOnline", MySqlDbType.Byte ).Value = userIsOnline;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				using ( DataTable dt = _msSqlDbAccess.GetData( cmd)  )
 				{
 					if ( dt.Rows.Count > 0 )
@@ -254,6 +255,7 @@ namespace YAF.Providers.Membership
 				cmd.Parameters.Add("i_UserName", MySqlDbType.VarChar ).Value = userName;
                 cmd.Parameters.Add("i_UserKey", MySqlDbType.String ).Value = DBNull.Value;
                 cmd.Parameters.Add("i_UserIsOnline", MySqlDbType.Byte ).Value = updateUser;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				return _msSqlDbAccess.GetData( cmd) ;
 			}
 
@@ -342,6 +344,7 @@ namespace YAF.Providers.Membership
                 // Nonstandard args
                 cmd.Parameters.Add("i_PreviousVersion", MySqlDbType.Int32 ).Value = previousVersion;
                 cmd.Parameters.Add("i_NewVersion", MySqlDbType.Int32 ).Value = newVersion;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
                 _msSqlDbAccess.ExecuteNonQuery( cmd) ;
             }
 

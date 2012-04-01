@@ -1,12 +1,18 @@
-﻿/* Yet Another Forum.NET
- * Copyright (C) 2003-2005 Bjørnar Henden
- * Copyright (C) 2006-2009 Jaben Cargman
+﻿/* Yet Another Forum.NET Firebird data layer by vzrus
+ * Copyright (C) 2006-2012 Vladimir Zakharov
+ * https://github.com/vzrus
+ * http://sourceforge.net/projects/yaf-datalayers/
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; version 2 only
+ * General class structure is based on MS SQL Server code,
+ * created by YAF developers
+ *
  * http://www.yetanotherforum.net/
- * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * of the License.
  * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -17,41 +23,60 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-
-using System.IO;
-using YAF.Types;
-using YAF.Types.Handlers;
-using YAF.Types.Interfaces;
-
 namespace YAF.Classes.Data
 {
-  using System;
+  #region Using
+
   using System.Data;
+
+  using YAF.Types;
+  using YAF.Types.Handlers;
+  using YAF.Types.Interfaces;
+
   using FirebirdSql.Data.FirebirdClient;
-  using YAF.Classes.Pattern;  
+
+  #endregion
 
   /// <summary>
   /// Provides open/close management for DB Connections
   /// </summary>
-  public class FbDbConnectionManager : IDbConnectionManager
+  public class MsSqlDbConnectionManager : IDbConnectionManager
   {
-    
-    /// <summary>
-    /// The _connection.
-    /// </summary>
-    public FbConnection _connection = null;
+    #region Constants and Fields
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="FbDbConnectionManager"/> class.
+    ///   The _connection.
     /// </summary>
-    public FbDbConnectionManager()
+    protected FbConnection _connection;
+
+    #endregion
+
+    #region Constructors and Destructors
+
+    /// <summary>
+    ///   Initializes a new instance of the <see cref = "MsSqlDbConnectionManager" /> class.
+    /// </summary>
+    public MsSqlDbConnectionManager()
     {
       // just initalize it (not open)
-      InitConnection();
+      this.InitConnection();
     }
 
+    #endregion
+
+    #region Events
+
     /// <summary>
-    /// Gets ConnectionString.
+    ///   The info message.
+    /// </summary>
+    public event YafDBConnInfoMessageEventHandler InfoMessage;
+
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    ///   Gets ConnectionString.
     /// </summary>
     public virtual string ConnectionString
     {
@@ -62,40 +87,33 @@ namespace YAF.Classes.Data
     }
 
     /// <summary>
-    /// Gets the current DB Connection in any state.
+    ///   Gets the current DB Connection in any state.
     /// </summary>
     public FbConnection DBConnection
     {
       get
       {
-        InitConnection();
+        this.InitConnection();
         return this._connection;
       }
     }
 
     /// <summary>
-    /// Gets an open connection to the DB. Can be called any number of times.
+    ///   Gets an open connection to the DB. Can be called any number of times.
     /// </summary>
     public FbConnection OpenDBConnection
     {
       get
       {
-          this.InitConnection();
+        this.InitConnection();
 
-          if (this._connection.State != ConnectionState.Open)
-          {
-              string sOriginalDirectory = Directory.GetCurrentDirectory();
-             // string sApplicationBinPath = (string)System.Web.HttpContext.Current.Request.PhysicalApplicationPath + "\\bin";
-          //    Directory.SetCurrentDirectory(sApplicationBinPath);
-              // open it up...
-              this._connection.Open();
-            //  if ((sOriginalDirectory != null) && (sOriginalDirectory.Length > 0))
-           //   {
-            //      Directory.SetCurrentDirectory(sOriginalDirectory);
-            //  }
-          }
+        if (this._connection.State != ConnectionState.Open)
+        {
+          // open it up...
+          this._connection.Open();
+        }
 
-          return this._connection;
+        return this._connection;
       }
     }
 
@@ -104,10 +122,10 @@ namespace YAF.Classes.Data
     /// </summary>
     IDbConnection IDbConnectionManager.DBConnection
     {
-        get
-        {
-            return this.DBConnection;
-        }
+      get
+      {
+        return this.DBConnection;
+      }
     }
 
     /// <summary>
@@ -115,30 +133,28 @@ namespace YAF.Classes.Data
     /// </summary>
     IDbConnection IDbConnectionManager.OpenDBConnection
     {
-        get
-        {
-            return this.OpenDBConnection;
-        }
-    }
-
-    #region IDisposable Members
-
-    /// <summary>
-    /// The dispose.
-    /// </summary>
-    public virtual void Dispose()
-    {
-      // close and delete connection
-      CloseConnection();
-      this._connection = null;
+      get
+      {
+        return this.OpenDBConnection;
+      }
     }
 
     #endregion
 
+    #region Implemented Interfaces
+
+    #region IDbConnectionManager
+
     /// <summary>
-    ///   The info message.
+    /// The close connection.
     /// </summary>
-    public event YafDBConnInfoMessageEventHandler InfoMessage;
+    public void CloseConnection()
+    {
+      if (this._connection != null && this._connection.State != ConnectionState.Closed)
+      {
+        this._connection.Close();
+      }
+    }
 
     /// <summary>
     /// The init connection.
@@ -155,20 +171,29 @@ namespace YAF.Classes.Data
       else if (this._connection.State != ConnectionState.Open)
       {
         // verify the connection string is in there...
-        this._connection.ConnectionString = ConnectionString;
+        this._connection.ConnectionString = this.ConnectionString;
       }
     }
 
+    #endregion
+
+    #region IDisposable
+
     /// <summary>
-    /// The close connection.
+    /// The dispose.
     /// </summary>
-    public void CloseConnection()
+    public virtual void Dispose()
     {
-      if (this._connection != null && this._connection.State != ConnectionState.Closed)
-      {
-        this._connection.Close();
-      }
+      // close and delete connection
+      this.CloseConnection();
+      this._connection = null;
     }
+
+    #endregion
+
+    #endregion
+
+    #region Methods
 
     /// <summary>
     /// The connection_ info message.
@@ -181,10 +206,12 @@ namespace YAF.Classes.Data
     /// </param>
     protected void Connection_InfoMessage([NotNull] object sender, [NotNull] FbInfoMessageEventArgs e)
     {
-      if (InfoMessage != null)
+      if (this.InfoMessage != null)
       {
-        InfoMessage(this, new YafDBConnInfoMessageEventArgs(e.Message));
+        this.InfoMessage(this, new YafDBConnInfoMessageEventArgs(e.Message));
       }
     }
+
+    #endregion
   }
 }

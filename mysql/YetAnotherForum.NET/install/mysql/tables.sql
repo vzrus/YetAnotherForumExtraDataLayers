@@ -198,6 +198,7 @@ CREATE TABLE IF NOT EXISTS {databaseName}.{objectQualifier}Forum
 	   `LastMessageID` INT NULL,
 	   `LastUserID` INT NULL,
 	   `LastUserName` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL,
+	   `LastUserDisplayName` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL,
 	   `NumTopics` INT NOT NULL,
 	   `NumPosts` INT NOT NULL,
 	   `RemoteURL` VARCHAR(128) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL,
@@ -305,6 +306,7 @@ CREATE TABLE IF NOT EXISTS {databaseName}.{objectQualifier}Message
 	   `Indent` INT NOT NULL,
 	   `UserID` INT NOT NULL,
 	   `UserName` VARCHAR(128) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL,
+	   `UserDisplayName` VARCHAR(128) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL,
 	   `Posted` DATETIME NOT NULL,
 	   `Message` LONGTEXT CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NOT NULL ,
 	   `IP` VARCHAR(39) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NOT NULL,
@@ -494,7 +496,8 @@ CREATE TABLE IF NOT EXISTS {databaseName}.{objectQualifier}Registry
 CREATE TABLE  IF NOT EXISTS {databaseName}.{objectQualifier}ShoutboxMessage(
 		ShoutBoxMessageID INT  NOT NULL AUTO_INCREMENT,		
 		UserID int,
-		UserName nvarchar(128) NOT NULL,
+		UserName varchar(128)  CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NOT NULL,
+		UserDisplayName varchar(128)  CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NOT NULL,
 		Message LONGTEXT CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation},
 		`Date` datetime NOT NULL,
 		`IP` varchar(39) NOT NULL,
@@ -533,6 +536,7 @@ CREATE TABLE IF NOT EXISTS {databaseName}.{objectQualifier}Topic
 	   `ForumID` INT NOT NULL,
 	   `UserID` INT NOT NULL,
 	   `UserName` VARCHAR(128) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL,
+	   `UserDisplayName` VARCHAR(128) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL,
 	   `Posted` DATETIME NOT NULL,
 	   `Topic` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NOT NULL,
 	   `Status` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL,
@@ -546,6 +550,7 @@ CREATE TABLE IF NOT EXISTS {databaseName}.{objectQualifier}Topic
 	   `LastMessageID` INT NULL,
 	   `LastUserID` INT NULL,
 	   `LastUserName` VARCHAR(128) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL,
+	   `LastUserDisplayName` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL,
 	   `NumPosts` INT NOT NULL,
 	   `Flags` INT NOT NULL DEFAULT 0,
 	   `AnswerMessageId` INT NULL, 
@@ -944,6 +949,20 @@ IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
   AND COLUMN_NAME='LinkDays' LIMIT 1) THEN
   ALTER TABLE  {databaseName}.{objectQualifier}Topic ADD  `LinkDays` DATETIME;
   END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  (TABLE_NAME='{objectQualifier}Topic' OR TABLE_NAME=LOWER('{objectQualifier}Topic')) 
+  AND COLUMN_NAME='UserDisplayName' LIMIT 1) THEN
+  ALTER TABLE  {databaseName}.{objectQualifier}Topic ADD `UserDisplayName` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL AFTER `UserName`;
+  END IF;
+    
+  IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  (TABLE_NAME='{objectQualifier}Topic' OR TABLE_NAME=LOWER('{objectQualifier}Topic')) 
+  AND COLUMN_NAME='LastUserDisplayName' LIMIT 1) THEN
+  ALTER TABLE  {databaseName}.{objectQualifier}Topic ADD `LastUserDisplayName` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL AFTER `LastUserName`;
+  END IF;
  
 -- Rank Table
 IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
@@ -1218,6 +1237,13 @@ IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
          ALTER TABLE  {databaseName}.{objectQualifier}Message ADD  `ReferenceMessageId`	varchar(255) NULL;
   END IF; 
 
+           IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  LOWER(TABLE_NAME)=LOWER('{objectQualifier}Message')
+  AND COLUMN_NAME='UserDisplayName' LIMIT 1) THEN
+         ALTER TABLE  {databaseName}.{objectQualifier}Message ADD  `UserDisplayName`	varchar(255)  CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL AFTER  `UserName`;
+  END IF; 
+
   -- Forum Table
       IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
   WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
@@ -1238,6 +1264,13 @@ IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
   LOWER(TABLE_NAME)=LOWER('{objectQualifier}Forum')
   AND COLUMN_NAME='PollGroupID' LIMIT 1) THEN
   ALTER TABLE  {databaseName}.{objectQualifier}Forum ADD `PollGroupID`  INT NULL;
+  END IF; 
+
+      IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  LOWER(TABLE_NAME)=LOWER('{objectQualifier}Forum')
+  AND COLUMN_NAME='LastUserDisplayName' LIMIT 1) THEN
+  ALTER TABLE  {databaseName}.{objectQualifier}Forum ADD `LastUserDisplayName`  VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL AFTER `LastUserName`;
   END IF; 
 
   -- PollVote Table
@@ -1368,6 +1401,15 @@ IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
   AND COLUMN_NAME='DateCutOff' LIMIT 1) THEN
 	alter table {databaseName}.{objectQualifier}NntpForum ADD `DateCutOff` DATETIME;
 	 END IF;  
+
+-- ShoutboxMessage Table
+  IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  LOWER(TABLE_NAME)=LOWER('{objectQualifier}ShoutboxMessage')
+  AND COLUMN_NAME='UserDisplayName' LIMIT 1) THEN
+	alter table {databaseName}.{objectQualifier}ShoutboxMessage ADD `UserDisplayName`  VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NULL AFTER `UserName`;
+  END IF;
+
  -- UserPMessage Table
 	     IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
   WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND

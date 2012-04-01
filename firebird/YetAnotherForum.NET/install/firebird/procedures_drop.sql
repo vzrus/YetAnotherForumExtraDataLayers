@@ -1,5 +1,5 @@
 ﻿
-/* Yet Another Forum.NET MySQL data layer by vzrus
+/* Yet Another Forum.NET Firebird data layer by vzrus
  * Copyright (C) 2006-2012 Vladimir Zakharov
  * https://github.com/vzrus
  * http://sourceforge.net/projects/yaf-datalayers/
@@ -52,6 +52,14 @@ EXECUTE STATEMENT 'DROP PROCEDURE objQual_USER_SAVENOTIFICATION;';
 END
 --GO
 
+EXECUTE BLOCK
+AS
+BEGIN
+IF (EXISTS(SELECT FIRST 1 1 
+FROM RDB$PROCEDURES a WHERE a.RDB$PROCEDURE_NAME='objQual_FORUM_MAXID')) THEN
+EXECUTE STATEMENT 'DROP PROCEDURE objQual_FORUM_MAXID;';  
+END
+--GO
 
 EXECUTE BLOCK
 AS

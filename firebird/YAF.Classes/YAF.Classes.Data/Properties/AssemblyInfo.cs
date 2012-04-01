@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="AssemblyInfo.cs" company="vzrus">
-// Yet Another Forum.NET MySQL data layer by vzrus
+// Yet Another Forum.NET Firebird data layer by vzrus
 // Copyright (C) 2006-2012 Vladimir Zakharov
 // https://github.com/vzrus
 // http://sourceforge.net/projects/yaf-datalayers/
@@ -60,8 +60,8 @@ using System.Security;
 //      Revision
 // You can specify all the values or you can default the Revision and Build Numbers 
 // by using the '*' as shown below:
-[assembly: AssemblyVersion("1.9.6.0")]
-[assembly: AssemblyFileVersion("1.9.6.0")]
+[assembly: AssemblyVersion("1.9.6.1")]
+[assembly: AssemblyFileVersion("1.9.6.1")]
 
 #if (!COMPACT_FRAMEWORK)
 

@@ -1,11 +1,18 @@
-/* Yet Another Forum.NET
- * Copyright (C) 2006-2010 Jaben Cargman
+/* Yet Another Forum.NET Firebird data layer by vzrus
+ * Copyright (C) 2006-2012 Vladimir Zakharov
+ * https://github.com/vzrus
+ * http://sourceforge.net/projects/yaf-datalayers/
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; version 2 only
+ * General class structure is based on MS SQL Server code,
+ * created by YAF developers
+ *
  * http://www.yetanotherforum.net/
- * 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * of the License.
  * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,7 +23,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-namespace VZF.Data.Firebird
+namespace YAF.Classes.Data
 {
   using System.Configuration;
   using System.Data;
@@ -24,7 +31,7 @@ namespace VZF.Data.Firebird
   /// <summary>
   /// The settings property column.
   /// </summary>
-  public class FbSettingsPropertyColumn
+  public class SettingsPropertyColumn
   {
     #region Constants and Fields
 
@@ -50,7 +57,7 @@ namespace VZF.Data.Firebird
     /// <summary>
     /// Initializes a new instance of the <see cref="SettingsPropertyColumn"/> class.
     /// </summary>
-    public FbSettingsPropertyColumn()
+    public SettingsPropertyColumn()
     {
       // empty for default constructor...
     }
@@ -67,7 +74,7 @@ namespace VZF.Data.Firebird
     /// <param name="size">
     /// The size.
     /// </param>
-    public FbSettingsPropertyColumn(SettingsProperty settings, FbDbType dataType, int size)
+    public SettingsPropertyColumn(SettingsProperty settings, FbDbType dataType, int size)
     {
       this.DataType = dataType;
       this.Settings = settings;
