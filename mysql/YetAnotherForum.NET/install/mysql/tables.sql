@@ -1515,3 +1515,85 @@ CALL {databaseName}.{objectQualifier}change_table_columns();
 --GO
 DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}change_table_columns;
 --GO
+CREATE PROCEDURE {databaseName}.{objectQualifier}forum_initdisplayname() 
+
+BEGIN
+
+	declare ici_tmp int;
+	declare ici_tmpUserID int;
+	declare ici_tmpLastUserID int;
+		
+		declare fc cursor for
+		select ForumID, LastUserID from {databaseName}.{objectQualifier}Forum
+		where LastUserDisplayName IS NULL;
+
+		declare sbc cursor for
+		select ShoutBoxMessageID,UserID from {databaseName}.{objectQualifier}ShoutboxMessage
+		where UserDisplayName IS NULL;
+
+		declare mc cursor for
+		select MessageID,UserID from {databaseName}.{objectQualifier}Message
+		where UserDisplayName IS NULL;
+
+		declare tc cursor for
+		select TopicID,UserID,LastUserID from {databaseName}.{objectQualifier}Topic
+		where UserDisplayName IS NULL OR LastUserDisplayName IS NULL;
+
+		open fc;
+
+		BEGIN	
+        DECLARE EXIT HANDLER FOR NOT FOUND BEGIN END;         
+        LOOP        
+		fetch fc into ici_tmp,ici_tmpLastUserID;		
+		update {databaseName}.{objectQualifier}Forum set LastUserDisplayName = (select u.DisplayName FROM {databaseName}.{objectQualifier}User u WHERE u.UserID = ici_tmpLastUserID) where {databaseName}.{objectQualifier}Forum.ForumID = ici_tmp; 	
+	   	END LOOP;
+        END;
+		close fc;		
+		
+			
+		open sbc;
+		BEGIN	
+        DECLARE EXIT HANDLER FOR NOT FOUND BEGIN END;         
+        LOOP 
+		fetch sbc into ici_tmp,ici_tmpUserID;		
+		update {databaseName}.{objectQualifier}ShoutboxMessage 
+		set UserDisplayName = (select u.DisplayName FROM {databaseName}.{objectQualifier}User u where u.UserID = ici_tmpUserID) where {databaseName}.{objectQualifier}ShoutboxMessage.ShoutBoxMessageID = ici_tmp;
+	  	END LOOP;
+        END;
+		close sbc;		
+				
+		open mc;
+		BEGIN	
+        DECLARE EXIT HANDLER FOR NOT FOUND BEGIN END;         
+        LOOP 
+		fetch  mc into ici_tmp,ici_tmpUserID;				
+	    update {databaseName}.{objectQualifier}Message  set UserDisplayName = (select u.DisplayName FROM {databaseName}.{objectQualifier}User u  WHERE u.UserID = ici_tmpUserID) where MessageID = ici_tmp;
+	     END LOOP;
+        END;		
+		close mc;
+				
+		open tc;
+			BEGIN	
+        DECLARE EXIT HANDLER FOR NOT FOUND BEGIN END;         
+        LOOP 
+		fetch next from tc into ici_tmp,ici_tmpUserID,ici_tmpLastUserID;	    
+	    update {databaseName}.{objectQualifier}Topic set UserDisplayName = (select u.DisplayName FROM {databaseName}.{objectQualifier}User u  WHERE u.UserID = ici_tmpUserID) where TopicID = ici_tmp;
+	    update {databaseName}.{objectQualifier}Topic set LastUserDisplayName = (select u.DisplayName FROM {databaseName}.{objectQualifier}User u WHERE u.UserID = ici_tmpLastUserID) where TopicID = ici_tmp;			
+	     END LOOP;
+        END;
+		close tc;
+			
+end;
+--GO
+
+CREATE PROCEDURE {databaseName}.{objectQualifier}tmp_initdisplayname()
+BEGIN
+if exists (select 1 from {databaseName}.{objectQualifier}Message where UserDisplayName IS NULL limit 1) then
+CALL {databaseName}.{objectQualifier}forum_initdisplayname();
+end if;
+END;
+--GO
+  DROP PROCEDURE  IF EXISTS {databaseName}.{objectQualifier}tmp_initdisplayname;
+  --GO 
+    DROP PROCEDURE  IF EXISTS {databaseName}.{objectQualifier}forum_initdisplayname;
+  --GO 

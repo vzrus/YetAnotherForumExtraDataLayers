@@ -133,12 +133,12 @@ IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS
   CALL {databaseName}.{objectQualifier}add_or_change_prov_columns();
   --GO
   
-  DROP PROCEDURE  IF EXISTS {databaseName}.{objectQualifier}add_or_change_prov_columns;
+  DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}add_or_change_prov_columns;
   --GO 
   
   DROP PROCEDURE  IF EXISTS {databaseName}.{objectQualifier}tmp_install;
   --GO 
 
- 
+
 
 

@@ -11293,7 +11293,7 @@ PREPARE stmt_tl FROM 'SELECT
 		t.UserID,
 		IFNull(t.UserName,(select x.Name from {databaseName}.{objectQualifier}User x where x.UserID = t.UserID)) AS UserName,
 		IFNull(t.UserDisplayName,(select x.DisplayName from {databaseName}.{objectQualifier}User x where x.UserID = t.UserID)) AS UserDisplayName,
-		(select x.IsGuest from {databaseName}.{objectQualifier}User x where x.UserID = t.UserID) AS StarterIsGuest,
+		(select (x.Flags & 4) from {databaseName}.{objectQualifier}User x where x.UserID = t.UserID) AS StarterIsGuest,
  		t.LastMessageID,
 		t.LastMessageFlags,
  		t.LastUserID,
@@ -11301,7 +11301,7 @@ PREPARE stmt_tl FROM 'SELECT
 		t.Posted,	
  		IFNULL(t.LastUserName,(SELECT `Name` from {databaseName}.{objectQualifier}User x WHERE x.UserID = t.LastUserID)) AS LastUserName,
 		IFNULL(t.LastUserDisplayName,(SELECT `DisplayName` from {databaseName}.{objectQualifier}User x WHERE x.UserID = t.LastUserID)) AS LastUserDisplayName,
-		(SELECT x.`IsGuest` from {databaseName}.{objectQualifier}User x WHERE x.UserID = t.LastUserID) AS LastUserIsGuest,
+		(SELECT (x.Flags & 4) from {databaseName}.{objectQualifier}User x WHERE x.UserID = t.LastUserID) AS LastUserIsGuest,
  	    (case(?)
 	          when 1 then   (SELECT usr.UserStyle FROM  {databaseName}.{objectQualifier}User usr WHERE usr.UserID=t.LastUserID)  
 	        else ?	end) AS LastUserStyle,	
@@ -11531,14 +11531,14 @@ DECLARE ici_SQL VARCHAR(1000);
 		t.UserID,
 		t.UserName,
 		t.UserDisplayName,	
-		(select x.IsGuest from {databaseName}.{objectQualifier}User x where x.UserID = t.UserID) AS StarterIsGuest,
+		(select (x.Flags & 4) from {databaseName}.{objectQualifier}User x where x.UserID = t.UserID) AS StarterIsGuest,
 		t.LastMessageID,
 		t.LastMessageFlags,
 		t.LastUserID,	
 		t.Posted,		
 		IFNULL(t.LastUserName,(select x.Name from {databaseName}.{objectQualifier}User x where x.UserID = t.LastUserID)) AS LastUserName,
 		IFNULL(t.LastUserDisplayName,(select x.DisplayName from {databaseName}.{objectQualifier}User x where x.UserID = t.LastUserID)) AS LastUserDisplayName,
-		(SELECT x.`IsGuest` from {databaseName}.{objectQualifier}User x WHERE x.UserID = t.LastUserID) AS LastUserIsGuest		
+		(SELECT (x.Flags & 4) from {databaseName}.{objectQualifier}User x WHERE x.UserID = t.LastUserID) AS LastUserIsGuest		
 	FROM
 	    {databaseName}.{objectQualifier}Message m 
 	INNER JOIN	
