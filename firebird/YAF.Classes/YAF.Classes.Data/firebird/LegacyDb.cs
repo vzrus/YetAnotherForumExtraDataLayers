@@ -845,12 +845,12 @@ namespace YAF.Classes.Data
 								if (searchDisplayName)
 								{
 									searchSql +=
-									   string.Format(" ((c.Username IS NULL AND b.DisplayName LIKE N'%{0}%') OR (c.Username LIKE N'%{0}%'))", word);
+									   string.Format(" ((c.Username IS NULL AND b.DisplayName LIKE '%{0}%') OR (c.Username LIKE '%{0}%'))", word);
 								}
 								else
 								{
 									searchSql +=
-									 string.Format(" ((c.Username IS NULL AND b.Name LIKE N'%{0}%') OR (c.Username LIKE N'%{0}%'))", word);
+									 string.Format(" ((c.Username IS NULL AND b.Name LIKE '%{0}%') OR (c.Username LIKE '%{0}%'))", word);
 								}
 							   
 							}
@@ -7147,9 +7147,7 @@ namespace YAF.Classes.Data
     public static IEnumerable<TypedUserFind> UserFind(int boardID, bool filter, string userName, string email, string displayName, object notificationType, object dailyDigest)
     {
 			using (FbCommand cmd = MsSqlDbAccess.GetCommand("user_find"))
-			{
-				// if (userName == null) { userName = DBNull.Value; }
-				// if (email == null) { email = DBNull.Value; }
+			{			
 
 				cmd.CommandType = CommandType.StoredProcedure;
 
@@ -8844,7 +8842,7 @@ public static void user_addpoints([NotNull] object userID, [CanBeNull] object fr
             try
             {
                 var sqlBuilder =
-                    new StringBuilder(@"EXECUTE BLOCK (I_STYLEDNICKS BOOL = :II_STYLEDNICKS, I_UTCTIMESTAMP TIMESTAMP = :II_UTCTIMESTAMP) RETURNS (""Birthday"" TIMESTAMP, ""UserName"" VARCHAR(255), ""DisplayName"" VARCHAR(255),""Style"" VARCHAR(255) ");
+                    new StringBuilder(""); // @"EXECUTE BLOCK (I_STYLEDNICKS BOOL = :I_STYLEDNICKS,I_BOARDID INTEGER = :I_BOARDID, I_UTCTIMESTAMP TIMESTAMP = :I_UTCTIMESTAMP, I_UTCTIMESTAMP2 TIMESTAMP = :I_UTCTIMESTAMP) RETURNS (""Birthday"" TIMESTAMP, ""UserName"" VARCHAR(255), ""UserDisplayName"" VARCHAR(255),""Style"" VARCHAR(255)) ");
                 // objQual_DBINFO_TABLE_COLUMNS_INFO
                 var dt = GetTableColumnsInfo( MsSqlDbAccess.GetObjectName("USERPROFILE"));
               /*  foreach (DataRow dr in dt.Rows)
@@ -8869,24 +8867,22 @@ public static void user_addpoints([NotNull] object userID, [CanBeNull] object fr
                 } */
 
                 sqlBuilder = new StringBuilder();
-                sqlBuilder.Append("SELECT up.Birthday, u.USERID as \"UserID\", u.Name as UserName,u.DisplayName,(case(?) when 1 then  COALESCE(( SELECT FIRST 1 f.Style FROM ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserGroup"));
-                sqlBuilder.Append(" e JOIN ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("GROUP"));
-                sqlBuilder.Append(" f on f.GroupID=e.GroupID WHERE e.UserID=u.UserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder), r.Style) else '' end) AS Style ");
+                sqlBuilder.Append("SELECT up.Birthday, u.USERID as \"UserID\", u.Name as \"UserName\",u.DisplayName as \"UserDisplayName\",(case(?) when 1 then  u.USERSTYLE ");
+                sqlBuilder.Append(" else '' end) AS Style ");
                 sqlBuilder.Append(" FROM ");
                 sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserProfile"));
                 sqlBuilder.Append(" up JOIN ");
                 sqlBuilder.Append(MsSqlDbAccess.GetObjectName("USER"));
-                sqlBuilder.Append(" u ON u.USERID = up.USERID JOIN ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Rank"));
-                sqlBuilder.Append(" r ON r.RankID = u.RankID where EXTRACT(MONTH FROM up.Birthday) = EXTRACT(MONTH FROM current_timestamp) AND EXTRACT(DAY FROM up.Birthday) = EXTRACT(DAY FROM current_timestamp)");
+                sqlBuilder.Append(" u ON u.USERID = up.USERID ");
+                sqlBuilder.Append(" where u.BOARDID = ?  AND EXTRACT(MONTH FROM up.Birthday) = EXTRACT(MONTH FROM CAST(? AS DATE)) AND EXTRACT(DAY FROM up.Birthday) = EXTRACT(DAY FROM CAST(? AS DATE)) " +
+                                  ";");
                
                 using (var cmd = MsSqlDbAccess.GetCommand(sqlBuilder.ToString(), true))
                 {
-                    cmd.Parameters.Add(new FbParameter("II_STYLEDNICKS", FbDbType.Boolean)).Value = useStyledNicks;
-                   /* cmd.Parameters.Add(new FbParameter("II_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow.Date;
-                    cmd.Parameters.Add(new FbParameter("II_UTCTIMESTAMP2", FbDbType.TimeStamp)).Value = DateTime.UtcNow.Date; */
+                    cmd.Parameters.Add(new FbParameter(":I_STYLEDNICKS", FbDbType.Boolean)).Value = useStyledNicks;
+                    cmd.Parameters.Add(new FbParameter(":I_BOARDID", FbDbType.Integer)).Value = boardID;
+                    cmd.Parameters.Add(new FbParameter(":I_UTCTIMESTAMP", FbDbType.Date)).Value = DateTime.UtcNow.Date;
+                    cmd.Parameters.Add(new FbParameter(":I_UTCTIMESTAMP1", FbDbType.Date)).Value = DateTime.UtcNow.Date;
                     return MsSqlDbAccess.Current.GetData(cmd);
                 }
             }
@@ -8910,7 +8906,7 @@ public static void user_addpoints([NotNull] object userID, [CanBeNull] object fr
         /// <returns>
         /// The user_ list profiles.
         /// </returns>
-        public static DataTable User_ListProfilesByIdsList( [NotNull] int[] userIdsList, [CanBeNull] object useStyledNicks)
+        public static DataTable User_ListProfilesByIdsList([NotNull] int boardID, [NotNull] int[] userIdsList, [CanBeNull] object useStyledNicks)
         {
             string stIds = userIdsList.Aggregate(string.Empty, (current, userId) => current + (',' + userId)).Trim(',');
             // Profile columns cannot yet exist when we first are gettinng data.
@@ -8943,21 +8939,18 @@ public static void user_addpoints([NotNull] object userID, [CanBeNull] object fr
 
                 sqlBuilder = new StringBuilder(sqlBuilder.ToString().Trim(','));
                 sqlBuilder.Append(") ");
-                sqlBuilder.Append(" AS BEGIN SELECT up.*, u.Name as UserName,u.DisplayName,Style = case(?) when 1 then  COALESCE(( SELECT FIRST 1 f.Style FROM ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserGroup"));
-                sqlBuilder.Append(" e JOIN ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("GROUP"));
-                sqlBuilder.Append(" f on f.GroupID=e.GroupID WHERE e.UserID=u.UserID AND LEN(f.Style) > 2 ORDER BY f.SortOrder), r.Style) else '' end ");
+                sqlBuilder.Append(" AS BEGIN SELECT up.*, u.Name as UserName,u.DisplayName as UserDisplayName, (case(?) when 1 then  u.USERSTYLE ");
+                sqlBuilder.Append("  else '' end) AS Style ");
                 sqlBuilder.Append(" FROM ");
                 sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserProfile"));
                 sqlBuilder.Append(" up JOIN ");
                 sqlBuilder.Append(MsSqlDbAccess.GetObjectName("USER"));
-                sqlBuilder.Append(" u ON u.USERID = up.USERID JOIN ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Rank"));
-                sqlBuilder.AppendFormat(" r ON r.RankID = u.RankID where UserID IN ({0})  ", stIds);
+                sqlBuilder.Append(" u ON u.USERID = up.USERID ");                
+                sqlBuilder.AppendFormat(" where u.BOARDID = ? AND u.UserID IN ({0})  ", stIds);
                 using (var cmd = MsSqlDbAccess.GetCommand(sqlBuilder.ToString(), true))
                 {
                     cmd.Parameters.Add("@I_STYLEDNICKS",FbDbType.Boolean).Value = useStyledNicks;
+                    cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
                     return MsSqlDbAccess.Current.GetData(cmd);
                 }
             }

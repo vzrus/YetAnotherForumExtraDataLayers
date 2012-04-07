@@ -2217,7 +2217,8 @@ RETURNS
 "MaxUsersWhen" timestamp,
 "LastMemberInfoID" INTEGER,
 "LastMemberID" INTEGER,
-"LastMember" varchar(128)
+"LastMember" varchar(128),
+"LastMemberDisplayName" varchar(128)
 )
 as
 BEGIN
@@ -2231,7 +2232,8 @@ BEGIN
 			SELECT FIRST 1 
 			(SELECT 1 FROM RDB$DATABASE) AS	"LastMemberInfoID",
 				USERID AS "LastMemberID",
-				NAME AS "LastMember"
+				NAME AS "LastMember",
+				DISPLAYNAME AS "LastMemberDisplayName"
 			FROM 
 				objQual_USER
 			WHERE 
@@ -2247,7 +2249,8 @@ BEGIN
         :"MaxUsersWhen",
         :"LastMemberInfoID",
         :"LastMemberID",
-        :"LastMember";
+        :"LastMember",
+		:"LastMemberDisplayName";
 SUSPEND;
 END; 
 --GO
@@ -2265,6 +2268,7 @@ RETURNS
 "LastPost" timestamp,
 "LastUserID" INTEGER,
 "LastUser" varchar(128),
+"LastUserDisplayName" varchar(128),
 "LastUserStyle"  varchar(255)
 )
 as
@@ -2273,22 +2277,15 @@ BEGIN
 IF (I_GETDEFAULTS = 0) THEN
 BEGIN
 	SELECT FIRST 1
-		(SELECT count(1) from objQual_MESSAGE a join objQual_TOPIC b on b.TOPICID=a.TOPICID join objQual_FORUM c on c.FORUMID=b.FORUMID join objQual_CATEGORY d on d.CATEGORYID=c.CATEGORYID where d.BOARDID=:I_BOARDID AND BIN_AND(a.FLAGS, 24)=16) AS "Posts",
-		(SELECT count(1) from objQual_TOPIC a join objQual_FORUM b on b.FORUMID=a.FORUMID join objQual_CATEGORY c on c.CATEGORYID=b.CATEGORYID where c.BOARDID=:I_BOARDID AND BIN_AND(a.FLAGS, 8) <> 8) AS "Topics",
-		(SELECT count(1) from objQual_FORUM a join objQual_CATEGORY b on b.CATEGORYID=a.CATEGORYID where b.BOARDID=:I_BOARDID) AS "Forums",		
+		(SELECT count(1) from objQual_MESSAGE a join objQual_TOPIC b on b.TOPICID=a.TOPICID join objQual_FORUM c on c.FORUMID=b.FORUMID join objQual_CATEGORY d on d.CATEGORYID=c.CATEGORYID where d.BOARDID=:I_BOARDID AND BIN_AND(a.FLAGS, 24)=16),
+		(SELECT count(1) from objQual_TOPIC a join objQual_FORUM b on b.FORUMID=a.FORUMID join objQual_CATEGORY c on c.CATEGORYID=b.CATEGORYID where c.BOARDID=:I_BOARDID AND BIN_AND(a.FLAGS, 8) <> 8),
+		(SELECT count(1) from objQual_FORUM a join objQual_CATEGORY b on b.CATEGORYID=a.CATEGORYID where b.BOARDID=:I_BOARDID),		
 		(SELECT 1 FROM RDB$DATABASE) AS "LastPostInfoID",
 		a.POSTED AS "LastPost",
 		a.USERID AS LASTUSERID,
 		e.NAME AS "LastUser",
-        (CASE WHEN :I_STYLEDNICKS > 0 THEN e.USERSTYLE  ELSE '' END) AS "LastUserStyle"
-		/* CASE WHEN :I_STYLEDNICKS
-			when 1 then  COALESCE(
-			( SELECT TOP 1 g.STYLE FROM FROM objQual_USERGROUP ug 
-		    join FROM objQual_GROUP g 
-			on g.GROUPID=ug.GROUPID WHERE ug.USERID=a.USERID 
-			AND CHAR_LENGTH(g.STYLE) > 2 ORDER BY g.SORTORDER), 
-			r.STYLE) LastUserStyle 
-			else ''	 end  */	
+		e.DISPLAYNAME,
+        (CASE WHEN :I_STYLEDNICKS > 0 THEN e.USERSTYLE  ELSE '' END) AS "LastUserStyle"	
 			FROM 
 				objQual_MESSAGE a 
 				join objQual_TOPIC b on b.TOPICID=a.TOPICID 
@@ -2311,19 +2308,21 @@ BEGIN
         :"LastPost",
         :"LastUserID",
         :"LastUser",
+		:"LastUserDisplayName",
         :"LastUserStyle";
 		END
 		ELSE
 		BEGIN
 			SELECT
-		(SELECT 0 FROM RDB$DATABASE) AS "Posts",
-		(SELECT 0 FROM RDB$DATABASE) AS "Topics",
-		(SELECT 1 FROM RDB$DATABASE) AS "Forums",	
-		(SELECT 1 FROM RDB$DATABASE)  AS "LastPostInfoID",
-		(SELECT NULL FROM RDB$DATABASE)  AS "LastPost",
-		(SELECT NULL FROM RDB$DATABASE) AS LASTUSERID,
-		(SELECT NULL FROM RDB$DATABASE) AS "LastUser",
-        (SELECT '' FROM RDB$DATABASE) AS "LastUserStyle"
+		(SELECT 0 FROM RDB$DATABASE),
+		(SELECT 0 FROM RDB$DATABASE), 
+		(SELECT 1 FROM RDB$DATABASE), 	
+		(SELECT 1 FROM RDB$DATABASE),  
+		(SELECT NULL FROM RDB$DATABASE), 
+		(SELECT NULL FROM RDB$DATABASE), 
+		(SELECT NULL FROM RDB$DATABASE),
+		(SELECT NULL FROM RDB$DATABASE) ,
+        (SELECT '' FROM RDB$DATABASE) 
 			FROM 
 				RDB$DATABASE
 		INTO
@@ -2334,6 +2333,7 @@ BEGIN
         :"LastPost",
         :"LastUserID",
         :"LastUser",
+		:"LastUserDisplayName",
         :"LastUserStyle";
 		END
 SUSPEND;

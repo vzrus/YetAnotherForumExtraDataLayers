@@ -11688,6 +11688,8 @@ CREATE PROCEDURE  objQual_RECENT_USERS(
 				 RETURNS
 				 (
 				 "UserID" integer,
+				 "UserName" VARCHAR(255),
+				 "UserDisplayName" VARCHAR(255),
 				 "IsCrawler" BOOL,
 				 "UserCount" INTEGER,
 				 "IsHidden" BOOL,	
@@ -11697,6 +11699,8 @@ CREATE PROCEDURE  objQual_RECENT_USERS(
        begin
 
 	FOR   SELECT U.USERID,
+	U.NAME,
+	U.DISPLAYNAME,
 	   (SELECT 0 FROM RDB$DATABASE) AS IsCrawler,
      (SELECT 1 FROM RDB$DATABASE) as UserCount,
     u.IsActiveExcluded as IsHidden,
@@ -11720,6 +11724,8 @@ CREATE PROCEDURE  objQual_RECENT_USERS(
     ORDER BY U.LASTVISIT
 	INTO 
 	:"UserID",
+	:"UserName",
+	:"UserDisplayName",
 	:"IsCrawler",
 	:"UserCount",
 	:"IsHidden",

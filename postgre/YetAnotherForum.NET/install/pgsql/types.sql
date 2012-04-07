@@ -238,7 +238,8 @@ CREATE TYPE databaseSchema.objectQualifier_board_poststats_return_type AS
 "LastPostInfoID" integer,
 "LastPost" timestampTZ,
 "LastUserID" integer,
-"LastUser" varchar(128),
+"LastUser" varchar(255),
+"LastUserDisplayName" varchar(255),
 "LastUserStyle"  varchar(255)
 );
 
@@ -253,7 +254,8 @@ CREATE TYPE databaseSchema.objectQualifier_board_userstats_return_type AS
 "MaxUsersWhen" timestampTZ,
 "LastMemberInfoID" integer,
 "LastMemberID" integer,
-"LastMember" varchar(128)
+"LastMember" varchar(255),
+"LastMemberDisplayName" varchar(255)
 );
 
 --GO
@@ -1331,7 +1333,7 @@ CREATE TYPE databaseSchema.objectQualifier_topic_latest_return_type AS
 "LastUserName" varchar(128),
 "LastUserDisplayName" varchar(128),
 "LastUserStyle"  varchar(255),
-"LastUserIsGuest" boolean,,
+"LastUserIsGuest" boolean,
 "LastForumAccess" timestampTZ,
 "LastTopicAccess"  timestampTZ
 );
@@ -1358,7 +1360,7 @@ CREATE TYPE databaseSchema.objectQualifier_rss_topic_latest_return_type AS
 "Posted" timestampTZ,
 "LastUserName" varchar(255),
 "LastUserDisplayName" varchar(255),
-"LastUserIsGuest" boolean,
+"LastUserIsGuest" boolean
 );
 --GO
 
@@ -2161,7 +2163,8 @@ CREATE TYPE databaseSchema.objectQualifier_shoutbox_getmessages_return_type AS
 (
 "ShoutBoxMessageID" integer,	
 "UserID" integer,
-"Username" varchar(128),
+"UserName" varchar(255),
+"DisplayName" varchar(255),
 "Message" text,
 "Date" timestampTZ,
 "Style"  varchar(255)
@@ -2444,8 +2447,8 @@ CREATE TYPE databaseSchema.objectQualifier_messagehistory_list_return_type AS
   "Flags" integer,  
   "EditedBy"		integer,
   "UserID" integer, 
-  "UserName" varchar(128), 
-  "UserDisplayName" varchar(128), 
+  "UserName" varchar(255), 
+  "UserDisplayName" varchar(255), 
   "ForumID" integer,  
   "TopicID" integer, 
   "Topic" text,  
@@ -2486,11 +2489,12 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_recent_users_rt AS
 (
 "UserID"  integer,
+"UserName" varchar(255),
+"UserDisplayName"  varchar(255),
 "IsCrawler" integer,
-"Name" varchar,
 "UserCount" integer,
 "IsHidden" smallint,
-"Style" varchar
+"Style"  varchar(255)
 );
 --GO
 

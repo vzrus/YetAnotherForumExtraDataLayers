@@ -6315,26 +6315,23 @@ namespace YAF.Classes.Data
         /// <returns>
         /// The user_ list with todays birthdays.
         /// </returns>
-        public static DataTable User_ListTodaysBirthdays( [NotNull] object boardID, [CanBeNull] object useStyledNicks)
+        public static DataTable User_ListTodaysBirthdays( [NotNull] int boardID, [CanBeNull] object useStyledNicks)
         {
             // Profile columns cannot yet exist when we first are gettinng data.
             try
             {
-                var sqlBuilder = new StringBuilder("SELECT up.Birthday, up.UserID, u.TimeZone, u.name as UserName,u.DisplayName, (case(:i_stylednicks) when TRUE then  COALESCE(( SELECT f.Style FROM ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("usergroup"));
-                sqlBuilder.Append(" e join ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Group"));
-                sqlBuilder.Append(" f on f.groupid=e.groupid WHERE e.UserID=u.UserID AND LENGTH(f.style) > 2 ORDER BY f.sortorder LIMIT 1), r.Style) else '' end) AS Style ");
+                var sqlBuilder = new StringBuilder("SELECT up.Birthday, up.UserID, u.TimeZone, u.name as UserName,u.DisplayName AS UserDisplayName, (case(:i_stylednicks) when TRUE then  u.UserStyle ");
+                sqlBuilder.Append(" else '' end) AS Style ");
                 sqlBuilder.Append(" FROM ");
                 sqlBuilder.Append(MsSqlDbAccess.GetObjectName("userprofile"));
                 sqlBuilder.Append(" up JOIN ");
                 sqlBuilder.Append(MsSqlDbAccess.GetObjectName("user"));
-                sqlBuilder.Append(" u ON u.userid = up.userid JOIN ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Rank"));
-                sqlBuilder.Append(" r ON r.rankid = u.rankid where extract(day  from up.Birthday) = extract(day  from :i_currentdate) and extract(month  from up.Birthday) = extract(month  from :i_currentdate);");
+                sqlBuilder.Append(" u ON u.userid = up.userid ");
+                sqlBuilder.Append(" where u.boardid = :i_boardid AND extract(day  from up.Birthday) = extract(day  from :i_currentdate) and extract(month  from up.Birthday) = extract(month  from :i_currentdate);");
                 using (var cmd = MsSqlDbAccess.GetCommand(sqlBuilder.ToString(), true))
                 {
                     cmd.Parameters.Add("i_stylednicks", NpgsqlDbType.Boolean).Value = useStyledNicks;
+                    cmd.Parameters.Add("i_boardid", NpgsqlDbType.Integer).Value = boardID;
                     cmd.Parameters.Add("i_currentdate", NpgsqlDbType.TimestampTZ).Value = DateTime.UtcNow;
 
                     return MsSqlDbAccess.Current.GetData(cmd);
@@ -6360,28 +6357,25 @@ namespace YAF.Classes.Data
         /// <returns>
         /// The user_ list profiles.
         /// </returns>
-        public static DataTable User_ListProfilesByIdsList( [NotNull] int[] userIdsList, [CanBeNull] object useStyledNicks)
+        public static DataTable User_ListProfilesByIdsList( [NotNull] int boardID, [NotNull] int[] userIdsList, [CanBeNull] object useStyledNicks)
         {
             string stIds = userIdsList.Aggregate(string.Empty, (current, userId) => current + (',' + userId)).Trim(',');
             // Profile columns cannot yet exist when we first are gettinng data.
             try
             {
                 var sqlBuilder = new StringBuilder(" ");
-                sqlBuilder.Append("SELECT up.*, u.Name as UserName,u.DisplayName,(case(:StyledNicks) when 1 then  COALESCE(( SELECT f.Style FROM ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserGroup"));
-                sqlBuilder.Append(" e join ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Group"));
-                sqlBuilder.Append(" f on f.GroupID=e.GroupID WHERE e.UserID=u.UserID AND LEN(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), r.Style) else '' end) AS Style");
+                sqlBuilder.Append("SELECT up.*, u.Name as UserName,u.DisplayName as UserDisplayName,(case(:i_stylednicks) when 1 then  u.UserStyle ");
+                sqlBuilder.Append(" else '' end) AS Style");
                 sqlBuilder.Append(" FROM ");
                 sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserProfile"));
                 sqlBuilder.Append(" up JOIN ");
                 sqlBuilder.Append(MsSqlDbAccess.GetObjectName("User"));
-                sqlBuilder.Append(" u ON u.UserID = up.UserID JOIN ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Rank"));
-                sqlBuilder.AppendFormat(" r ON r.RankID = u.RankID where UserID IN ({0})  ", stIds);
+                sqlBuilder.Append(" u ON u.UserID = up.UserID ");             
+                sqlBuilder.AppendFormat(" where u.boardid = :i_boardid AND UserID IN ({0})  ", stIds);
                 using (var cmd = MsSqlDbAccess.GetCommand(sqlBuilder.ToString(), true))
                 {
                     cmd.Parameters.Add("i_stylednicks", NpgsqlDbType.Boolean).Value = useStyledNicks;
+                    cmd.Parameters.Add("i_boardid", NpgsqlDbType.Integer).Value = boardID;
                     return MsSqlDbAccess.Current.GetData(cmd);
                 }
             }

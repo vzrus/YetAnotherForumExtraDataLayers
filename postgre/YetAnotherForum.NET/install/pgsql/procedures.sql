@@ -1695,11 +1695,13 @@ SELECT  1 AS "LastPostInfoID",
 a.posted AS "LastPost",
 a.userid AS "LastUserID",
 e.name AS "LastUser",
+e.displayname,
 (CASE WHEN (i_usestylednicks) THEN e.userstyle ELSE '' END) AS "LastUserStyle"
 INTO _rec."LastPostInfoID",
      _rec."LastPost",
 	 _rec."LastUserID",
 	 _rec."LastUser",
+	 _rec."LastUserDisplayName",
 	 _rec."LastUserStyle"
 FROM     databaseSchema.objectQualifier_message a
 JOIN databaseSchema.objectQualifier_topic b
@@ -1716,7 +1718,7 @@ WHERE   (a.flags & 24) = 16
 	AND (b.flags & 8) <> (CASE WHEN i_shownocountposts IS TRUE THEN -1 ELSE 8 END)
 ORDER BY  "LastPostInfoID", a.posted DESC LIMIT 1;
 else
-select 0, 0, 1, 1, null, null, null, '' into _rec;
+select 0, 0, 1, 1, null, null, null, null, '' into _rec;
 END IF;
 DELETE FROM databaseSchema.objectQualifier_topic where topicmovedid IS NOT NULL AND linkdate IS NOT NULL AND linkdate < i_utctimestamp;
 RETURN _rec;
@@ -1757,11 +1759,13 @@ BEGIN
 SELECT DISTINCT 
                 1 AS "LastMemberInfoID",
                 userid AS "LastMemberID",
-                name AS "LastMember"
+                name AS "LastMember",
+				displayname
                 INTO 
 				_rec."LastMemberInfoID",
 				_rec."LastMemberID",
-				_rec."LastMember"
+				_rec."LastMember",
+				_rec."LastMemberDisplayName"
 FROM     databaseSchema.objectQualifier_user
 WHERE      isapproved IS TRUE
      AND isguest IS FALSE
@@ -12986,7 +12990,8 @@ BEGIN
 	SELECT	    
 	    sh.shoutboxmessageid,
 		sh.userid,
-		sh.username,		
+		sh.username,
+		us.displayname,	
 		sh.message,
 		sh."date",
 		(case when i_stylednicks
@@ -14489,16 +14494,16 @@ DECLARE
 _rec databaseSchema.objectQualifier_recent_users_rt%ROWTYPE;
 BEGIN
     FOR _rec IN SELECT u.userid,
-    0 AS IsCrawler,
-	u.name,
+	u.Name as UserName,
+    u.DisplayName as UserDisplayName,
+    0 AS IsCrawler,	
     1 AS UserCount,
     -- IsActiveExcluded 
 	CASE ((u.flags & 16) = 16) WHEN TRUE THEN 1 ELSE 0 END AS IsHidden,
     (CASE(i_stylednicks)
                 WHEN TRUE THEN
                          u.userstyle  ELSE '' END) AS Style            
-    FROM databaseSchema.objectQualifier_user AS u
-                JOIN databaseSchema.objectQualifier_rank r on r.rankid=u.rankid
+    FROM databaseSchema.objectQualifier_user AS u               
     WHERE u.isapproved IS TRUE AND
      u.boardid = i_boardid AND
 	 u.lastvisit > (i_utctimestamp - (i_timesincelastlogin::varchar(11) || ' minute')::interval)

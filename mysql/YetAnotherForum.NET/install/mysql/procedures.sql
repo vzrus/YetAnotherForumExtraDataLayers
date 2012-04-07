@@ -2035,6 +2035,7 @@ WHERE  c.BoardID = i_BoardID AND (a.Flags & 8) <> 8) AS Topics,
 a.Posted AS LastPost,
 a.UserID AS LastUserID,
 e.Name AS LastUser,	
+e.DisplayName AS LastUserDisplayName,
 (case(i_StyledNicks) when 1 then   e.UserStyle  
 	        else ''	 end)  AS LastUserStyle		
 FROM     {databaseName}.{objectQualifier}Message a
@@ -2046,11 +2047,6 @@ JOIN {databaseName}.{objectQualifier}Category d
 ON d.CategoryID = c.CategoryID
 JOIN {databaseName}.{objectQualifier}User e
 ON e.UserID = a.UserID
-JOIN {databaseName}.{objectQualifier}Rank r
-ON r.RankID = e.RankID
-JOIN ( SELECT f.Style, ug.UserID FROM {databaseName}.{objectQualifier}UserGroup ug
-		join {databaseName}.{objectQualifier}Group f on f.GroupID=ug.GroupID WHERE char_length(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1) s
-ON s.UserID = e.UserID
 WHERE    (a.Flags & 24) = 16
     -- topic not deleted
 	AND (b.Flags & 8) <> 8 
@@ -2067,6 +2063,7 @@ SELECT
 		NULL AS LastPost,
 		NULL AS LastUserID,
 		NULL AS LastUser,
+		NULL AS LastUserDisplayName,
 		'' AS LastUserStyle ;
 END IF;
 -- can be anyway in a place with very low update rate
@@ -2087,7 +2084,8 @@ WHERE  a.BoardID = i_BoardID AND (a.Flags & 2) = 2 AND (a.Flags & 4) = 0) AS Mem
     (SELECT `Value` FROM {databaseName}.{objectQualifier}Registry WHERE LOWER(`Name`) = LOWER('maxuserswhen') AND     BoardID=i_BoardID) AS MaxUsersWhen,
  1 AS LastMemberInfoID,
  `UserID` AS LastMemberID,
-`Name` AS LastMember
+`Name` AS LastMember,
+`DisplayName` AS LastMemberDisplayName
 FROM      {databaseName}.{objectQualifier}User
 WHERE    (Flags & 2) = 2
 	 AND (Flags & 4) <> 4
@@ -7081,7 +7079,8 @@ SET @limit_shsl_emptystyle = '';
 SET @limit_shsl_boardid = i_BoardId;
 SET @limit_shsl = I_NumberOfMessages;
 PREPARE stmt_shsl FROM 'SELECT
-		sh.Username,
+		sh.UserName,
+		sh.UserDisplayName,
 		sh.UserID,
 		sh.`Message`,
 		sh.ShoutBoxMessageID,
@@ -12781,7 +12780,7 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}messagehistory_list (i_MessageI
     
     -- we don't return Message text and ip if it's simply a user       
           
-     SELECT mh.*, m.UserID, m.UserName, m.UserDisplayName, t.ForumID, t.TopicID, t.Topic, m.Posted
+     SELECT mh.*, m.UserID, m.UserName, m.UserDisplayName, u.UserStyle, t.ForumID, t.TopicID, t.Topic, m.Posted
      FROM {databaseName}.{objectQualifier}MessageHistory mh
      LEFT JOIN {databaseName}.{objectQualifier}Message m ON m.MessageID = mh.MessageID
      LEFT JOIN {databaseName}.{objectQualifier}Topic t ON t.TopicID = m.TopicID
@@ -12958,6 +12957,8 @@ CREATE PROCEDURE {databaseName}.{objectQualifier}recent_users(i_BoardID int,i_Ti
 begin  
     SELECT 
 	usr.UserId,
+	usr.Name AS UserName,
+	usr.DisplayName AS UserDisplayName,
     0 as IsCrawler,
     1 as UserCount,
 	-- IsActiveExcluded

@@ -7333,22 +7333,19 @@ namespace YAF.Classes.Data
             // Profile columns cannot yet exist when we first are gettinng data.
             try
             {
-                var sqlBuilder = new StringBuilder("SELECT up.Birthday, up.UserID, u.TimeZone, u.Name as UserName,u.DisplayName, (case(@i_StyledNicks) when 1 then  IFNULL(( SELECT f.Style FROM ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserGroup"));
-                sqlBuilder.Append(" e join ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Group"));
-                sqlBuilder.Append(" f on f.GroupID=e.GroupID WHERE e.UserID=u.UserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), r.Style) else '' end) AS Style ");
+                var sqlBuilder = new StringBuilder("SELECT up.Birthday, up.UserID, u.TimeZone, u.Name as UserName,u.DisplayName as UserDisplayName, (case(@i_StyledNicks) when 1 then  u.UserStyle ");
+                sqlBuilder.Append(" else '' end) AS Style ");
                 sqlBuilder.Append(" FROM ");
                 sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserProfile"));
                 sqlBuilder.Append(" up JOIN ");
                 sqlBuilder.Append(MsSqlDbAccess.GetObjectName("User"));
-                sqlBuilder.Append(" u ON u.UserID = up.UserID JOIN ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Rank"));
-                sqlBuilder.Append(" r ON r.RankID = u.RankID where DAY(up.Birthday) = DAY(@i_CurrentDate) AND MONTH(up.Birthday) = MONTH(@i_CurrentDate) ");
+                sqlBuilder.Append(" u ON u.UserID = up.UserID");
+                sqlBuilder.Append("  where u.BoardID = @i_BoardID AND DAY(up.Birthday) = DAY(@i_CurrentDate) AND MONTH(up.Birthday) = MONTH(@i_CurrentDate) ");
                 using (var cmd = MsSqlDbAccess.GetCommand(sqlBuilder.ToString(), true))
                
                 {
                     cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                    cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardID;
                     cmd.Parameters.Add("i_CurrentDate", MySqlDbType.Date).Value = DateTime.UtcNow.Date;
                     return MsSqlDbAccess.Current.GetData(cmd);
                 }
@@ -7372,27 +7369,25 @@ namespace YAF.Classes.Data
         /// <returns>
         /// The user_ list profiles.
         /// </returns>
-        public static DataTable User_ListProfilesByIdsList([NotNull] int[] userIdsList, [CanBeNull] object useStyledNicks)
+        public static DataTable User_ListProfilesByIdsList(int boardID, [NotNull] int[] userIdsList, [CanBeNull] object useStyledNicks)
         {
             string stIds = userIdsList.Aggregate(string.Empty, (current, userId) => current + (',' + userId)).Trim(',');
             // Profile columns cannot yet exist when we first are gettinng data.
             try
             {
-                var sqlBuilder = new StringBuilder("SELECT up.*, u.Name as UserName,u.DisplayName,Style = case(?) when 1 then  ISNULL(( SELECT  f.Style FROM ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserGroup"));
-                sqlBuilder.Append(" e join ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Group"));
-                sqlBuilder.Append(" f on f.GroupID=e.GroupID WHERE e.UserID=u.UserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), r.Style) else '' end ");
+                var sqlBuilder = new StringBuilder("SELECT up.*, u.Name as UserName,u.DisplayName as UserDisplayName, (case(@i_StyledNicks) when 1 then u.UserStyle ");
+                sqlBuilder.Append(" else '' end) AS Style ");
                 sqlBuilder.Append(" FROM ");
                 sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserProfile"));
                 sqlBuilder.Append(" up JOIN ");
                 sqlBuilder.Append(MsSqlDbAccess.GetObjectName("User"));
-                sqlBuilder.Append(" u ON u.UserID = up.UserID JOIN ");
-                sqlBuilder.Append(MsSqlDbAccess.GetObjectName("Rank"));
-                sqlBuilder.AppendFormat(" r ON r.RankID = u.RankID where UserID IN ({0})  ", stIds);
+                sqlBuilder.Append(" u ON u.UserID = up.UserID ");
+
+                sqlBuilder.AppendFormat(" where u.BoardID = @i_BoardID AND UserID IN ({0})  ", stIds);
                 using (var cmd = MsSqlDbAccess.GetCommand(sqlBuilder.ToString(), true))
                 {
-                    cmd.Parameters.AddWithValue("StyledNicks", useStyledNicks);
+                    cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                    cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardID;
                     return MsSqlDbAccess.Current.GetData(cmd);
                 }
             }
