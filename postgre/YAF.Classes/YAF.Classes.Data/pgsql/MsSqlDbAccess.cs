@@ -1,4 +1,4 @@
-/* Yet Another Forum.NET MySQL data layer by vzrus
+/* Yet Another Forum.NET PostgreSQL data layer by vzrus
  * Copyright (C) 2006-2012 Vladimir Zakharov
  * https://github.com/vzrus
  * http://sourceforge.net/projects/yaf-datalayers/
@@ -662,7 +662,7 @@ namespace YAF.Classes.Data
     /// <summary>
     /// Returns DataTable from DataReader.
     /// </summary>
-    /// <param name="cmd">MySql command returning selected values</param>
+    /// <param name="cmd">PostgreSQL command returning selected values</param>
     /// <param name="dca">Array of DataColumn values. The correspond to select columns names in a query or sp.</param>
     /// <returns></returns>
     public DataTable GetDataTableFromReader(IDbCommand cmd)

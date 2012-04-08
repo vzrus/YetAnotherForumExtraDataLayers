@@ -14496,6 +14496,7 @@ BEGIN
     FOR _rec IN SELECT u.userid,
 	u.Name as UserName,
     u.DisplayName as UserDisplayName,
+	u.lastvisit,
     0 AS IsCrawler,	
     1 AS UserCount,
     -- IsActiveExcluded 

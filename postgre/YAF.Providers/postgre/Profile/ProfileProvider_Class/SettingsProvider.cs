@@ -28,6 +28,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using YAF.Providers.Utils;
+using YAF.Utils;
 using YAFProviders.Utils;
 
 namespace YAF.Providers.Profile
@@ -55,50 +56,58 @@ namespace YAF.Providers.Profile
         SettingsContext context, SettingsPropertyCollection collection)
         {
             var settingPropertyCollection = new SettingsPropertyValueCollection();
-            if (collection.Count < 1) return settingPropertyCollection;
-            // unboxing fits?
-            String username = context["UserName"].ToString();
 
-            if (String.IsNullOrEmpty(username))
+            if (collection.Count < 1)
+            {
                 return settingPropertyCollection;
+            }
 
-            // (if) this provider doesn't support anonymous users
-            if (Convert.ToBoolean(context["IsAuthenticated"]) == GeneralProviderSettings.AllowAnonymous)
+            string username = context["UserName"].ToString();
+
+            if (username.IsNotSet())
+            {
+                return settingPropertyCollection;
+            }
+
+            // this provider doesn't support anonymous users
+            if (!Convert.ToBoolean(context["IsAuthenticated"]))
             {
                 ExceptionReporter.ThrowArgument("PROFILE", "NOANONYMOUS");
             }
-            
-            foreach (SettingsProperty property in collection)
-            {
-                if (property.PropertyType.IsPrimitive || property.PropertyType == typeof(string))
-                    property.SerializeAs = SettingsSerializeAs.String;
-                else
-                    property.SerializeAs = SettingsSerializeAs.Xml;
-                settingPropertyCollection.Add(new SettingsPropertyValue(property));
-            }
 
-            // retrieve encoded profile data from the database
-            try
+            // load the property collection (sync profile class)
+            this.LoadFromPropertyCollection(collection);
+
+            // see if it's cached...
+            if (this.UserProfileCache.ContainsKey(username.ToLower()))
             {
-                DataTable dt = DB.Current.__GetProfiles( ApplicationName, 0, 1, username, null);
+                // just use the cached version...
+                return this.UserProfileCache[username.ToLower()];
+            }
+            else
+            {
+                // transfer properties regardless...
+                foreach (SettingsProperty prop in collection)
+                {
+                    settingPropertyCollection.Add(new SettingsPropertyValue(prop));
+                }
+              
+                DataTable dt = DB.Current.__GetProfiles(ApplicationName, 0, 1, username, null);
                 if (dt.Rows.Count > 0)
                 {
                     YAF.Providers.Profile.DB.DecodeProfileData(dt.Rows[0], settingPropertyCollection);
                 }
-                
-                // save this collection to the cache it should be deleted as useless or in other place? 
+
+                // save this collection to the cache it should be deleted as useless or in other place?
 
                 if (!UserProfileCache.ContainsKey(username.ToLower()))
                 {
                     UserProfileCache.MergeSafe(username.ToLower(), settingPropertyCollection);
                 }
+
+                return settingPropertyCollection;
             }
-            catch (Exception ex)
-            {
-                YAF.Classes.Data.LegacyDb.eventlog_create(null, "/Profile/DB.cs SetPropertyValues method", ex);
-                //throw new ProviderException("Unable to retrieve profile data.", ex);
-            }
-            return settingPropertyCollection;
+          
         }
 
         public override void SetPropertyValues(System.Configuration.SettingsContext context, System.Configuration.SettingsPropertyValueCollection collection)

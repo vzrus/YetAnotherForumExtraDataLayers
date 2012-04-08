@@ -117,24 +117,4 @@ $BODY$
 
 
 
--- add missing columns or change them
-
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_add_or_change_columns()
-RETURNS void AS
-$BODY$DECLARE i integer;
-BEGIN
-     IF (column_exists('databaseSchema.objectQualifier_topic','linkdate') IS FALSE) THEN
-         ALTER TABLE databaseSchema.objectQualifier_topic ADD COLUMN linkdate  timestampTZ;
-     END IF;			 
-END ;
-$BODY$
-  LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER STRICT
-  COST 100;   
---GO
-    SELECT databaseSchema.objectQualifier_add_or_change_columns();
---GO
-    DROP FUNCTION databaseSchema.objectQualifier_add_or_change_columns();
---GO
-
-
 

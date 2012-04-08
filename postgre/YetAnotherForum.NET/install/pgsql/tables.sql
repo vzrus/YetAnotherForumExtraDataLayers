@@ -988,6 +988,9 @@ BEGIN
 	 IF (NOT column_exists('databaseSchema.objectQualifier_shoutboxmessage','userdisplayname')) THEN
          ALTER TABLE databaseSchema.objectQualifier_shoutboxmessage ADD COLUMN userdisplayname  varchar(128);
      END IF;
+	  IF (column_exists('databaseSchema.objectQualifier_topic','linkdate') IS FALSE) THEN
+         ALTER TABLE databaseSchema.objectQualifier_topic ADD COLUMN linkdate  timestampTZ;
+     END IF;
 	 END;	 	
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER STRICT
