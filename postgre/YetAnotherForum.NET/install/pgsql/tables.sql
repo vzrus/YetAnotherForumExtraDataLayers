@@ -1001,5 +1001,59 @@ $BODY$
     DROP FUNCTION databaseSchema.objectQualifier_add_or_change_columns();
 --GO
 
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forum_initdisplayname()
+RETURNS void AS
+$BODY$
+declare _rec1 RECORD;
+	    _rec2 RECORD;
+	    _rec3 RECORD;
+	    _rec4 RECORD;
+BEGIN		
+		for _rec1 IN select forumid, lastuserid from databaseSchema.objectQualifier_forum
+		where lastuserdisplayname IS NULL and 	lastuserid is not null		
+		FOR UPDATE 
+		LOOP
+		update databaseSchema.objectQualifier_forum set lastuserdisplayname = (select u.displayname FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec1.lastuserid) where  databaseSchema.objectQualifier_forum.forumid = _rec1.forumid;	
+		END LOOP;		
+	
+		for _rec2 IN select shoutboxmessageid,userid from databaseSchema.objectQualifier_shoutboxmessage
+		where userdisplayname IS NULL
+		FOR UPDATE	
+		LOOP		
+		update databaseSchema.objectQualifier_shoutboxmessage set userdisplayname = (select u.displayname FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec2.userid) where databaseSchema.objectQualifier_shoutboxmessage.shoutboxmessageid = rec2.shoutboxmessageid;
+	  	END LOOP;		
+		
+		for _rec3 IN select messageid,userid from databaseSchema.objectQualifier_message
+		where userdisplayname IS NULL
+		FOR UPDATE
+		LOOP	
+	    update databaseSchema.objectQualifier_message  set userdisplayname = (select u.displayname FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec3.userid) where messageid = _rec3.messageid;
+	    END LOOP;		
+		
+		for _rec4 IN select topicid,userid,lastuserid from databaseSchema.objectQualifier_topic
+		where userdisplayname IS NULL OR lastuserdisplayname IS NULL and lastuserid is not null		
+		FOR UPDATE 
+		LOOP    
+	    update databaseSchema.objectQualifier_topic set userdisplayname = (select u.displayname FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec4.userid) where topicid = _rec4.topicid;
+	    update databaseSchema.objectQualifier_topic set lastuserdisplayname = (select u.displayname FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec4.lastuserid) where topicid = _rec4.topicid;			
+		END LOOP;
+ END;	 	
+$BODY$
+  LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER STRICT
+  COST 100;   
+--GO  
 
-
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_init_dsiplayname_launcher()
+RETURNS void AS
+$BODY$
+BEGIN
+if exists (select 1 from databaseSchema.objectQualifier_message where userdisplayname IS NULL LIMIT 1) then
+ PERFORM databaseSchema.objectQualifier_forum_initdisplayname();
+ end if;
+END;
+$BODY$
+  LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER STRICT
+  COST 100;   
+--GO 
+    SELECT databaseSchema.objectQualifier_init_dsiplayname_launcher();
+--GO

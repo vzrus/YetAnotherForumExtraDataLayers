@@ -6241,7 +6241,7 @@ BEGIN
 	            i_message,
 				i_topicid,
 				ici_Posted,
-				i_username,
+				COALESCE(i_username,(SELECT name FROM databaseSchema.objectQualifier_user WHERE userid = i_userid)),
 				(CASE WHEN ici_OverrideDisplayName is true THEN i_username 
                     ELSE (SELECT displayname FROM databaseSchema.objectQualifier_user WHERE userid = i_userid) END), 
 				i_ip, 
@@ -9877,7 +9877,7 @@ BEGIN
 	 SELECT EXISTS (SELECT 1 FROM databaseSchema.objectQualifier_user WHERE userid = i_userid and name != i_username) INTO ici_OverrideDisplayName;
      /* create the topic */
      INSERT INTO databaseSchema.objectQualifier_topic(forumid,topic,userid,posted,views,priority,username,userdisplayname,numposts, description, status, styles, flags)
-     VALUES(i_forumid,substr(i_subject, 1, 128),i_userid,ici_Posted,0,i_priority,i_username,(CASE WHEN ici_OverrideDisplayName is true THEN i_username ELSE (SELECT displayname FROM databaseSchema.objectQualifier_user WHERE userid = i_userid) END),0, i_description, i_status, i_styles, 0);
+     VALUES(i_forumid,substr(i_subject, 1, 128),i_userid,ici_Posted,0,i_priority,COALESCE(i_username,(select name from databaseSchema.objectQualifier_user WHERE userid = i_userid)),(CASE WHEN ici_OverrideDisplayName is true THEN i_username ELSE (SELECT displayname FROM databaseSchema.objectQualifier_user WHERE userid = i_userid) END),0, i_description, i_status, i_styles, 0);
      SELECT CURRVAL(pg_get_serial_sequence('databaseSchema.objectQualifier_topic','topicid')) INTO ici_TopicID;
    
    
@@ -14619,7 +14619,7 @@ BEGIN
 		COALESCE(c.lastusername,
 		(select x.name from databaseSchema.objectQualifier_user x where x.userid=c.lastuserid)) as LastUserName ,
 		COALESCE(c.lastuserdisplayname,
-		(select x.dispalayname from databaseSchema.objectQualifier_user x where x.userid=c.lastuserid)) as LastUserName ,
+		(select x.displayname from databaseSchema.objectQualifier_user x where x.userid=c.lastuserid)) as LastUserName ,
 		c.lastmessageid,
 		c.lastmessageflags,
 		c.topicid as LastTopicID, 
