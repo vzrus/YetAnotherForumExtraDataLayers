@@ -1014,13 +1014,14 @@ BEGIN
 		FOR UPDATE 
 		LOOP
 		update databaseSchema.objectQualifier_forum set lastuserdisplayname = (select u.displayname FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec1.lastuserid) where  databaseSchema.objectQualifier_forum.forumid = _rec1.forumid;	
+		update databaseSchema.objectQualifier_forum set lastusername = (select u.name FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec1.lastuserid) where  databaseSchema.objectQualifier_forum.forumid = _rec1.forumid;	
 		END LOOP;		
 	
 		for _rec2 IN select shoutboxmessageid,userid from databaseSchema.objectQualifier_shoutboxmessage
 		where userdisplayname IS NULL
 		FOR UPDATE	
 		LOOP		
-		update databaseSchema.objectQualifier_shoutboxmessage set userdisplayname = (select u.displayname FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec2.userid) where databaseSchema.objectQualifier_shoutboxmessage.shoutboxmessageid = rec2.shoutboxmessageid;
+		update databaseSchema.objectQualifier_shoutboxmessage set userdisplayname = (select u.displayname FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec2.userid) where databaseSchema.objectQualifier_shoutboxmessage.shoutboxmessageid = _rec2.shoutboxmessageid;
 	  	END LOOP;		
 		
 		for _rec3 IN select messageid,userid from databaseSchema.objectQualifier_message
@@ -1028,14 +1029,17 @@ BEGIN
 		FOR UPDATE
 		LOOP	
 	    update databaseSchema.objectQualifier_message  set userdisplayname = (select u.displayname FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec3.userid) where messageid = _rec3.messageid;
+		update databaseSchema.objectQualifier_message  set username = (select u.name FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec3.userid) where messageid = _rec3.messageid;
 	    END LOOP;		
 		
 		for _rec4 IN select topicid,userid,lastuserid from databaseSchema.objectQualifier_topic
 		where userdisplayname IS NULL OR lastuserdisplayname IS NULL and lastuserid is not null		
 		FOR UPDATE 
 		LOOP    
+	    update databaseSchema.objectQualifier_topic set username = (select u.name FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec4.userid) where topicid = _rec4.topicid;
 	    update databaseSchema.objectQualifier_topic set userdisplayname = (select u.displayname FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec4.userid) where topicid = _rec4.topicid;
-	    update databaseSchema.objectQualifier_topic set lastuserdisplayname = (select u.displayname FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec4.lastuserid) where topicid = _rec4.topicid;			
+		update databaseSchema.objectQualifier_topic set lastuserdisplayname = (select u.displayname FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec4.lastuserid) where topicid = _rec4.topicid;
+		update databaseSchema.objectQualifier_topic set lastusername = (select u.name FROM databaseSchema.objectQualifier_user u WHERE u.userid = _rec4.lastuserid) where topicid = _rec4.topicid;
 		END LOOP;
  END;	 	
 $BODY$

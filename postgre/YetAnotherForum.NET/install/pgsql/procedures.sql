@@ -3311,8 +3311,24 @@ ici_lasttopicaccess  timestampTZ ;
 intcnt integer:=0; 
 _rectemp databaseSchema.objectQualifier_forum_listread_tmp%ROWTYPE;
 _rec databaseSchema.objectQualifier_forum_listread_return_type%ROWTYPE; 
+_nid integer;
 BEGIN	
-
+if (0 > 0) then
+SELECT ns.nid
+INTO _nid
+FROM databaseSchema.objectQualifier_forum_ns ns
+WHERE ns.forumid = i_forumid;
+elseif  (COALESCE(i_parentid,0) > 0) then
+SELECT ns.nid
+INTO _nid
+FROM databaseSchema.objectQualifier_forum_ns ns
+WHERE ns.forumid = 0 and ns.categoryid = i_categoryid;
+else
+SELECT ns.nid
+INTO _nid
+FROM databaseSchema.objectQualifier_forum_ns ns
+WHERE ns.forumid = 0 and ns.categoryid = 0 and boardid = i_boardid;
+end if;
 
 FOR _rec IN
  	SELECT 
@@ -3356,18 +3372,23 @@ FOR _rec IN
  	FROM 
  		databaseSchema.objectQualifier_category a
  		JOIN databaseSchema.objectQualifier_forum b on b.categoryid=a.categoryid
- 		JOIN databaseSchema.objectQualifier_activeaccess x on x.forumid=b.forumid		 
-	    JOIN databaseSchema.objectQualifier_forum_ns_getchildren(i_boardid, 0, COALESCE(i_parentid,0), true, false) q ON q."ForumID" = b.forumid
+ 		JOIN databaseSchema.objectQualifier_activeaccess x on x.forumid=b.forumid
+		JOIN databaseSchema.objectQualifier_forum_ns  n1 ON n1.forumid = b.forumid
+        CROSS JOIN databaseSchema.objectQualifier_forum_ns  n2	 
+	    -- JOIN databaseSchema.objectQualifier_forum_ns_getchildren(i_boardid, 0, COALESCE(i_parentid,0), true, false) q ON q."ForumID" = b.forumid
  	WHERE
 	 	(i_categoryid IS NULL OR a.categoryid=i_categoryid) AND
 		 x.userid = i_userid  and
-		 q."ForumID" > 0		
-		-- (b.forumid IN (SELECT * FROM unnest(ici_forumids)) ) 	
- 		/* ((b.flags & 2)=0 OR x.readaccess IS NOT FALSE ) 	*/
- 	ORDER BY 
+		 n1.forumid > 0 and
+		 ((b.flags & 2)=0 OR x.readaccess IS NOT FALSE ) and
+		 ( n2.nid = _nid
+AND  n1.left_key BETWEEN n2.left_key + TRUE::integer AND n2.right_key
+and (FALSE IS FALSE  OR n1.parentid = n2.nid)) 	 	
+ 		ORDER BY n1.left_key,
+		n1.level,
  		a.sortorder,
- 		b.sortorder,
-		q."Level"
+ 		b.sortorder
+		
  	LOOP 	 
  	                IF  (_rec."LastTopicID" IS NULL OR _rec."LastPosted"	IS NULL) THEN	 
  	                 _rec."LastTopicID" := databaseSchema.objectQualifier_forum_lasttopic(_rec."ForumID",i_userid,_rec."LastTopicID",_rec."LastPosted");
