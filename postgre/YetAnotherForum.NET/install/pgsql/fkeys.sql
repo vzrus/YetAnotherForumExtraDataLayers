@@ -383,6 +383,12 @@ ALTER TABLE databaseSchema.objectQualifier_useralbum
       REFERENCES databaseSchema.objectQualifier_user(userid) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE NO ACTION; 
 END IF;
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint where contype='f' and conname ='fk_databaseSchema_objectQualifier_activeaccess_objectQualifier_user') THEN
+ALTER TABLE databaseSchema.objectQualifier_activeaccess
+  ADD CONSTRAINT fk_databaseSchema_objectQualifier_activeaccess_objectQualifier_user FOREIGN KEY (userid)
+      REFERENCES databaseSchema.objectQualifier_user(userid) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE CASCADE; 
+END IF;
 
 -- Foreign Key: fk_databaseSchema_objectQualifier_useralbum_objectQualifier_useralbumimage
 /* IF NOT EXISTS(SELECT 1 FROM pg_constraint where contype='f' and conname ='fk_databaseSchema_objectQualifier_album_objectQualifier_albumimage') THEN

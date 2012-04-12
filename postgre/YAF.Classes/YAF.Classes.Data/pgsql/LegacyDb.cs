@@ -3396,7 +3396,7 @@ namespace YAF.Classes.Data
 					DataTable tbReplies = MsSqlDbAccess.Current.GetData(cmd);
 
 					foreach (DataRow row in tbReplies.Rows)
-						message_deleteRecursively(row["i_messageid"], isModeratorChanged, deleteReason, isDeleteAction, DeleteLinked, true, eraseMessages);
+						message_deleteRecursively(row["MessageID"], isModeratorChanged, deleteReason, isDeleteAction, DeleteLinked, true, eraseMessages);
 				}
 			}
 

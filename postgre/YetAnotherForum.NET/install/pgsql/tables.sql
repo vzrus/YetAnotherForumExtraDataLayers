@@ -361,7 +361,8 @@ CREATE TABLE databaseSchema.objectQualifier_message
 			 externalmessageid         varchar(255),
 			 referencemessageid	       varchar(255),
 			 isdeleted                 boolean DEFAULT false NOT NULL,
-			 isapproved                boolean DEFAULT false NOT NULL
+			 isapproved                boolean DEFAULT false NOT NULL,
+			 ts_message                text
 			 )
 		WITH (OIDS=withOIDs);
 END IF;
@@ -955,6 +956,14 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_add_or_change_columns(
 RETURNS void AS
 $BODY$
 BEGIN
+     -- drop
+     /* IF (column_exists('databaseSchema.objectQualifier_watchforum','watchforumid')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_watchforum DROP COLUMN watchforumid CASCADE;
+     END IF;
+	 IF (column_exists('databaseSchema.objectQualifier_watchtopic','watchtopicid')) THEN
+        ALTER TABLE databaseSchema.objectQualifier_watchtopic DROP COLUMN watchtopicid CASCADE;
+     END IF; */
+	 -- create
      IF (NOT column_exists('databaseSchema.objectQualifier_forum','lastuserdisplayname')) THEN
          ALTER TABLE databaseSchema.objectQualifier_forum ADD COLUMN lastuserdisplayname  varchar(128);
      END IF;
@@ -988,9 +997,30 @@ BEGIN
 	 IF (NOT column_exists('databaseSchema.objectQualifier_shoutboxmessage','userdisplayname')) THEN
          ALTER TABLE databaseSchema.objectQualifier_shoutboxmessage ADD COLUMN userdisplayname  varchar(128);
      END IF;
-	  IF (column_exists('databaseSchema.objectQualifier_topic','linkdate') IS FALSE) THEN
+	 IF (column_exists('databaseSchema.objectQualifier_topic','linkdate') IS FALSE) THEN
          ALTER TABLE databaseSchema.objectQualifier_topic ADD COLUMN linkdate  timestampTZ;
      END IF;
+	 IF (NOT column_exists('databaseSchema.objectQualifier_message','ts_message')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_message ADD COLUMN ts_message  text;
+     END IF;
+	 /* IF (EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='objectQualifier_forumreadtracking' 
+	                                           AND indexname='ix_objectQualifier_forumreadtracking_userid_forumid')) THEN
+		 DROP INDEX  ix_objectQualifier_forumreadtracking_userid_forumid;
+	 END IF; 
+	 IF (EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='objectQualifier_topicreadtracking' 
+	                                           AND indexname='ix_objectQualifier_topicreadtracking_userid_topicid')) THEN
+         DROP INDEX  ix_objectQualifier_topicreadtracking_userid_topicid CASCADE;
+	 END IF; 
+
+	 IF (EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='objectQualifier_messagehistory' 
+	                                           AND indexname='ix_objectQualifier_messagehistory_edited_messageid')) THEN
+       DROP INDEX  ix_objectQualifier_messagehistory_edited_messageid CASCADE;
+	 END IF; */
+	 IF (EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_databaseSchema_objectQualifier_logid')) THEN
+       ALTER TABLE  databaseSchema.objectQualifier_messagereportedaudit DROP CONSTRAINT pk_databaseSchema_objectQualifier_logid CASCADE;
+	 END IF;
+
+
 	 END;	 	
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER STRICT

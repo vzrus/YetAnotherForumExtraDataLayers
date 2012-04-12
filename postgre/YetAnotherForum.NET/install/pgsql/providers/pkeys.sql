@@ -43,6 +43,8 @@ IF NOT EXISTS (SELECT 1 FROM pg_constraint
    ALTER TABLE ONLY databaseSchema.objectQualifier_prov_profile
    ADD CONSTRAINT pk_databaseSchema_objectQualifier_userid_prov_profile PRIMARY KEY (userid);
 END IF;
+
+
     
     END;
 $BODY$

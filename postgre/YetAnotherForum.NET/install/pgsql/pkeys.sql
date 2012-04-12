@@ -10,6 +10,21 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_create_or_check_pkeys(
 RETURNS void AS
 $BODY$
 BEGIN
+-- drop
+/* IF  EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_databaseSchema_objectQualifier_watchtopicid' LIMIT 1) THEN
+ALTER TABLE ONLY databaseSchema.objectQualifier_watchtopic
+    DROP CONSTRAINT pk_databaseSchema_objectQualifier_watchtopicid;
+END IF;
+
+IF  EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_databaseSchema_objectQualifier_watchforumid' LIMIT 1) THEN
+ALTER TABLE ONLY databaseSchema.objectQualifier_watchforum
+    DROP CONSTRAINT pk_databaseSchema_objectQualifier_watchforumid;
+END IF; */
+
+
+
+-- create
+
 
 IF NOT EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_databaseSchema_objectQualifier_attachmentid' LIMIT 1) THEN
 ALTER TABLE ONLY databaseSchema.objectQualifier_attachment
@@ -72,9 +87,9 @@ ALTER TABLE ONLY databaseSchema.objectQualifier_forumaccess
     ADD CONSTRAINT pk_databaseSchema_objectQualifier_groupid_forumid PRIMARY KEY (groupid, forumid);
 END IF;
 
-IF NOT EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_databaseSchema_objectQualifier_logid' LIMIT 1) THEN
+IF NOT EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_databaseSchema_objectQualifier_logid_messagereportedaudit' LIMIT 1) THEN
 ALTER TABLE ONLY databaseSchema.objectQualifier_messagereportedaudit
-    ADD CONSTRAINT pk_databaseSchema_objectQualifier_logid PRIMARY KEY (logid);
+    ADD CONSTRAINT pk_databaseSchema_objectQualifier_logid_messagereportedaudit PRIMARY KEY (logid);
 END IF;
 
 IF NOT EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_databaseSchema_objectQualifier_mailid' LIMIT 1) THEN
@@ -237,8 +252,70 @@ IF NOT EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_da
 ALTER TABLE ONLY databaseSchema.objectQualifier_useralbumimage
     ADD CONSTRAINT pk_databaseSchema_objectQualifier_useralbumimage_imageid PRIMARY KEY (imageid);
 END IF;
- 
-    END;
+IF NOT EXISTS (SELECT 1 FROM pg_constraint 
+               where contype='p' 
+			     and conname ='pk_databaseSchema_objectQualifier_userid_forumid_activeaccess' LIMIT 1) THEN
+   ALTER TABLE ONLY databaseSchema.objectQualifier_activeaccess
+   ADD CONSTRAINT pk_databaseSchema_objectQualifier_userid_forumid_activeaccess PRIMARY KEY (userid,forumid);
+END IF;
+IF NOT EXISTS (SELECT 1 FROM pg_constraint 
+               where contype='p' 
+			     and conname ='pk_databaseSchema_objectQualifier_userid_applicationname_userprofile' LIMIT 1) THEN
+   ALTER TABLE ONLY databaseSchema.objectQualifier_userprofile
+   ADD CONSTRAINT pk_databaseSchema_objectQualifier_userid_applicationname_userprofile PRIMARY KEY (userid,applicationname);
+END IF;
+
+IF NOT EXISTS (SELECT 1 FROM pg_constraint 
+               where contype='p' 
+			     and conname ='pk_databaseSchema_objectQualifier_userid_medalid_usermedal' LIMIT 1) THEN
+   ALTER TABLE ONLY databaseSchema.objectQualifier_usermedal
+   ADD CONSTRAINT pk_databaseSchema_objectQualifier_userid_medalid_usermedal PRIMARY KEY (userid,medalid);
+END IF;
+
+IF NOT EXISTS (SELECT 1 FROM pg_constraint 
+               where contype='p' 
+			     and conname ='pk_databaseSchema_objectQualifier_userid_forumid_forumreadtracking' LIMIT 1) THEN
+   ALTER TABLE ONLY databaseSchema.objectQualifier_forumreadtracking
+   ADD CONSTRAINT pk_databaseSchema_objectQualifier_userid_forumid_forumreadtracking PRIMARY KEY (userid,forumid);
+END IF;
+
+IF NOT EXISTS (SELECT 1 FROM pg_constraint 
+               where contype='p' 
+			     and conname ='pk_databaseSchema_objectQualifier_userid_topicid_topicreadtracking' LIMIT 1) THEN
+   ALTER TABLE ONLY databaseSchema.objectQualifier_topicreadtracking
+   ADD CONSTRAINT pk_databaseSchema_objectQualifier_userid_topicid_topicreadtracking PRIMARY KEY (userid,topicid);
+END IF;
+
+IF NOT EXISTS (SELECT 1 FROM pg_constraint 
+               where contype='p' 
+			     and conname ='pk_databaseSchema_objectQualifier_medalid_groupid_groupmedal' LIMIT 1) THEN
+   ALTER TABLE ONLY databaseSchema.objectQualifier_groupmedal
+   ADD CONSTRAINT pk_databaseSchema_objectQualifier_medalid_groupid_groupmedal PRIMARY KEY (medalid,groupid);
+END IF;
+
+
+IF NOT EXISTS (SELECT 1 FROM pg_constraint 
+               where contype='p' 
+			     and conname ='pk_databaseSchema_objectQualifier_messageid_edited_messagehistory' LIMIT 1) THEN
+   ALTER TABLE ONLY databaseSchema.objectQualifier_messagehistory
+   ADD CONSTRAINT pk_databaseSchema_objectQualifier_messageid_edited_messagehistory PRIMARY KEY (messageid,edited);
+END IF;
+
+IF NOT EXISTS (SELECT 1 FROM pg_constraint 
+               where contype='p' 
+			     and conname ='pk_databaseSchema_objectQualifier_messageid_messagereported' LIMIT 1) THEN
+   ALTER TABLE ONLY databaseSchema.objectQualifier_messagereported
+   ADD CONSTRAINT pk_databaseSchema_objectQualifier_messageid_messagereported PRIMARY KEY (messageid);
+END IF;
+
+IF NOT EXISTS (SELECT 1 FROM pg_constraint 
+               where contype='p' 
+			     and conname ='pk_databaseSchema_objectQualifier_repfruid_reptouid_reputationvote' LIMIT 1) THEN
+   ALTER TABLE ONLY databaseSchema.objectQualifier_reputationvote
+   ADD CONSTRAINT pk_databaseSchema_objectQualifier_repfruid_reptouid_reputationvote PRIMARY KEY (reputationfromuserid,reputationtouserid);
+END IF; 
+
+END;
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER STRICT
   COST 100;

@@ -14,6 +14,7 @@ RETURNS void AS
 $BODY$
 BEGIN
 
+
 /*IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='objectQualifier_bbcode' AND indexname='fki_databaseSchema_objectQualifier_bbcode_board') THEN
 CREATE INDEX fki_databaseSchema_objectQualifier_bbcode_board ON databaseSchema.objectQualifier_bbcode USING btree (boardid);
 END IF;*/
@@ -64,18 +65,6 @@ END IF;
 
 IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='objectQualifier_smiley' AND indexname='ix_objectQualifier_smiley_boardid_code') THEN
 CREATE INDEX ix_objectQualifier_smiley_boardid_code ON databaseSchema.objectQualifier_smiley USING btree (boardid, code);
-END IF;
-
-IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='objectQualifier_messagehistory' AND indexname='ix_objectQualifier_messagehistory_edited_messageid') THEN
-CREATE UNIQUE INDEX ix_objectQualifier_messagehistory_edited_messageid ON databaseSchema.objectQualifier_messagehistory USING btree (edited,messageid);
-END IF;
-
-IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='objectQualifier_forumreadtracking' AND indexname='ix_objectQualifier_forumreadtracking_userid_forumid') THEN
-CREATE UNIQUE INDEX ix_objectQualifier_forumreadtracking_userid_forumid ON databaseSchema.objectQualifier_forumreadtracking USING btree (userid,forumid);
-END IF;
-
-IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='objectQualifier_topicreadtracking' AND indexname='ix_objectQualifier_topicreadtracking_userid_topicid') THEN
-CREATE UNIQUE INDEX ix_objectQualifier_topicreadtracking_userid_topicid ON databaseSchema.objectQualifier_topicreadtracking USING btree (userid,topicid);
 END IF;
 
 IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='objectQualifier_topic' AND indexname='ix_objectQualifier_topic_lastposted_topicid') THEN

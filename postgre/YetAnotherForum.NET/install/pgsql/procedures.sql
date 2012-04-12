@@ -3,17 +3,20 @@
 -- They are distributed under terms of GPLv2 licence only as in http://www.fsf.org/licensing/licenses/gpl.html
 -- Copyright vzrus(c) 2009-2012
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_savestyle(
-                           i_groupid integer, i_rankid integer) 
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_savestyle
+                           (
+						   i_groupid integer, 
+						   i_rankid integer
+						   ) 
 	              RETURNS void AS
-$BODY$DECLARE 
-      _usridtmp int ;
-	  _styletmp varchar(255);
-	  _rankidtmp int ;     
-     _rec RECORD;
+$BODY$DECLARE
+            _usridtmp int;
+			_styletmp varchar(255);
+			_rankidtmp int;
+			_rec RECORD;
                   
 BEGIN
-FOR _rec IN select userid,userstyle,rankid from databaseSchema.objectQualifier_user
+     FOR _rec IN select userid,userstyle,rankid from databaseSchema.objectQualifier_user
 LOOP
 UPDATE databaseSchema.objectQualifier_user SET userstyle = COALESCE(( SELECT f.style FROM databaseSchema.objectQualifier_usergroup e 
 			join databaseSchema.objectQualifier_group f on f.groupid=e.groupid WHERE e.userid= _rec.userid AND CHAR_LENGTH(f.style) > 2 ORDER BY f.sortorder limit 1), 
@@ -252,7 +255,7 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_accessmask_list(
 AS
 $_$
 DECLARE
-_rec databaseSchema.objectQualifier_accessmask_list_return_type%ROWTYPE;
+       _rec databaseSchema.objectQualifier_accessmask_list_return_type%ROWTYPE;
 BEGIN
  IF i_accessmaskid IS NULL THEN
      FOR _rec IN
@@ -15022,110 +15025,101 @@ $BODY$DECLARE
 			 _rec databaseSchema.objectQualifier_topic_unread_return_type%ROWTYPE;               
 BEGIN  
 		-- find total returned count
-		select
-		COUNT(1) into ici_topics_totalrowsnumber
-	 		from
-		databaseSchema.objectQualifier_topic c
-		join databaseSchema.objectQualifier_user b on b.UserID=c.UserID
-		join databaseSchema.objectQualifier_forum d on d.ForumID=c.ForumID
-		join databaseSchema.objectQualifier_activeaccess x on x.ForumID=d.ForumID
-		join databaseSchema.objectQualifier_category cat on cat.CategoryID=d.CategoryID
-	where
-		(c.lastposted between i_sincedate and i_todate) and
-	    x.userid = i_pageuserid and
-		x.readaccess IS TRUE and
-		cat.boardid = i_boardid and
-		(i_categoryid is null or cat.categoryid=i_categoryid) and
-		c.isdeleted IS FALSE and
-		c.topicmovedid IS NULL;	
+	 select
+	 COUNT(1) into ici_topics_totalrowsnumber
+	 from databaseSchema.objectQualifier_topic c
+		  join databaseSchema.objectQualifier_user b on b.UserID=c.UserID
+		  join databaseSchema.objectQualifier_forum d on d.ForumID=c.ForumID
+		  join databaseSchema.objectQualifier_activeaccess x on x.ForumID=d.ForumID
+		  join databaseSchema.objectQualifier_category cat on cat.CategoryID=d.CategoryID
+	 where (c.lastposted between i_sincedate and i_todate) and
+	        x.userid = i_pageuserid and
+		    x.readaccess IS TRUE and
+		    cat.boardid = i_boardid and
+		    (i_categoryid is null or cat.categoryid=i_categoryid) and
+		    c.isdeleted IS FALSE and
+		    c.topicmovedid IS NULL;	
 
-		 ici_pageindex := ici_pageindex+1;
-         ici_firstselectrownum := (ici_pageindex - 1) * i_pagesize + 1;
+		    ici_pageindex := ici_pageindex+1;
+            ici_firstselectrownum := (ici_pageindex - 1) * i_pagesize + 1;
 
-    SELECT 		
-		c.lastposted
-	into ici_firstselectposted
-	from
-		databaseSchema.objectQualifier_topic c
-		join databaseSchema.objectQualifier_user b on b.UserID=c.UserID
-		join databaseSchema.objectQualifier_forum d on d.ForumID=c.ForumID
-		join databaseSchema.objectQualifier_activeaccess x on x.ForumID=d.ForumID
-		join databaseSchema.objectQualifier_category cat on cat.CategoryID=d.CategoryID
-	where
-		(c.lastposted between i_sincedate and i_todate) and
-	    x.userid = i_pageuserid and
-		x.readaccess IS TRUE and
-		cat.boardid = i_boardid and
-		(i_categoryid is null or cat.categoryid=i_categoryid) and
-		c.isdeleted IS FALSE and
-		c.topicmovedid IS NULL	
-    ORDER BY
-	c.lastposted DESC,
-	cat.sortorder,
-	d.sortorder,
-    d.name DESC,
-    c.priority DESC;	
+     SELECT 		
+		   c.lastposted
+	 into ici_firstselectposted
+	 from databaseSchema.objectQualifier_topic c
+		  join databaseSchema.objectQualifier_user b on b.UserID=c.UserID
+		  join databaseSchema.objectQualifier_forum d on d.ForumID=c.ForumID
+		  join databaseSchema.objectQualifier_activeaccess x on x.ForumID=d.ForumID
+	 	  join databaseSchema.objectQualifier_category cat on cat.CategoryID=d.CategoryID
+	 where
+		  (c.lastposted between i_sincedate and i_todate) and
+	       x.userid = i_pageuserid and
+		   x.readaccess IS TRUE and
+		   cat.boardid = i_boardid and
+		   (i_categoryid is null or cat.categoryid=i_categoryid) and
+		   c.isdeleted IS FALSE and
+		   c.topicmovedid IS NULL	
+     ORDER BY
+	         c.lastposted DESC,
+	         cat.sortorder,
+	         d.sortorder,
+             d.name DESC,
+             c.priority DESC;	
 
- FOR _rec IN
- 	SELECT 	
- 		c.forumid AS ForumID,
- 		c.topicid AS TopicID,
-		c.topicmovedid,
- 		c.posted AS Posted,
- 		COALESCE(c.topicmovedid,c.topicid) AS LinkTopicID,
- 		c.topic AS Subject,
-		c.status,
-		c.styles,
-		c.description,
- 		c.userid,
- 		COALESCE(c.username,b.name) AS Starter,
-		COALESCE(c.userdisplayname,b.displayname) AS StarterDisplay,
- 		(SELECT COUNT(1) 
-                      FROM databaseSchema.objectQualifier_message mes 
-                      WHERE mes.topicid = c.topicid 
-                        AND mes.isdeleted IS TRUE 
-                        AND mes.isapproved IS TRUE 
-                        AND ((i_pageuserid IS NOT NULL AND mes.userid = i_pageuserid) 
-                        OR (i_pageuserid IS NULL)) ) AS NumPostsDeleted,
- 		((SELECT COUNT(1) FROM databaseSchema.objectQualifier_message x 
- 		WHERE x.topicid=c.topicid and (x.flags & 8)=0) - 1)
-                 AS Replies,
- 		c.views AS Views,
- 		c.lastposted AS LastPosted ,
- 		c.lastuserid AS LastUserID,
- 		COALESCE(c.lastusername,(SELECT x.name FROM databaseSchema.objectQualifier_user x 
- 		where x.userid=c.lastuserid)) AS   LastUserName,
-		COALESCE(c.lastuserdisplayname,(SELECT x.displayname FROM databaseSchema.objectQualifier_user x 
- 		where x.userid=c.lastuserid)) AS   LastUserDisplayName,
- 		c.lastmessageid AS LastMessageID,
-		c.lastmessageflags,
- 		c.topicid AS LastTopicID,
- 		c.flags AS TopicFlags,
-		(SELECT COUNT(id) FROM databaseSchema.objectQualifier_favoritetopic WHERE topicid = COALESCE(c.topicmovedid,c.topicid)),		
- 		c.priority,
- 		c.pollid,
- 		d.name AS ForumName, 		
- 		d.flags AS ForumFlags, 
- 		(SELECT CAST(message AS text) 
- 		FROM databaseSchema.objectQualifier_message mes2 
- 		where mes2.topicid = COALESCE(c.topicmovedid,c.topicid) 
- 		AND mes2.position = 0 LIMIT 1) AS FirstMessage,
- 		(case(i_stylednicks)
-	        when true THEN  (SELECT us.userstyle FROM databaseSchema.objectQualifier_user us where us.userid = c.userid)  
-	        else ''	 end),
-	    (case(i_stylednicks)
-	        when true THEN  (SELECT us.userstyle FROM databaseSchema.objectQualifier_user us where us.userid = c.lastuserid)    
-	        else ''	 end),
-	    (case(i_findlastunread)
-		     when true THEN
-		       COALESCE((SELECT lastaccessdate FROM databaseSchema.objectQualifier_forumreadtracking x WHERE x.forumid=d.forumid AND x.userid = i_pageuserid), i_utctimestamp)
-		     else TIMESTAMP '-infinity' end) AS LastForumAccess,
-		(case(i_findlastunread)
-		     when true THEN
-		       COALESCE((SELECT lastaccessdate FROM databaseSchema.objectQualifier_topicreadtracking y WHERE c.topicid=c.topicid AND y.userid = i_pageuserid), i_utctimestamp)
-		     else TIMESTAMP '-infinity'	 end) AS LastTopicAccess,
-		ici_topics_totalrowsnumber AS TotalRows,
-		ici_pageindex	AS 	PageIndex	  	     
+     FOR _rec IN SELECT 	
+ 		               c.forumid AS ForumID,
+ 		               c.topicid AS TopicID,
+		               c.topicmovedid,
+ 		               c.posted AS Posted,
+ 		               COALESCE(c.topicmovedid,c.topicid) AS LinkTopicID,
+ 		               c.topic AS Subject,
+		               c.status,
+		               c.styles,
+		               c.description,
+ 		               c.userid,
+ 		               COALESCE(c.username,b.name) AS Starter,
+		               COALESCE(c.userdisplayname,b.displayname) AS StarterDisplay,
+ 		               (SELECT COUNT(1) FROM databaseSchema.objectQualifier_message mes 
+                                        WHERE mes.topicid = c.topicid 
+                                              AND mes.isdeleted IS TRUE 
+                                              AND mes.isapproved IS TRUE 
+                                              AND ((i_pageuserid IS NOT NULL AND mes.userid = i_pageuserid) 
+                                              OR (i_pageuserid IS NULL)) ) AS NumPostsDeleted,
+ 		               ((SELECT COUNT(1) FROM databaseSchema.objectQualifier_message x 
+ 		                                 WHERE x.topicid=c.topicid and (x.flags & 8)=0) - 1) AS Replies,
+ 		               c.views AS Views,
+ 		               c.lastposted AS LastPosted ,
+ 		               c.lastuserid AS LastUserID,
+ 		               COALESCE(c.lastusername,(SELECT x.name FROM databaseSchema.objectQualifier_user x 
+ 		                                                      where x.userid=c.lastuserid)) AS   LastUserName,
+		               COALESCE(c.lastuserdisplayname,(SELECT x.displayname FROM databaseSchema.objectQualifier_user x 
+					                                          where x.userid=c.lastuserid)) AS   LastUserDisplayName,
+ 		               c.lastmessageid AS LastMessageID,
+		               c.lastmessageflags,
+ 		               c.topicid AS LastTopicID,
+ 		               c.flags AS TopicFlags,
+		               (SELECT COUNT(id) FROM databaseSchema.objectQualifier_favoritetopic WHERE topicid = COALESCE(c.topicmovedid,c.topicid)),		
+ 		               c.priority,
+ 		               c.pollid,
+ 		               d.name AS ForumName, 		
+ 		               d.flags AS ForumFlags, 
+ 		               (SELECT CAST(message AS text) FROM databaseSchema.objectQualifier_message mes2 
+ 		                                                  where mes2.topicid = COALESCE(c.topicmovedid,c.topicid) 
+ 		                                                        AND mes2.position = 0 LIMIT 1) AS FirstMessage,
+ 		               (case(i_stylednicks)  when true THEN  
+					   (SELECT us.userstyle FROM databaseSchema.objectQualifier_user us where us.userid = c.userid)  
+	                                         else ''	 end),
+	                   (case(i_stylednicks)  when true THEN 
+					   (SELECT us.userstyle FROM databaseSchema.objectQualifier_user us where us.userid = c.lastuserid)    
+	                                         else ''	 end),
+	                   (case(i_findlastunread) when true THEN
+		               COALESCE((SELECT lastaccessdate FROM databaseSchema.objectQualifier_forumreadtracking x WHERE x.forumid=d.forumid AND x.userid = i_pageuserid), i_utctimestamp)
+		                                     else TIMESTAMP '-infinity' end) AS LastForumAccess,
+		               (case(i_findlastunread) when true THEN
+		               COALESCE((SELECT lastaccessdate FROM databaseSchema.objectQualifier_topicreadtracking y WHERE c.topicid=c.topicid AND y.userid = i_pageuserid), i_utctimestamp)
+		                                       else TIMESTAMP '-infinity'	 end) AS LastTopicAccess,
+		               ici_topics_totalrowsnumber AS TotalRows,
+		               ici_pageindex	AS 	PageIndex	  	     
  	FROM
  		databaseSchema.objectQualifier_topic c
  		JOIN databaseSchema.objectQualifier_user b ON b.userid=c.userid
@@ -15184,7 +15178,7 @@ BEGIN
 					   ON b.AlbumID = a.AlbumID
 		         WHERE b.userid = i_userid 
 				 ORDER BY a.albumid, 
-				           a.imageid DESC
+				          a.imageid DESC
 	LOOP
 	    RETURN NEXT _rec;
 	END LOOP;
@@ -15193,18 +15187,20 @@ END;$BODY$
     COST 100 ROWS 1000;  
 --GO
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forum_maxid(
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forum_maxid
+                           (
                            i_boardid integer)
-                   RETURNS integer AS
+                  RETURNS integer AS
 $BODY$
 BEGIN 
-	RETURN (select a.forumid 
-	       from databaseSchema.objectQualifier_forum a 
-	            join databaseSchema.objectQualifier_category b 
-				on b.categoryid =a.categoryid 
-				where b.boardid= i_boardid 
-				order by a.forumid desc limit 1);	
-END;$BODY$
+	 RETURN (select a.forumid 
+	         from databaseSchema.objectQualifier_forum a 
+	              join databaseSchema.objectQualifier_category b 
+				  on b.categoryid =a.categoryid 
+				  where b.boardid= i_boardid 
+				  order by a.forumid desc limit 1);	
+END;
+$BODY$
     LANGUAGE 'plpgsql' STABLE SECURITY DEFINER
     COST 100;  
 --GO
