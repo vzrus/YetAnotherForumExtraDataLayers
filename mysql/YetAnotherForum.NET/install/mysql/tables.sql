@@ -1489,6 +1489,33 @@ IF EXISTS (SELECT 1 FROM information_schema.COLUMNS
  ALTER TABLE {databaseName}.{objectQualifier}ForumReadtracking DROP PRIMARY KEY;
  ALTER TABLE {databaseName}.{objectQualifier}ForumReadtracking DROP `TrackingID`;
   END IF; 
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS S WHERE S.TABLE_SCHEMA='{databaseName}' AND S.INDEX_NAME='IX_{databaseName}_{objectQualifier}ActiveAccess_UserID_Forum' AND S.TABLE_NAME=LOWER('{objectQualifier}ActiveAccess') AND (S.COLUMN_NAME='UserID' OR  S.COLUMN_NAME='ForumID') LIMIT 1) THEN
+
+ALTER TABLE {databaseName}.{objectQualifier}ActiveAccess
+DROP INDEX  `IX_{databaseName}_{objectQualifier}ActiveAccess_UserID_Forum`;
+
+END IF;
+
+IF EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  LOWER(TABLE_NAME)=LOWER('{objectQualifier}MessageReportedAudit')
+  AND COLUMN_NAME='MessageID' AND IS_NULLABLE='YES' LIMIT 1) THEN
+ ALTER TABLE {databaseName}.{objectQualifier}MessageReportedAudit CHANGE `MessageID` `MessageID` INT NOT NULL;
+  END IF; 
+
+  IF EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  LOWER(TABLE_NAME)=LOWER('{objectQualifier}MessageReportedAudit')
+  AND COLUMN_NAME='UserID' AND IS_NULLABLE='YES' LIMIT 1) THEN
+ ALTER TABLE {databaseName}.{objectQualifier}MessageReportedAudit CHANGE `UserID` `UserID` INT NOT NULL;
+  END IF; 
+
+    IF EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  LOWER(TABLE_NAME)=LOWER('{objectQualifier}MessageReportedAudit')
+  AND COLUMN_NAME='Reported' AND IS_NULLABLE='YES' LIMIT 1) THEN
+ ALTER TABLE {databaseName}.{objectQualifier}MessageReportedAudit CHANGE `Reported` `Reported` DATETIME NOT NULL;
+  END IF; 
   END;
 --GO
 

@@ -12959,6 +12959,7 @@ begin
 	usr.UserId,
 	usr.Name AS UserName,
 	usr.DisplayName AS UserDisplayName,
+	usr.LastVisit,
     0 as IsCrawler,
     1 as UserCount,
 	-- IsActiveExcluded

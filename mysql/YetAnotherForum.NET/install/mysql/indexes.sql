@@ -72,14 +72,14 @@ IF (SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS S WHERE S.TABLE_SCHEMA='{
 ALTER TABLE {databaseName}.{objectQualifier}Thanks
 ADD UNIQUE INDEX  `IX_{databaseName}_{objectQualifier}Thanks_UserID` (`ThanksFromUserID`, `ThanksToUserID`);
 
-END IF; */
+END IF; 
 
 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS S WHERE S.TABLE_SCHEMA='{databaseName}' AND S.INDEX_NAME='IX_{databaseName}_{objectQualifier}ActiveAccess_UserID_Forum' AND S.TABLE_NAME=LOWER('{objectQualifier}ActiveAccess') AND (S.COLUMN_NAME='UserID' OR  S.COLUMN_NAME='ForumID') LIMIT 1) THEN
 
 ALTER TABLE {databaseName}.{objectQualifier}ActiveAccess
 ADD UNIQUE INDEX  `IX_{databaseName}_{objectQualifier}ActiveAccess_UserID_Forum` (`UserID`,`ForumID`);
 
-END IF;
+END IF;*/
 
 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS S WHERE S.TABLE_SCHEMA='{databaseName}' AND S.INDEX_NAME='IX_{databaseName}_{objectQualifier}MessageHistory_Edited_MessageID' AND S.TABLE_NAME=LOWER('{objectQualifier}MessageHistory') AND (S.COLUMN_NAME='Edited' OR  S.COLUMN_NAME='MessageID') LIMIT 1) THEN
 

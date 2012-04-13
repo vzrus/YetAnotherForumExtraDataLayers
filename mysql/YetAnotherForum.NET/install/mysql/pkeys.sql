@@ -22,14 +22,14 @@ AND T.CONSTRAINT_NAME = 'PRIMARY') THEN
 
 set @pk_t_name = pk_t_name ;
 set @pk_c_name = pk_c_name ;
-
+set @pk_c2_name = pk_c2_name ;
 
 if pk_c2_name is null then
 set @fk_create_string = concat('ALTER TABLE {databaseName}.{objectQualifier}',
 @pk_t_name,' ADD PRIMARY KEY  (`',@pk_c_name,'`);');
 else
 set @fk_create_string = concat('ALTER TABLE {databaseName}.{objectQualifier}',
-@pk_t_name,' ADD PRIMARY KEY  (`',@pk_c_name,'`,`',@pk_c_name,'`);');
+@pk_t_name,' ADD PRIMARY KEY  (`',@pk_c_name,'`,`',@pk_c2_name,'`);');
 end if;
 
 prepare fk_check_statement from @fk_create_string ;
@@ -138,7 +138,24 @@ CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('WatchForum','INT NOT N
 CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('WatchTopic','INT NOT NULL AUTO_INCREMENT','WatchTopicID', null);
 --GO
 
-
+CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('ActiveAccess',null,'UserID', 'ForumID');
+--GO
+CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('UserProfile',null,'UserID', 'ApplicationName');
+--GO
+CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('ForumReadTracking',null,'UserID', 'ForumID');
+--GO
+CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('TopicReadTracking',null,'UserID', 'TopicID');
+--GO
+CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('GroupMedal',null,'MedalID', 'GroupID');
+--GO
+CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('UserMedal',null,'MedalID', 'UserID');
+--GO
+CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('MessageHistory',null,'MessageID', 'Edited');
+--GO
+CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('MessageReported',null,'MessageID',null);
+--GO
+CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('MessageReportedAudit',null,'LogID',null);
+--GO
 
 DROP  PROCEDURE IF EXISTS {databaseName}.{objectQualifier}add_or_check_pkeys;
 --GO
