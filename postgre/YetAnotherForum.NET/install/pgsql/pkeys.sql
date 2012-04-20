@@ -21,7 +21,10 @@ ALTER TABLE ONLY databaseSchema.objectQualifier_watchforum
     DROP CONSTRAINT pk_databaseSchema_objectQualifier_watchforumid;
 END IF; */
 
-
+IF EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_databaseSchema_objectQualifier_logid_messagereportedaudit' LIMIT 1) THEN
+ALTER TABLE ONLY databaseSchema.objectQualifier_messagereportedaudit
+    DROP CONSTRAINT pk_databaseSchema_objectQualifier_logid_messagereportedaudit CASCADE;
+END IF;
 
 -- create
 
@@ -85,11 +88,6 @@ END IF;
 IF NOT EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_databaseSchema_objectQualifier_groupid_forumid' LIMIT 1) THEN
 ALTER TABLE ONLY databaseSchema.objectQualifier_forumaccess
     ADD CONSTRAINT pk_databaseSchema_objectQualifier_groupid_forumid PRIMARY KEY (groupid, forumid);
-END IF;
-
-IF NOT EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_databaseSchema_objectQualifier_logid_messagereportedaudit' LIMIT 1) THEN
-ALTER TABLE ONLY databaseSchema.objectQualifier_messagereportedaudit
-    ADD CONSTRAINT pk_databaseSchema_objectQualifier_logid_messagereportedaudit PRIMARY KEY (logid);
 END IF;
 
 IF NOT EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_databaseSchema_objectQualifier_mailid' LIMIT 1) THEN
@@ -301,6 +299,7 @@ IF NOT EXISTS (SELECT 1 FROM pg_constraint
    ADD CONSTRAINT pk_databaseSchema_objectQualifier_messageid_edited_messagehistory PRIMARY KEY (messageid,edited);
 END IF;
 
+
 IF NOT EXISTS (SELECT 1 FROM pg_constraint 
                where contype='p' 
 			     and conname ='pk_databaseSchema_objectQualifier_messageid_messagereported' LIMIT 1) THEN
@@ -314,6 +313,13 @@ IF NOT EXISTS (SELECT 1 FROM pg_constraint
    ALTER TABLE ONLY databaseSchema.objectQualifier_reputationvote
    ADD CONSTRAINT pk_databaseSchema_objectQualifier_repfruid_reptouid_reputationvote PRIMARY KEY (reputationfromuserid,reputationtouserid);
 END IF; 
+
+IF NOT EXISTS (SELECT 1 FROM pg_constraint 
+               where contype='p' 
+			     and conname ='pk_databaseSchema_objectQualifier_messageid_userid_reported_objectQualifier_messagereportedaudit' LIMIT 1) THEN
+   ALTER TABLE ONLY databaseSchema.objectQualifier_messagereportedaudit
+   ADD CONSTRAINT pk_databaseSchema_objectQualifier_messageid_userid_reported_objectQualifier_messagereportedaudit PRIMARY KEY (messageid,userid,reported);
+END IF;
 
 END;
 $BODY$

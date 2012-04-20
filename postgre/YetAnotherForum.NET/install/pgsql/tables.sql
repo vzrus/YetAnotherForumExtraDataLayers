@@ -387,9 +387,9 @@ IF NOT EXISTS (select 1 from pg_tables
 CREATE TABLE databaseSchema.objectQualifier_messagereportedaudit
              (
              logid                     serial NOT NULL,
-			 userid                    integer,
-			 messageid                 integer,
-			 reported                  timestampTZ ,
+			 userid                    integer NOT NULL,
+			 messageid                 integer NOT NULL,
+			 reported                  timestampTZ NOT NULL,
 			 reportednumber            integer,
 			 reporttext                varchar(4000)
 			 ) 
@@ -1019,9 +1019,17 @@ BEGIN
 	 IF (EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_databaseSchema_objectQualifier_logid')) THEN
        ALTER TABLE  databaseSchema.objectQualifier_messagereportedaudit DROP CONSTRAINT pk_databaseSchema_objectQualifier_logid CASCADE;
 	 END IF;
-
-
-	 END;	 	
+	IF (EXISTS (SELECT 1 FROM pg_attribute where  attrelid = 'databaseSchema.objectQualifier_messagereportedaudit'::regclass and attname='messageid' and attnotnull ='FALSE')) THEN
+	 ALTER TABLE databaseSchema.objectQualifier_messagereportedaudit ALTER COLUMN messageid SET NOT NULL;
+    END IF;
+		
+	  	IF (EXISTS (SELECT 1 FROM pg_attribute where  attrelid = 'databaseSchema.objectQualifier_messagereportedaudit'::regclass and attname='userid' and attnotnull ='FALSE')) THEN
+	 ALTER TABLE databaseSchema.objectQualifier_messagereportedaudit ALTER COLUMN userid SET NOT NULL;
+    END IF;	
+	 IF (EXISTS (SELECT 1 FROM pg_attribute where  attrelid = 'databaseSchema.objectQualifier_messagereportedaudit'::regclass and attname='reported' and not attnotnull)) THEN
+	 ALTER TABLE databaseSchema.objectQualifier_messagereportedaudit ALTER COLUMN reported SET NOT NULL;
+    END IF;
+	 END;	
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER STRICT
   COST 100;   

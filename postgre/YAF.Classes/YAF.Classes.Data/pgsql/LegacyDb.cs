@@ -930,25 +930,26 @@ namespace YAF.Classes.Data
 						foreach (string word in words)
 						{
 							if (!bFirst) searchSql += " AND "; else bFirst = false;
-                            searchSql += string.Format(" ((c.username IS NULL AND b.name ~* '.*{0}.*') OR (c.username LIKE '.*{0}.*'))", word);
+                           // searchSql += string.Format(" ((c.username IS NULL AND b.name ~* '.*{0}.*') OR (c.username ~* '.*{0}.*'))", word);
 							
-							if (int.TryParse(word, out userId))
+							if (!int.TryParse(word, out userId))
 							{
-								searchSql +=
-								  string.Format(" (c.userid IN ({0}))", userId);
+                                if (searchDisplayName)
+                                {
+                                    searchSql +=
+                                  string.Format(" ((c.userdisplayname IS NULL AND b.displayname  ~* '.*{0}.*') OR (c.userdisplayname ~* '.*{0}.*'))", word);
+                                }
+                                else
+                                {
+                                    searchSql += string.Format(" ((c.username IS NULL AND b.name ~* '.*{0}.*') OR (c.username ~* '.*{0}.*'))", word);
+                                }
+
+							
 							}
 							else
 							{
-								
-								if (searchDisplayName)
-								{
-									searchSql +=
-                                  string.Format(" OR ((c.username IS NULL AND b.displayname  ~* '.*{0}.*') OR (c.username LIKE '.*{0}.*'))", word);
-								}
-								else
-								{
-                                    searchSql += string.Format(" OR ((c.username IS NULL AND b.name ~* '.*{0}.*') OR (c.username LIKE '.*{0}.*'))", word);
-								}
+                                searchSql +=
+                              string.Format(" (c.userid IN ({0}))", userId);
 							}
 						}
 						break;
@@ -961,26 +962,28 @@ namespace YAF.Classes.Data
 						}
 						break;
 					case SearchWhatFlags.ExactMatch:
-						searchSql += string.Format(" ((c.username IS NULL AND b.name = '{0}' ) OR (c.username = '{0}' ))", toSearchFromWho);
+						// searchSql += string.Format(" ((c.username IS NULL AND b.name = '{0}' ) OR (c.username = '{0}' ))", toSearchFromWho);
 						
-						if (int.TryParse(toSearchFromWho, out userId))
+						if (!int.TryParse(toSearchFromWho, out userId))
 						{
-							searchSql +=
-							  string.Format(" OR (c.userid IN ({0}))", userId);
+                            if (searchDisplayName)
+                            {
+                                searchSql += string.Format(
+                                                          " ((c.userdisplayname IS NULL AND b.displayname = '{0}') OR (c.userdisplayname = '{0}'))", toSearchFromWho);
+                            }
+                            else
+                            {
+                                searchSql += string.Format(
+                           " ((c.username IS NULL AND b.name = '{0}') OR (c.username = '{0}'))", toSearchFromWho);
+                            }
+
 						}
 						else
 						{
 						 
-							if (searchDisplayName)
-							{
-								searchSql += string.Format(
-														  " OR ((c.username IS NULL AND b.displayname = '{0}') OR (c.username = '{0}'))", toSearchFromWho);
-							}
-							else
-							{
-								searchSql += string.Format(
-						   " ((c.username IS NULL AND b.name = '{0}') OR (c.username = '{0}'))", toSearchFromWho);
-							}
+					
+                            searchSql +=
+                              string.Format(" (c.userid IN ({0})) ", userId);
 	 
 						}
 						break;
@@ -1037,12 +1040,12 @@ namespace YAF.Classes.Data
 								if (int.TryParse(word, out userId))
 								{
 									searchSql +=
-									  string.Format(" (c.UserID IN ({0}))", userId);
+									  string.Format(" (c.userid IN ({0}))", userId);
 								}
 								else
 								{
 									searchSql +=
-                                      string.Format(" ((c.Username IS NULL AND b.Name ~* '.*{0}.*') OR (c.Username ~* '.*{0}.*'))", word);
+                                      string.Format(" ((c.username IS NULL AND b.name ~* '.*{0}.*') OR (c.username ~* '.*{0}.*'))", word);
 								}
 							}
 							// make final string...
@@ -1053,7 +1056,7 @@ namespace YAF.Classes.Data
 							foreach (string word in words)
 							{
 								if (!bFirst) searchSql += " OR "; else bFirst = false;
-                                searchSql += String.Format("c.message ~* '.*{0}.*'  OR a.topic LIKE '.*{0}.*' ", word);
+                                searchSql += String.Format("c.message ~* '.*{0}.*'  OR a.topic ~* '.*{0}.*' ", word);
 							}
 						}
 						break;
@@ -1064,7 +1067,7 @@ namespace YAF.Classes.Data
 						}
 						else
 						{
-                            searchSql += string.Format("c.message ~* '.*{0}.*'  OR a.topic LIKE '.*{0}.*'  ", toSearchWhat);
+                            searchSql += string.Format("c.message ~* '.*{0}.*'  OR a.topic ~* '.*{0}.*'  ", toSearchWhat);
 						}
 						break;
 				}
