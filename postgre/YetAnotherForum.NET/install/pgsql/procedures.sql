@@ -7607,11 +7607,11 @@ END IF;
 	from
 		databaseSchema.objectQualifier_message m
 	where
-		m.topicid = i_topicid
+		m.topicid = i_topicid		
 		-- is approved
-		AND (m.flags & 8) <> 8
+		AND (m.flags & 16) = 16 
 		-- is deleted
-		AND ((m.flags & 16) = 16 
+		AND ((m.flags & 8) <> 8		
 		OR ((i_showdeleted IS TRUE AND (m.flags & 8) = 8) 
 		OR (i_authoruserid > 0 AND m.userid = i_authoruserid)))
 		AND m.posted BETWEEN
