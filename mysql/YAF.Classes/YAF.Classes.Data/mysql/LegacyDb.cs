@@ -1552,17 +1552,22 @@ namespace YAF.Classes.Data
 		/// <param name="attachmentID">attachementID</param>
 		/// <param name="boardId">boardId</param>
 		/// <returns>DataTable with attachement list</returns>
-		static public DataTable attachment_list(object messageID, object attachmentID, object boardId )
+        public static DataTable attachment_list([NotNull] object messageID, [NotNull] object attachmentID, [NotNull] object boardID, [CanBeNull] object pageIndex, [CanBeNull] object pageSize)
+
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "attachment_list" ) )
 			{
                 if ( messageID == null ) { messageID = DBNull.Value; }
                 if ( attachmentID == null ) { attachmentID = DBNull.Value; }
-                if ( boardId == null ) { boardId = DBNull.Value; } 
+                if (boardID == null) { boardID = DBNull.Value; }
+                if (pageIndex == null) { pageIndex = DBNull.Value; }
+                if (pageSize == null) { pageSize = DBNull.Value; } 
 				cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add( "i_MessageID", MySqlDbType.Int32 ).Value = messageID;
-                cmd.Parameters.Add( "i_AttachmentID", MySqlDbType.Int32 ).Value = attachmentID;
-                cmd.Parameters.Add( "i_BoardID", MySqlDbType.Int32 ).Value = boardId;
+                cmd.Parameters.Add("i_MessageID", MySqlDbType.Int32).Value = messageID;
+                cmd.Parameters.Add("i_AttachmentID", MySqlDbType.Int32).Value = attachmentID;
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardID;
+                cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = pageIndex;
+                cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
 				return MsSqlDbAccess.Current.GetData(cmd);
                 
 			}
@@ -1618,7 +1623,9 @@ namespace YAF.Classes.Data
 					cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add( "i_MessageID", MySqlDbType.Int32 ).Value = DBNull.Value;
                     cmd.Parameters.Add( "i_AttachmentID", MySqlDbType.Int32 ).Value = attachmentID;
-                    cmd.Parameters.Add( "i_BoardID", MySqlDbType.Int32 ).Value = null;
+                    cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = DBNull.Value;
+                    cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = DBNull.Value;
+                    cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = DBNull.Value;
 					DataTable tbAttachments = MsSqlDbAccess.Current.GetData(cmd);
 
                     string uploadDir = HostingEnvironment.MapPath(String.Concat(BaseUrlBuilder.ServerFileRoot, YafBoardFolders.Current.Uploads));
@@ -1686,7 +1693,7 @@ namespace YAF.Classes.Data
 		/// <param name="boardId">ID of board</param>
 		/// <param name="ID">ID</param>
 		/// <returns>DataTable of banned IPs</returns>
-		static public DataTable bannedip_list(object boardId, object ID )
+        public static DataTable bannedip_list([NotNull] object boardID, [CanBeNull] object ID, [CanBeNull] object pageIndex, [CanBeNull] object pageSize)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "bannedip_list" ) )
 			{
@@ -1694,8 +1701,10 @@ namespace YAF.Classes.Data
 
 				cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.Add( "i_BoardID", MySqlDbType.Int32 ).Value = boardId;
-                cmd.Parameters.Add( "i_ID", MySqlDbType.Int32 ).Value = ID;
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32 ).Value = boardID;
+                cmd.Parameters.Add("i_ID", MySqlDbType.Int32 ).Value = ID;
+                cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32 ).Value = pageIndex;
+                cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32 ).Value = pageSize;
 				
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
@@ -1902,16 +1911,7 @@ namespace YAF.Classes.Data
 		/// <param name="boardName">Name of new board</param>
 		/// <param name="boardMembershipName">Membership Provider Application Name for new board</param>
 		/// <param name="boardRolesName">Roles Provider Application Name for new board</param>
-        static public int board_create(
-            object adminUsername, 
-            object adminUserEmail, 
-            object adminUserKey, 
-            object boardName, 
-            object culture, 
-            object languageFile, 
-            object boardMembershipName,
-            object boardRolesName, 
-            object rolePrefix)
+        public static int board_create([NotNull] object adminUsername, [NotNull] object adminUserEmail, [NotNull] object adminUserKey, [NotNull] object boardName, [NotNull] object culture, [NotNull] object languageFile, [NotNull] object boardMembershipName, [NotNull] object boardRolesName, [NotNull] object rolePrefix, [NotNull] object isHostUser)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "board_create" ) )
 			{                
@@ -1925,7 +1925,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add( "i_UserName", MySqlDbType.VarChar ).Value = adminUsername;
                 cmd.Parameters.Add("i_UserEmail", MySqlDbType.VarChar).Value = adminUserEmail;
                 cmd.Parameters.Add( "i_UserKey", MySqlDbType.String ).Value = adminUserKey;                
-                cmd.Parameters.Add( "i_IsHostAdmin", MySqlDbType.Byte ).Value = 0;
+                cmd.Parameters.Add( "i_IsHostAdmin", MySqlDbType.Byte ).Value = isHostUser;
                 cmd.Parameters.Add("i_RolePrefix", MySqlDbType.VarChar).Value = rolePrefix;
                 cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				
@@ -2169,7 +2169,7 @@ namespace YAF.Classes.Data
 		/// Deletes all event log entries for given board.
 		/// </summary>
 		/// <param name="boardId">ID of board.</param>
-        static public void eventlog_delete(int boardId)
+        static public void eventlog_delete(int boardId, int pageUserId )
 		{
 			eventlog_delete( null, boardId );
 		}
@@ -2177,16 +2177,16 @@ namespace YAF.Classes.Data
 		/// Deletes event log entry of given ID.
 		/// </summary>
 		/// <param name="eventLogID">ID of event log entry.</param>
-        static public void eventlog_delete(object eventLogID)
+        static public void eventlog_delete(object eventLogID, int pageUserId)
 		{
-			eventlog_delete( eventLogID, null );
+			eventlog_delete( eventLogID, null, pageUserId );
 		}
 		/// <summary>
 		/// Calls underlying stroed procedure for deletion of event log entry(ies).
 		/// </summary>
 		/// <param name="eventLogID">When not null, only given event log entry is deleted.</param>
 		/// <param name="boardId">Specifies board. It is ignored if eventLogID parameter is not null.</param>
-        static public void eventlog_delete(object eventLogID, object boardId)
+        static public void eventlog_delete(object eventLogID, object boardId, int pageUserId)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "eventlog_delete" ) )
 			{
@@ -2195,24 +2195,153 @@ namespace YAF.Classes.Data
 
 				cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.Add( "i_EventLogID", MySqlDbType.Int32 ).Value = eventLogID;
-				cmd.Parameters.Add( "i_BoardID", MySqlDbType.Int32 ).Value = boardId;
+                cmd.Parameters.Add("i_EventLogID", MySqlDbType.Int32 ).Value = eventLogID;
+				cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32 ).Value = boardId;
+                cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
 				
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-        static public DataTable eventlog_list(object boardId)
+        /// <summary>
+        /// Deletes events of a type.
+        /// </summary>
+        /// <param name="boardId">
+        /// The board Id.
+        /// </param>
+        /// <param name="pageUserId">
+        /// The page User Id.
+        /// </param>
+        public static void eventlog_deletebyuser([NotNull] object boardId, [NotNull] object pageUserId)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("eventlog_deletebyuser"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserId;
+
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+
+        public static DataTable eventlog_list([NotNull] object boardID, [NotNull] object pageUserID, [NotNull] object maxRows, [NotNull] object maxDays, [NotNull] object pageIndex, [NotNull] object pageSize, [NotNull] object sinceDate, [NotNull] object toDate, [NotNull] object eventIDs)
+
 		{
-			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "eventlog_list" ) )
+			using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("eventlog_list"))
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
-				cmd.Parameters.Add( "i_BoardID", MySqlDbType.Int32 ).Value = boardId;
-				
+				cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardID;
+                cmd.Parameters.Add("i_PageUserID", MySqlDbType.Int32).Value = pageUserID;
+                cmd.Parameters.Add("i_MaxRows", MySqlDbType.Int32 ).Value =maxRows;
+                cmd.Parameters.Add("i_MaxDays", MySqlDbType.Int32).Value = maxDays;
+                cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = pageIndex;
+                cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = pageSize;
+                cmd.Parameters.Add("i_SinceDate", MySqlDbType.DateTime).Value = sinceDate;
+                cmd.Parameters.Add("i_ToDate", MySqlDbType.DateTime).Value = toDate;
+                cmd.Parameters.Add("i_EventIDs", MySqlDbType.Text).Value = eventIDs;
+
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
+
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
+        /// <summary>
+        /// Saves access entry for a log type for a user.
+        /// </summary>
+        /// <param name="groupID">
+        /// The group Id.
+        /// </param>
+        /// <param name="eventTypeId">
+        /// The event Type Id.
+        /// </param>
+        /// <param name="eventTypeName">
+        /// The event Type Name.
+        /// </param>
+        public static void eventloggroupaccess_save([NotNull] object groupID, [NotNull] object eventTypeId, [NotNull] object eventTypeName, [NotNull] object deleteAccess)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("eventloggroupaccess_save"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("i_GroupID", MySqlDbType.Int32).Value = groupID;
+                cmd.Parameters.Add("i_EventTypeID", MySqlDbType.Int32).Value = eventTypeId;
+                cmd.Parameters.Add("i_EventTypeName", MySqlDbType.VarChar).Value = eventTypeName;
+                cmd.Parameters.Add("i_DeleteAccess", MySqlDbType.Byte).Value = deleteAccess;
+
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+        /// <summary>
+        /// Deletes event log access entries from table.
+        /// </summary>
+        /// <param name="groupID">
+        /// The group Id.
+        /// </param>
+        /// <param name="eventTypeId">
+        /// The event Type Id.
+        /// </param>
+        /// <param name="eventTypeName">
+        /// The event Type Name.
+        /// </param>
+        public static void eventloggroupaccess_delete([NotNull] object groupID, [NotNull] object eventTypeId, [NotNull] object eventTypeName)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("eventloggroupaccess_delete"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("i_GroupID", MySqlDbType.Int32).Value = groupID;
+                cmd.Parameters.Add("i_EventTypeID", MySqlDbType.Int32).Value = eventTypeId;
+                cmd.Parameters.Add("i_EventTypeName", MySqlDbType.VarChar).Value = eventTypeName;
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+        /// <summary>
+        /// Returns a list of access entries for a group.
+        /// </summary>
+        /// <param name="groupID">
+        /// The group Id.
+        /// </param>
+        /// <param name="eventTypeId">
+        /// The event Type Id.
+        /// </param>
+        /// <returns>Returns a list of access entries for a group.</returns>
+        public static DataTable eventloggroupaccess_list([NotNull] object groupID, [NotNull] object eventTypeId)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("eventloggroupaccess_list"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("i_GroupID", MySqlDbType.Int32).Value = groupID;
+                cmd.Parameters.Add("i_EventTypeID", MySqlDbType.Int32).Value = eventTypeId;
+
+                return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
+        /// <summary>
+        /// Lists group for the board Id handy to display on the calling admin page. 
+        /// </summary>
+        /// <param name="boardId">
+        /// The board Id.
+        /// </param>
+        /// <returns>Lists group for the board Id handy to display on the calling admin page.
+        /// </returns>
+        public static DataTable group_eventlogaccesslist([CanBeNull] object boardId)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("group_eventlogaccesslist"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+
+                return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
 		#endregion yaf_EventLog
         
         // Admin control of file extensions - MJ Hufford
@@ -3216,17 +3345,7 @@ namespace YAF.Classes.Data
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
-        static public DataTable mail_list(object processId)
-		{
-			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "mail_list" ) )
-			{
-				cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.Add( "i_ProcessID", MySqlDbType.Int32 ).Value = processId;
-                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
-				return MsSqlDbAccess.Current.GetData(cmd);
-			}
-		}
-
+       
         /// <summary>
         /// The mail_list.
         /// </summary>
@@ -3241,6 +3360,7 @@ namespace YAF.Classes.Data
             {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("i_ProcessID", MySqlDbType.Int32).Value = processId;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 
                 return MsSqlDbAccess.Current.GetData(cmd).SelectTypedList(x => new TypedMailList(x));
             }
@@ -3727,7 +3847,9 @@ namespace YAF.Classes.Data
                     cmd.Parameters.Add( "i_MessageID", MySqlDbType.Int32 ).Value = messageID;
                     cmd.Parameters.Add( "i_AttachmentID", MySqlDbType.Int32 ).Value = DBNull.Value;
                     cmd.Parameters.Add( "i_BoardID", MySqlDbType.Int32 ).Value = DBNull.Value;
-					
+                    cmd.Parameters.Add("i_PageIndex", MySqlDbType.Int32).Value = DBNull.Value;
+                    cmd.Parameters.Add("i_PageSize", MySqlDbType.Int32).Value = DBNull.Value;
+
                     DataTable tbAttachments = MsSqlDbAccess.Current.GetData(cmd);
                     string uploadDir = HostingEnvironment.MapPath(String.Concat(BaseUrlBuilder.ServerFileRoot, YafBoardFolders.Current.Uploads));
 
@@ -4845,7 +4967,7 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public void pmessage_save(object fromUserID, object toUserID, object subject, object body, object Flags)
+        static public void pmessage_save(object fromUserID, object toUserID, object subject, object body, object Flags, object replyTo)
 		{
 			using ( MySqlCommand cmd = MsSqlDbAccess.GetCommand( "pmessage_save" ) )
 			{
@@ -4856,6 +4978,7 @@ namespace YAF.Classes.Data
                 cmd.Parameters.Add( "i_Subject", MySqlDbType.VarChar ).Value = subject;
                 cmd.Parameters.Add( "i_Body", MySqlDbType.Text ).Value = body;
                 cmd.Parameters.Add( "i_Flags", MySqlDbType.Int32 ).Value = Flags;
+                cmd.Parameters.Add("i_ReplyTo", MySqlDbType.Int32).Value = replyTo;
                 cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 				
                 MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
@@ -7724,6 +7847,68 @@ namespace YAF.Classes.Data
             return MsSqlDbAccess.Current.GetData(cmd);
         }
     }
+        /// <summary>
+        /// The admin_pageaccesslist.
+        /// </summary>
+        /// <param name="boardId">
+        /// The board id.
+        /// </param>
+        /// <param name="useStyledNicks">
+        /// The use styled nicks.
+        /// </param>
+        /// <returns>
+        /// </returns>
+        public static DataTable admin_pageaccesslist([CanBeNull] object boardId, [NotNull] object useStyledNicks)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("admin_pageaccesslist"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
+                cmd.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNicks;
+                cmd.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
+
+                return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
+        public static void adminpageaccess_save([NotNull] object userId, [NotNull] object pageName)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("adminpageaccess_save"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userId;
+                cmd.Parameters.Add("i_PageName", MySqlDbType.VarChar).Value = pageName;
+                
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+        public static void adminpageaccess_delete([NotNull] object userId, [CanBeNull] object pageName)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("adminpageaccess_delete"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userId;
+                cmd.Parameters.Add("i_PageName", MySqlDbType.VarChar).Value = pageName;
+
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+        public static DataTable adminpageaccess_list([CanBeNull] object userId, [CanBeNull] object pageName)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("adminpageaccess_list"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("i_UserID", MySqlDbType.Int32).Value = userId;
+                cmd.Parameters.Add("i_PageName", MySqlDbType.VarChar).Value = pageName;
+
+                return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
     /// <summary>
     /// Get the user list as a typed list.
     /// </summary>

@@ -393,7 +393,7 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_active_list
   $BODY$DECLARE
   _rec databaseSchema.objectQualifier_active_list_return_type%ROWTYPE;
   BEGIN
-  /* Default i_guests  boolean 0*/
+  -- Default i_guests  boolean 0
 
   -- delete non-active
   DELETE FROM databaseSchema.objectQualifier_active
@@ -562,7 +562,7 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_active_list_user
 $BODY$DECLARE
 _rec databaseSchema.objectQualifier_active_list_user_return_type%ROWTYPE;
 BEGIN
-/* Default i_guests  boolean 0*/
+-- Default i_guests  boolean 0
 
 -- delete non-active
  
@@ -980,13 +980,18 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_attachment_list
                            (
                            i_messageid integer,  
 						   i_attachmentid integer, 
-						   i_boardid integer
+						   i_boardid integer,
+						   i_pageindex integer,
+						   i_pagesize integer
 						   )
 				  RETURNS SETOF databaseSchema.objectQualifier_attachment_list_return_type AS
-$BODY$DECLARE
+$BODY$DECLARE  
+             ici_totalrows int :=0; 
+			 ici_FirstSelectRowID int :=0; 
+			 ici_firstselectrownumber int :=0; 
              _rec databaseSchema.objectQualifier_attachment_list_return_type%ROWTYPE;
 BEGIN
-   IF i_messageid IS NOT NULL THEN
+   IF i_messageid IS NOT NULL THEN        
    FOR _rec IN
 
      SELECT 
@@ -1003,7 +1008,8 @@ BEGIN
 		   null AS ForumID,
 		   null AS ForumName,
            null AS TopicID,
-           null AS TopicName  
+           null AS TopicName,
+		   1000  
  		from
  			databaseSchema.objectQualifier_attachment a
  			inner join databaseSchema.objectQualifier_message b on b.messageid = a.messageid
@@ -1031,7 +1037,8 @@ END LOOP;
 		   null AS ForumID,
 		   null AS ForumName,
 		   null AS TopicID,
-		   null AS TopicName  
+		   null AS TopicName,
+		   1000  
  		from
  			databaseSchema.objectQualifier_attachment a
  			inner join databaseSchema.objectQualifier_message b on b.messageid = a.messageid
@@ -1045,6 +1052,17 @@ END LOOP;
 	RETURN NEXT _rec;
 END LOOP; 
    ELSE
+     i_pageindex := i_pageindex + 1;
+		 
+		select count(1) into ici_totalrows 
+		FROM  databaseSchema.objectQualifier_attachment a
+ 			inner join databaseSchema.objectQualifier_message b on b.messageid = a.messageid
+ 			inner join databaseSchema.objectQualifier_topic c on c.topicid = b.topicid
+ 			inner join databaseSchema.objectQualifier_forum d on d.forumid = c.forumid
+ 			inner join databaseSchema.objectQualifier_category e on e.categoryid = d.categoryid
+	    WHERE e.boardid = i_boardid;
+			
+        ici_firstselectrownumber := (i_pageindex - 1) * i_pagesize;  
    FOR _rec IN 
     SELECT 
 	       a.attachmentid,
@@ -1060,7 +1078,8 @@ END LOOP;
 		   d.forumid AS ForumID,
 		   d.name AS ForumName,
 		   c.topicid AS TopicID,
-		   c.topic AS TopicName
+		   c.topic AS TopicName,
+		   ici_totalrows as TotalRows		
  		from 
  			databaseSchema.objectQualifier_attachment a
  			inner join databaseSchema.objectQualifier_message b on b.messageid = a.messageid
@@ -1070,9 +1089,7 @@ END LOOP;
  		where
  			e.boardid = i_boardid
  		order by
- 			d.name,
- 			c.topic,
- 			b.posted
+ 			a.attachmentid OFFSET ici_firstselectrownumber LIMIT i_pagesize
  			 LOOP
 	RETURN NEXT _rec;
 END LOOP; 
@@ -1131,13 +1148,26 @@ END;$BODY$
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_bannedip_list
                            (
                            i_boardid integer, 
-						   i_id integer
+						   i_id integer,
+						   i_pageindex integer,
+						   i_pagesize integer
 						   )
 				  RETURNS SETOF databaseSchema.objectQualifier_bannedip_list_return_type AS
 $BODY$DECLARE
+             ici_totalrows int :=0; 
+			 ici_FirstSelectRowID int :=0; 
+			 ici_firstselectrownumber int :=0; 
              _rec databaseSchema.objectQualifier_bannedip_list_return_type%ROWTYPE;
 BEGIN
 IF i_id IS NULL THEN
+ i_pageindex := i_pageindex + 1;
+		 
+		select count(1) into ici_totalrows 
+		FROM  databaseSchema.objectQualifier_bannedip
+	    WHERE boardid = i_boardid;
+			
+        ici_firstselectrownumber := (i_pageindex - 1) * i_pagesize;     
+
   FOR _rec in
       SELECT
 	        id,
@@ -1145,9 +1175,10 @@ IF i_id IS NULL THEN
             mask,
             since,
             reason,
-            userid
+            userid,
+			ici_totalrows as TotalRows		
      FROM  databaseSchema.objectQualifier_bannedip
-	 WHERE  boardid = i_boardid
+	 WHERE boardid = i_boardid order by id  OFFSET ici_firstselectrownumber LIMIT i_pagesize
   LOOP
 	  RETURN NEXT _rec;
   END LOOP;
@@ -1159,7 +1190,8 @@ SELECT
 	  mask,
 	  since,
 	  reason,
-	  userid
+	  userid,
+	  1::integer  as TotalRows	
 FROM   databaseSchema.objectQualifier_bannedip
 WHERE  boardid = i_boardid
 AND id = i_id 
@@ -1602,8 +1634,7 @@ BEGIN
   PERFORM databaseSchema.objectQualifier_forum_delete(itmpForumID);
   EXIT WHEN NOT FOUND;
 END LOOP;
-  CLOSE board_cursor;
-  /*DEALLOCATE board_cursor;*/
+  CLOSE board_cursor; 
 
   DELETE FROM databaseSchema.objectQualifier_forumaccess
   WHERE       EXISTS (SELECT 1
@@ -1638,6 +1669,20 @@ END LOOP;
   DELETE FROM databaseSchema.objectQualifier_bbcode
   WHERE       boardid = i_boardid;
   DELETE FROM databaseSchema.objectQualifier_extension
+  WHERE       boardid = i_boardid;
+  DELETE FROM databaseSchema.objectQualifier_shoutboxmessage
+  WHERE       boardid = i_boardid;
+  DELETE FROM databaseSchema.objectQualifier_medal
+  WHERE       boardid = i_boardid;
+  DELETE FROM databaseSchema.objectQualifier_smiley
+  WHERE       boardid = i_boardid;
+  DELETE FROM databaseSchema.objectQualifier_replace_words
+  WHERE       boardid = i_boardid;
+  DELETE FROM databaseSchema.objectQualifier_nntpserver
+  WHERE       boardid = i_boardid;
+  DELETE FROM databaseSchema.objectQualifier_bannedip
+  WHERE       boardid = i_boardid;
+  DELETE FROM databaseSchema.objectQualifier_registry
   WHERE       boardid = i_boardid;
   DELETE FROM databaseSchema.objectQualifier_board
   WHERE       boardid = i_boardid;
@@ -1823,18 +1868,18 @@ BEGIN
          OPEN currBoards  FOR
  			SELECT boardid FROM databaseSchema.objectQualifier_board; 		
  		
- 		 /*cycle through forums*/
+ 		 -- cycle through forums
  		 LOOP
                FETCH currBoards INTO itmpBoardID;
                EXIT WHEN NOT FOUND;
-                  /*resync board forums*/
+                  -- resync board forums
                PERFORM databaseSchema.objectQualifier_forum_resync(itmpBoardID,nullForum);
                EXIT WHEN NOT FOUND;
          END LOOP;
          CLOSE currBoards;               
- 		/*deallocate curBoards*/ 	
+ 		-- deallocate curBoards	
  	ELSE
- 		/*resync board forums*/
+ 		-- resync board forums
  		PERFORM databaseSchema.objectQualifier_forum_resync(i_boardid,nullForum);
  	END IF;
  	RETURN;
@@ -2051,7 +2096,7 @@ $BODY$
   COST 100 ROWS 1000;  
 --GO
 
-/* STORED PROCEDURE CREATED BY VZ-TEAM */
+-- STORED PROCEDURE CREATED BY VZ-TEAM 
 -- Function: databaseSchema.objectQualifier_category_simplelist(integer, integer)
 
 -- DROP FUNCTION databaseSchema.objectQualifier_category_simplelist(integer, integer);
@@ -2234,11 +2279,11 @@ LOOP
 	RETURN NEXT _rec;
 END LOOP;
 ELSE
-/*Update new user email*/
+-- Update new user email
 UPDATE databaseSchema.objectQualifier_user SET email = LOWER(l_Email), flags = Flags | 2 WHERE userid = l_UserID;
 DELETE FROM databaseSchema.objectQualifier_checkemail WHERE checkemailid = l_CheckEmailID;
 
-/*return the UserProviderKey*/
+-- return the UserProviderKey
 FOR _rec IN
 SELECT provideruserkey, email FROM databaseSchema.objectQualifier_user WHERE userid = l_UserID
 LOOP
@@ -2342,7 +2387,8 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_eventlog_create(
                            i_userid integer, 
 						   i_source varchar, 
 						   i_description text, 
-						   i_type integer)
+						   i_type integer,
+						   i_utctimestamp timestampTZ)
 				  RETURNS void AS
 $BODY$DECLARE
 topLogID integer;
@@ -2352,22 +2398,15 @@ INSERT INTO databaseSchema.objectQualifier_eventlog
 (userid,
 source,
 description,
-type)
+type,
+eventtime)
 VALUES     (i_userid,
 i_source,
 i_description,
-i_type);
-/*delete entries older than 10 days*/
-DELETE FROM databaseSchema.objectQualifier_eventlog
-WHERE   (eventtime +  interval '10 day') < CURRENT_DATE;
-       /*or IF there are more THEN 1000*/
-        IF ((SELECT COUNT(1)
-             FROM   databaseSchema.objectQualifier_eventlog) >= 1050) THEN
-DELETE FROM databaseSchema.objectQualifier_eventlog WHERE eventlogid 
-IN (SELECT eventlogid FROM databaseSchema.objectQualifier_eventlog 
-ORDER BY eventtime LIMIT 100) ; 
-        END IF;
-        RETURN; 
+i_type,
+i_utctimestamp);
+
+ RETURN; 
     END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100; 
@@ -2379,20 +2418,21 @@ ORDER BY eventtime LIMIT 100) ;
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_eventlog_delete(
                            i_eventlogid integer, 
-						   i_boardid integer)
+						   i_boardid integer,
+						   i_pageuserid integer)
 				  RETURNS void AS
 $BODY$
 BEGIN
- 	 /*either EventLogID or BoardID must be null, not both at the same time*/
+ 	-- either EventLogID or BoardID must be null, not both at the same time
  	IF i_eventlogid IS NULL THEN 
- 		/* delete all events of this board*/
- 		DELETE FROM databaseSchema.objectQualifier_eventlog
+ 		-- delete all events of this board
+		DELETE FROM databaseSchema.objectQualifier_eventlog
  		WHERE
  			(userid IS NULL or
  			userid IN (SELECT userid FROM databaseSchema.objectQualifier_user WHERE boardid=i_boardid));
  	
  	ELSE 
- 		 /*delete just one event*/
+ 		 -- delete just one event
  		DELETE FROM  databaseSchema.objectQualifier_eventlog WHERE eventlogid=i_eventlogid;
  	END IF;
  END;$BODY$
@@ -2404,12 +2444,85 @@ BEGIN
 
 -- DROP FUNCTION objectQualifier_eventlog_list(integer);
 
-CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_eventlog_list(
-                           i_boardid integer)
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_eventlog_list
+                           (
+                           i_boardid integer, 
+						   i_pageuserid integer, 
+						   i_maxrows integer, 
+						   i_maxdays integer,  
+						   i_pageindex int,
+						   i_pagesize int, 
+						   i_sincedate timestampTZ, 
+						   i_todate timestampTZ, 
+						   i_eventids  varchar(8000), 
+						   i_utctimestamp timestampTZ
+						   )
 				  RETURNS SETOF databaseSchema.objectQualifier_eventlog_list_return_type AS
 $BODY$DECLARE
 _rec databaseSchema.objectQualifier_eventlog_list_return_type%ROWTYPE;
-BEGIN
+ici_eventid varchar(11);
+i_eventids text := TRIM(BOTH FROM i_eventids) || ',';
+ici_pos integer := POSITION(',' IN i_eventids);
+ici_messagearray int array;
+ici_msgcntr int := 0;
+ici_firstselectrownumber int := 0;
+ici_totalrows integer := 0;
+BEGIN 
+-- i_eventids := TRIM(BOTH FROM i_messageids) || ',';
+-- ici_pos := POSITION(',' IN i_eventids);
+IF CHAR_LENGTH(i_eventids) = 0 then i_eventids = null; end if;
+IF REPLACE(i_eventids, ',', '') <> '' THEN
+
+ WHILE ici_pos > 0 
+       LOOP		 
+            -- left function replaced by substring 
+			ici_eventid := TRIM(BOTH FROM (SUBSTRING(i_eventids FOR ici_pos - 1)));
+			IF ici_eventid <> '' THEN	
+				ici_messagearray[ici_msgcntr] := (CAST(ici_eventid AS integer));				
+				ici_msgcntr := ici_msgcntr + 1;
+				--Use Appropriate conversion
+			END IF;
+			-- right implementation here we remove first id from string
+			i_eventids := SUBSTRING(i_eventids from ici_pos+1 for (char_length(i_eventids) - ici_pos));
+			ici_pos := POSITION(',' IN i_eventids);			
+	   END LOOP;
+	                        -- to be sure that last value is inserted
+IF (LENGTH(i_eventids)>0) THEN
+ici_msgcntr := ici_msgcntr + 1;
+ici_messagearray[ici_msgcntr] := (CAST(i_eventids AS integer));                          
+						   END IF;          
+
+END	IF;	 
+
+-- delete entries older than 10 days
+DELETE FROM databaseSchema.objectQualifier_eventlog
+WHERE   (eventtime +  (i_maxdays::varchar(11) || ' day')::interval) < i_utctimestamp;
+       -- or IF there are more then i_maxrows
+        IF ((SELECT COUNT(1)
+             FROM   databaseSchema.objectQualifier_eventlog) >= i_maxrows) THEN
+DELETE FROM databaseSchema.objectQualifier_eventlog WHERE eventlogid 
+IN (SELECT eventlogid FROM databaseSchema.objectQualifier_eventlog 
+ORDER BY eventtime LIMIT 100) ; 
+        END IF;
+
+-- IN  (SELECT * FROM unnest(ici_messagearray))
+-- hostadmin
+ i_pageindex := i_pageindex + 1;
+if (exists (select 1 from databaseSchema.objectQualifier_user where ((flags & 1) = 1 and userid = i_pageuserid) limit 1)) then
+ 
+		 
+		select count(1) into ici_totalrows from
+		databaseSchema.objectQualifier_eventlog el		
+		left join databaseSchema.objectQualifier_user b 
+		on b.UserID=el.UserID
+	    where	   
+		 (b.UserID IS NULL or b.BoardID = i_boardid)	
+		 and ((i_eventids IS NULL )  OR  
+		 el.type IN (select * from unnest(ici_messagearray)))  
+		 and el.EventTime between i_sincedate and i_todate;
+			
+        ici_firstselectrownumber := (i_pageindex - 1) * i_pagesize ;
+     
 FOR _rec IN
         SELECT
 		el.eventlogid,
@@ -2418,19 +2531,53 @@ FOR _rec IN
         el.source,
         el.description,
 		el.type,    
-        COALESCE(u.name,'System')  AS "Name"
+        COALESCE(u.name,'System')  AS "Name",
+		ici_totalrows as TotalRows
         FROM     databaseSchema.objectQualifier_eventlog el
                  LEFT JOIN databaseSchema.objectQualifier_user u
                    ON el.userid = u.userid
-        WHERE    (u.userid IS NULL 
-          OR u.boardid = i_boardid)
-        ORDER BY el.eventlogid DESC
-        LOOP
-	RETURN NEXT _rec;
+        WHERE    (u.UserID IS NULL or u.BoardID = i_boardid) and ((i_eventids IS NULL )  OR  el.type IN (select * from unnest(ici_messagearray)))  and el.EventTime between i_sincedate and i_todate
+       ORDER BY el.eventlogid DESC OFFSET ici_firstselectrownumber LIMIT i_pagesize
+        LOOP		
+	RETURN NEXT _rec;	
+END LOOP; 
+else
+
+		select count(1) into ici_totalrows from
+		databaseSchema.objectQualifier_eventlog el
+		         left join databaseSchema.objectQualifier_eventloggroupaccess e on e.eventtypeid = el.type
+				 join databaseSchema.objectQualifier_usergroup ug on (ug.userid =  i_pageuserid and ug.groupid = e.groupid)
+                 LEFT JOIN databaseSchema.objectQualifier_user u
+                 ON u.userid = el.userid
+	    where	   
+		(b.UserID IS NULL or b.BoardID = i_boardid)	and ((i_eventids IS NULL )  OR  el.type IN (select * from unnest(ici_messagearray)))  and EventTime between i_sincedate and i_todate;
+			
+        ici_firstselectrownumber := (i_pageindex - 1) * i_pagesize ;
+     
+FOR _rec IN
+        SELECT
+		el.eventlogid,
+        el.eventtime,
+        el.userid,
+        el.source,
+        el.description,
+		el.type,    
+        COALESCE(u.name,'System')  AS "Name",
+		ici_totalrows as TotalRows
+        FROM    databaseSchema.objectQualifier_eventlog el
+		         left join databaseSchema.objectQualifier_eventloggroupaccess e on e.eventtypeid = el.type
+				 join databaseSchema.objectQualifier_usergroup ug on (ug.userid =  i_pageuserid and ug.groupid = e.groupid)
+                 LEFT JOIN databaseSchema.objectQualifier_user u
+                 ON u.userid = el.userid
+        WHERE  (u.UserID IS NULL or u.BoardID = i_boardid)	and ((i_eventids IS NULL )  OR  el.type IN (select * from unnest(ici_messagearray)))  and el.EventTime between i_sincedate and i_todate
+       ORDER BY el.eventlogid DESC OFFSET ici_firstselectrownumber LIMIT i_pagesize
+        LOOP		
+	RETURN NEXT _rec;	
 END LOOP; 
 
+end if;
 END;$BODY$
-  LANGUAGE 'plpgsql' STABLE SECURITY DEFINER
+  LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100 ROWS 1000;   
 --GO
 
@@ -3006,7 +3153,7 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forum_listpath(
 $BODY$DECLARE
 _rec databaseSchema.objectQualifier_forum_listpath_return_type%ROWTYPE;
 BEGIN
- /*supports up to 4 levels of nested forums*/
+-- supports up to 4 levels of nested forums
 FOR _rec IN
                             SELECT a.forumid,
                             a.name
@@ -3214,11 +3361,9 @@ FOR _rec IN
  		b.name AS Forum, 
  		b.description, 		
 		b.imageurl,		
-		b.pollgroupid,
- 		/* databaseSchema.objectQualifier_forum_lasttopic(b.forumid,i_UserID,b.lasttopicid,b.lastposted) */	
+		b.pollgroupid, 		
  		databaseSchema.objectQualifier_forum_topics(b.forumid) AS Topics,
- 		databaseSchema.objectQualifier_forum_posts(b.forumid) AS Posts,
- 	/*	databaseSchema.objectQualifier_forum_subforums(b.forumid, i_userid) AS "Subforums", */
+ 		databaseSchema.objectQualifier_forum_posts(b.forumid) AS Posts, 	
  		b.lasttopicid,
 		ici_lasttopicstatus,
 		ici_lasttopicstyles,
@@ -3253,7 +3398,7 @@ FOR _rec IN
 	 	(i_categoryid IS NULL OR a.categoryid=i_categoryid) AND
 		 x.userid = i_userid  and		
 		 (b.forumid IN (SELECT * FROM unnest(ici_forumids)) ) 	
- 		/* ((b.flags & 2)=0 OR x.readaccess IS NOT FALSE ) 	*/
+ 		 and ((b.flags & 2)=0 OR x.readaccess IS NOT FALSE ) 	
  	ORDER BY 
  		a.sortorder,
  		b.sortorder 		
@@ -3388,8 +3533,7 @@ FOR _rec IN
  	WHERE
 	 	(i_categoryid IS NULL OR a.categoryid=i_categoryid) AND
 		 x.userid = i_userid  and
-		 q."ForumID" > 0		
-		-- (b.forumid IN (SELECT * FROM unnest(ici_forumids)) ) 	
+		 q."ForumID" > 0			
  		and ((b.flags & 2)=0 OR x.readaccess IS NOT FALSE ) 	
  	ORDER BY 
  		a.sortorder,
@@ -3787,26 +3931,25 @@ BEGIN
  				c.boardid=i_boardid;
 
  		
- 		 /*cycle through forums*/
+ 		 -- cycle through forums
                LOOP
                 FETCH currForums INTO itmpForumID; 
  		EXIT WHEN NOT FOUND;
 
- 		/*update statistics*/
+ 		  -- update statistics
  		  PERFORM  databaseSchema.objectQualifier_forum_updatestats(itmpForumID);
- 			/*update last post*/
+ 		  -- update last post
  		  PERFORM databaseSchema.objectQualifier_forum_updatelastpost(itmpForumID);	
  
  		EXIT WHEN NOT FOUND;
                 END LOOP;
- 		CLOSE currForums;
- 		/*deallocate curForums*/
+ 		CLOSE currForums; 	
  	
  	ELSE 		
- 		/*update statistics*/
-		SELECT databaseSchema.objectQualifier_forum_updatestats(i_forumid);
- 		/*update last post*/
-		SELECT databaseSchema.objectQualifier_forum_updatelastpost(i_forumid);
+ 		-- update statistics
+		PERFORM databaseSchema.objectQualifier_forum_updatestats(i_forumid);
+ 		-- update last post
+		PERFORM databaseSchema.objectQualifier_forum_updatelastpost(i_forumid);
  	END IF;
 END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
@@ -4161,7 +4304,7 @@ IF ici_ParentID >0  THEN
 
  	 -- CALL databaseSchema.objectQualifier_forum_updatestats(i_ForumID);
 
-/* In peers to use in parent*/
+-- In peers to use in parent
 ici_tmpMaxPosted3 :=
 (SELECT lastposted
 FROM databaseSchema.objectQualifier_Forum
@@ -4445,6 +4588,8 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_delete(
                   RETURNS void AS
 $BODY$
 BEGIN
+        DELETE FROM databaseSchema.objectQualifier_eventloggroupaccess
+        WHERE       groupid = i_groupid;
         DELETE FROM databaseSchema.objectQualifier_forumaccess
         WHERE       groupid = i_groupid;
         DELETE FROM databaseSchema.objectQualifier_usergroup
@@ -4770,9 +4915,9 @@ BEGIN
                      ON b.categoryid = a.categoryid
             WHERE  b.boardid = i_boardid;
             SELECT ici_groupid INTO _rec; 
-         END IF;		
-         RETURN _rec;
+         END IF;
 		 PERFORM databaseSchema.objectQualifier_user_savestyle(ici_groupid, null);
+         RETURN _rec;		
     END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100;  
@@ -4933,7 +5078,7 @@ timesendattempt:=i_utctimestamp +  interval '5 minute';
   WHERE (sendattempt < i_utctimestamp) OR sendattempt IS NULL ORDER BY sendattempt desc, created desc, mailid  LIMIT 10);
           
          
- 	/*now SELECT all mail reserved for this process...*/
+ 	-- now SELECT all mail reserved for this process...
  	FOR _rec IN
  	SELECT
 	         mailid,
@@ -5331,25 +5476,25 @@ BEGIN
  	WHERE
  		a.messageid = i_messageid;
  
- 	/* update Message table, set meesage flag to approved */
+ 	-- update Message table, set meesage flag to approved 
  	ici_NewFlag := ici_NewFlag | 16;
  	UPDATE databaseSchema.objectQualifier_message 
  	SET flags = flags | 16
  	WHERE messageid = i_messageid;
 
- 	/*update User table to increase postcount*/
+ 	-- update User table to increase postcount
  	IF EXISTS(SELECT 1 FROM databaseSchema.objectQualifier_forum
  	 WHERE forumid=ici_ForumID AND (flags & 4)=0) THEN
  	
  		UPDATE databaseSchema.objectQualifier_user
  		 set numposts = numposts + 1 
  		 where userid = ici_userid;
- 		/*upgrade user, i.e. promote rank IF conditions allow it*/
+ 		-- upgrade user, i.e. promote rank IF conditions allow it
  		PERFORM databaseSchema.objectQualifier_user_upgrade (ici_userid);
  	
  END IF;
  
-  	/*update Topic table with info about last post in topic*/
+  	-- update Topic table with info about last post in topic
  	UPDATE databaseSchema.objectQualifier_topic set
  		lastposted = ici_Posted,
  		lastmessageid = i_messageid,
@@ -5364,7 +5509,7 @@ BEGIN
  		AND x.isapproved IS TRUE and x.isdeleted IS NOT TRUE)
  	WHERE topicid = ici_TopicID;
  	
- 	/*update Forum table with last topic/post info*/
+ 	-- update Forum table with last topic/post info
  	
  	
   SELECT DISTINCT parentid INTO  ici_parentid
@@ -5379,7 +5524,7 @@ BEGIN
  		lastusername = ici_UserName,
 		lastuserdisplayname = ici_UserDisplayName
  	WHERE forumid = ici_ForumID;
- 	/*update forum stats*/
+ 	-- update forum stats
  	PERFORM databaseSchema.objectQualifier_forum_updatestats (ici_ForumID);
  	WHILE ici_ParentID > 0 
  	LOOP
@@ -5394,7 +5539,7 @@ BEGIN
 				forumid = ici_parentid
         AND ((lastposted < ici_Posted)
         OR lastposted IS NULL); 
-        /*update forum stats*/
+        -- update forum stats
         PERFORM databaseSchema.objectQualifier_forum_updatestats(ici_parentid);        
          SELECT DISTINCT parentid INTO  ici_parentid
   FROM  databaseSchema.objectQualifier_forum
@@ -5423,7 +5568,7 @@ $BODY$DECLARE
              ici_userid		    integer;
 BEGIN	
  
- 	/*Find TopicID and ForumID*/
+ 	-- Find TopicID and ForumID
  	SELECT b.topicid,b.forumid,a.userid 
         INTO ici_TopicID,ici_ForumID,ici_userid
  		FROM 
@@ -5433,7 +5578,7 @@ BEGIN
  		WHERE
  			a.messageid=i_messageid;
  
- 	/*UPDATE LastMessageID in Topic*/
+ 	-- UPDATE LastMessageID in Topic
  	UPDATE databaseSchema.objectQualifier_topic SET 
  		lastposted = NULL,
  		lastmessageid = NULL,
@@ -5443,7 +5588,7 @@ BEGIN
 		lastmessageflags = 22
  	WHERE lastmessageid = i_messageid;
  
- 	/*UPDATE LastMessageID in Forum*/
+ 	-- UPDATE LastMessageID in Forum
  	UPDATE databaseSchema.objectQualifier_forum SET 
  		lastposted = NULL,
  		lasttopicid = NULL,
@@ -5451,10 +5596,9 @@ BEGIN
  		lastuserid = NULL,
  		lastusername = NULL,
 		lastuserdisplayname = NULL
- 	WHERE lastmessageid = i_messageid; 	
- 	
+ 	WHERE lastmessageid = i_messageid;  	
  
- 	/*should it be physically deleter or not*/
+ 	-- should it be physically deleter or not
  	IF i_erasemessage IS TRUE THEN
  		DELETE FROM databaseSchema.objectQualifier_attachment WHERE messageid = i_messageid;
  		DELETE FROM databaseSchema.objectQualifier_messagereported WHERE messageid = i_messageid;
@@ -5463,19 +5607,19 @@ BEGIN
  		DELETE FROM databaseSchema.objectQualifier_thanks WHERE messageid = i_messageid;
  		DELETE FROM databaseSchema.objectQualifier_message WHERE messageid = i_messageid; 	
  	ELSE
- 		/*"Delete" it only by setting deleted flag message*/
+ 		-- "Delete" it only by setting deleted flag message
  		UPDATE databaseSchema.objectQualifier_message 
  		SET flags = Flags | 8 WHERE messageid = i_messageid;
  	END IF;
  	
- 	/* UPDATE user post count*/
+ 	-- UPDATE user post count
  	UPDATE databaseSchema.objectQualifier_user 
  	SET numposts = 
  	(SELECT count(1) FROM databaseSchema.objectQualifier_message 
  	WHERE userid = ici_userid AND isdeleted IS NOT TRUE AND isapproved IS TRUE) 
  	WHERE userid = ici_userid;
  	
- 	/* Delete topic IF there are no more messages*/
+ 	-- Delete topic IF there are no more messages
  	SELECT COUNT(1) INTO ici_MessageCount 
  	FROM databaseSchema.objectQualifier_message 
  	WHERE topicid = ici_TopicID 
@@ -5484,11 +5628,11 @@ BEGIN
  	THEN PERFORM databaseSchema.objectQualifier_topic_delete (ici_TopicID, true, i_erasemessage); 
  	END IF;
  
- 	/*UPDATE lastpost*/
+ 	-- UPDATE lastpost
  	PERFORM databaseSchema.objectQualifier_topic_updatelastpost(ici_ForumID,ici_TopicID);
  	PERFORM databaseSchema.objectQualifier_forum_updatestats(ici_ForumID);
  
- 	/*UPDATE topic numposts*/
+ 	-- UPDATE topic numposts
  	UPDATE databaseSchema.objectQualifier_topic
  	 SET numposts = 
  	 (SELECT COUNT(1) FROM databaseSchema.objectQualifier_message x 
@@ -5714,7 +5858,7 @@ $BODY$DECLARE
              _rec databaseSchema.objectQualifier_message_secdata_return_type%ROWTYPE;
              ici_pageuserid integer:=i_pageuserid; 
 BEGIN
--- BoardID=@BoardID and
+-- BoardID=i_boardid and
 IF (ici_pageuserid is null) THEN
 select userid INTO ici_pageuserid from databaseSchema.objectQualifier_user 
 where  isguest IS TRUE ORDER BY joined DESC LIMIT 1;
@@ -5923,7 +6067,7 @@ IF ici_Position IS NULL THEN  ici_Position := 0; END IF;
  	 and posted > (SELECT posted 
  	 from databaseSchema.objectQualifier_message WHERE messageid = i_messageid);
  
- 	 /*Update LastMessageID in Topic and Forum*/
+ 	 -- Update LastMessageID in Topic and Forum
  	UPDATE databaseSchema.objectQualifier_topic set
  		lastposted = NULL,
  		lastmessageid = NULL,
@@ -5948,18 +6092,18 @@ IF ici_Position IS NULL THEN  ici_Position := 0; END IF;
  	position = ici_Position
  WHERE  messageid = i_messageid;
  
- 	 /*Delete topic IF there are no more messages*/
+ 	 -- Delete topic IF there are no more messages
  	SELECT COUNT (1) INTO ici_MessageCount 
  	FROM databaseSchema.objectQualifier_message 
  	WHERE topicid = ici_OldTopicID and (flags & 8)=0;
  	IF ici_MessageCount=0 
  	THEN PERFORM databaseSchema.objectQualifier_topic_delete (ici_OldTopicID,false,false); END IF;
  
- 	 /*update lastpost*/
+ 	 -- update lastpost
  	PERFORM databaseSchema.objectQualifier_topic_updatelastpost (ici_OldForumID,ici_OldTopicID);
  	PERFORM databaseSchema.objectQualifier_topic_updatelastpost (ici_NewForumID,i_movetotopic);
  
- 	 /*update topic numposts*/
+ 	-- update topic numposts
  	UPDATE databaseSchema.objectQualifier_topic SET
  		numposts = (SELECT count(1) from databaseSchema.objectQualifier_message x 
  		              WHERE x.topicid=databaseSchema.objectQualifier_topic.topicid 
@@ -6091,8 +6235,8 @@ BEGIN
 
  	
  
- 	/*update Message table to set message with flag Reported*/
- 	UPDATE databaseSchema.objectQualifier_message 
+ 	-- update Message table to set message with flag Reported
+	UPDATE databaseSchema.objectQualifier_message 
  	SET flags = flags | 128 
  	WHERE messageid = i_messageid;
 
@@ -6143,7 +6287,7 @@ BEGIN
  	SET resolved = TRUE, resolvedby = i_userid, resolveddate = i_utctimestamp
  	WHERE messageid = i_messageid;
  	
- 	/* Remove Flag */
+ 	-- Remove Flag 
  	UPDATE databaseSchema.objectQualifier_message
  	SET flags = flags & (~CAST(POWER(2, i_messageflag) AS integer))
  	WHERE messageid = i_messageid;
@@ -6196,10 +6340,10 @@ BEGIN
  	WHERE x.topicid = i_topicid;
  
  	IF i_ReplyTo IS NULL THEN
- 			SELECT 0,0 INTO ici_Position, ici_Indent; /* New thread*/
+ 			SELECT 0,0 INTO ici_Position, ici_Indent; -- New thread
  
  	ELSEIF i_ReplyTo<0 THEN
- 		/* Find post to reply to AND indent of this post */
+ 		-- Find post to reply to AND indent of this post 
  		SELECT  messageid, indent+1
                 INTO ici_ReplyTo,ici_Indent
  		FROM databaseSchema.objectQualifier_message
@@ -6207,13 +6351,13 @@ BEGIN
  		ORDER BY posted DESC LIMIT 1;
  
  	ELSE
- 		/* Got reply, find indent of this post */
+ 		-- Got reply, find indent of this post 
  			SELECT indent+1 INTO ici_Indent
  			FROM databaseSchema.objectQualifier_message
  			WHERE messageid=i_ReplyTo;
         END IF;  
  
- 	/* Find position */
+ 	-- Find position 
  	IF ici_ReplyTo IS NOT NULL THEN
  		
          SELECT replyto,position INTO ici_temp,ici_Position 
@@ -6221,24 +6365,24 @@ BEGIN
          WHERE messageid=i_ReplyTo;
  
          IF ici_temp IS NULL THEN
- 			/* We are replying to first post */
+ 			-- We are replying to first post 
              SELECT MAX(position)+1 INTO ici_Position  
              FROM databaseSchema.objectQualifier_message 
              WHERE topicid=i_topicid;
  
          ELSE
- 			/* Last position of replies to parent post*/
+ 			-- Last position of replies to parent post
              SELECT MIN(position) INTO ici_Position 
              FROM databaseSchema.objectQualifier_message 
              WHERE replyto=ici_temp 
              AND position>ici_Position;
  
-         /* No replies, THEN USE parent post's position+1*/
+         -- No replies, THEN USE parent post's position+1
          IF ici_Position IS NULL THEN
              SELECT position+1 INTO ici_Position 
              FROM databaseSchema.objectQualifier_message 
              WHERE messageid=ici_ReplyTo;
- 		/*Increase position of posts after this*/
+ 		-- Increase position of posts after this
 
          UPDATE databaseSchema.objectQualifier_message SET position=position+1 
          WHERE topicid=i_TopicID 
@@ -6460,7 +6604,7 @@ BEGIN
  			topicid = ici_TopicID;
  	END IF; 
  	
- 	/*If forum is moderated, make sure last post pointers are correct*/
+ 	-- If forum is moderated, make sure last post pointers are correct
  	IF (ici_ForumFlags & 8)<>0 THEN 
  	PERFORM databaseSchema.objectQualifier_topic_updatelastpost(intNull,intNull);
     END IF;
@@ -6612,9 +6756,9 @@ BEGIN
  		AND x.isapproved IS TRUE AND x.isdeleted IS NOT TRUE)
  	WHERE forumid=ici_ForumID;
  
- 	/* exec `databaseSchema`.`objectQualifier_user_upgrade` i_UserID */
+ 	-- exec `databaseSchema`.`objectQualifier_user_upgrade` i_UserID 
  	PERFORM databaseSchema.objectQualifier_forum_updatestats(ici_ForumID);
- 	/* exec `databaseSchema`.`objectQualifier_topic_updatelastpost` ici_ForumID,null*/
+ 	-- exec `databaseSchema`.`objectQualifier_topic_updatelastpost` ici_ForumID,null
 END;
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
@@ -6810,22 +6954,22 @@ BEGIN
 	IF ici_TopicID IS NOT NULL THEN
 		PERFORM databaseSchema.objectQualifier_message_save(ici_TopicID, i_userid, i_body, i_username, i_ip, i_posted, ici_replyto, NULL, i_externalmessageid, i_referencemessageid, 17,i_utctimestamp);
     END IF;
- 	/* update user */
+ 	-- update user 
  	IF EXISTS(SELECT 1 FROM databaseSchema.objectQualifier_forum
  	 WHERE forumid=ici_ForumID AND (flags & 4)=0) THEN 	
  		UPDATE databaseSchema.objectQualifier_user
  		SET numposts=numposts+1 WHERE userid=i_userid;
  	END IF;
  	
- 	/* update topic */
- 	UPDATE databaseSchema.objectQualifier_topic SET 
+ 	-- update topic 
+	 	UPDATE databaseSchema.objectQualifier_topic SET 
  		lastposted		= i_posted,
  		lastmessageid	= ici_MessageID,
  		lastuserid		= i_userid,
  		lastusername	= i_username,
 		lastuserdisplayname	= i_username
  	WHERE topicid=ici_TopicID;	
- 	/* update forum */
+ 	-- update forum 
  	UPDATE databaseSchema.objectQualifier_forum SET
  		lastposted		= i_posted,
  		lasttopicid	= ici_TopicID,
@@ -6835,7 +6979,7 @@ BEGIN
 		lastuserdisplayname	= i_username
  	WHERE forumid=ici_ForumID AND (lastposted IS NULL OR lastposted< i_posted); 
  		
- 	--PERFORM databaseSchema.objectQualifier_topic_updatelastpost(ici_ForumID,ici_TopicID);
+ 	-- PERFORM databaseSchema.objectQualifier_topic_updatelastpost(ici_ForumID,ici_TopicID);
  	
  	SELECT DISTINCT parentid
          INTO ici_ParentID
@@ -6876,7 +7020,7 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_archive(
                   RETURNS void AS
 $BODY$
 BEGIN
- 	/* set IsArchived boolean */
+ 	-- set IsArchived boolean 
 	UPDATE databaseSchema.objectQualifier_userpmessage 
 	SET flags = (flags | 4)
     WHERE 
@@ -6963,11 +7107,11 @@ BEGIN
 FOR _rec IN
 	SELECT
  		(SELECT COUNT(1) FROM databaseSchema.objectQualifier_userpmessage 
- 		WHERE isread IS NOT FALSE   AND isdeleted<>1 ) AS NumRead,
+ 		WHERE isread IS NOT FALSE   AND NOT isdeleted  ) AS NumRead,
  		(SELECT COUNT(1) FROM databaseSchema.objectQualifier_userpmessage
- 		WHERE isread IS FALSE   AND isdeleted<>1) AS NumUnread,
+ 		WHERE isread IS FALSE   AND NOT isdeleted) AS NumUnread,
 		(SELECT COUNT(1) FROM databaseSchema.objectQualifier_userpmessage
-		WHERE isdeleted<>1) AS NumTotal
+		WHERE NOT isdeleted) AS NumTotal
 LOOP
 RETURN NEXT _rec;
 END LOOP; 
@@ -6992,6 +7136,7 @@ BEGIN
       FOR _rec IN
 	  SELECT
 	        a.pmessageid,
+			a.replyto,
 			b.userpmessageid,
 			a.fromuserid,
 			d.name AS fromuser,
@@ -7004,7 +7149,8 @@ BEGIN
 			b.isread,
 			b.isinoutbox,
 			b.isarchived,
-			b.isdeleted
+			b.isdeleted,
+			b.isreply
 	  FROM databaseSchema.objectQualifier_pmessage a
 	  JOIN databaseSchema.objectQualifier_userpmessage b 
 	  ON a.pmessageid = b.pmessageid
@@ -7081,17 +7227,24 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_pmessage_save(
 						   i_subject varchar, 
 						   i_body text, 
 						   i_flags integer,
+						   i_replyto integer,
 						   i_utctimestamp timestampTZ)
                   RETURNS void AS
 $BODY$DECLARE
              ici_PMessageID integer;
              ici_userid integer;
 BEGIN	
- 
- 	INSERT INTO databaseSchema.objectQualifier_pmessage
-(fromuserid,created,subject,body,flags)
- 	VALUES(i_fromuserid,i_utctimestamp,i_subject,i_body, COALESCE(i_flags,0));
- 	SELECT CURRVAL(pg_get_serial_sequence('databaseSchema.objectQualifier_pmessage','pmessageid')) INTO ici_PMessageID;  	
+
+ 	IF i_replyto is null or i_replyto < 0 then
+	    INSERT INTO databaseSchema.objectQualifier_pmessage(fromuserid,created,subject,body,flags)
+		VALUES(i_fromuserid,i_utctimestamp,i_subject,i_body, COALESCE(i_flags,0));    
+	else
+	   INSERT INTO databaseSchema.objectQualifier_pmessage(fromuserid,created,subject,body,flags,replyto)
+	    VALUES(i_fromuserid,i_utctimestamp,i_subject,i_body, COALESCE(i_flags,0),i_replyto);
+		UPDATE databaseSchema.objectQualifier_userpmessage SET isreply = TRUE WHERE pmessageid = i_replyto;
+	end if;
+	SELECT CURRVAL(pg_get_serial_sequence('databaseSchema.objectQualifier_pmessage','pmessageid')) INTO ici_PMessageID;  
+ 		
  
  	IF (i_touserid = 0) THEN 	
  		INSERT INTO databaseSchema.objectQualifier_userpmessage
@@ -7626,7 +7779,7 @@ END IF;
    ici_ceiling := CEILING((ici_post_totalrowsnumber::decimal)/i_pagesize); 
    -- round to floor
    ici_floor := FLOOR((ici_post_totalrowsnumber::decimal)/i_pagesize);
-   -- number of messages on the last page @post_totalrowsnumber - @floor*@PageSize
+   -- number of messages on the last page @post_totalrowsnumber - @floor*i_pagesize
    ici_pageshift := i_messageposition - (ici_post_totalrowsnumber - ici_floor*i_pagesize);            
 			   
    IF (ici_pageshift < 0) THEN  
@@ -8038,7 +8191,8 @@ BEGIN
  	
  		IF i_name IS NULL OR i_name = '' THEN
  		FOR _rec IN
- 			SELECT * FROM databaseSchema.objectQualifier_registry 
+ 			SELECT  registryid,name,value,boardid 
+			FROM databaseSchema.objectQualifier_registry 
                         WHERE boardid IS NULL
 LOOP
 RETURN NEXT _rec;
@@ -8046,7 +8200,8 @@ END LOOP;
  		 ELSE
 
  		FOR _rec IN
- 			SELECT * FROM databaseSchema.objectQualifier_registry 
+ 			SELECT registryid,name,value,boardid  
+			FROM databaseSchema.objectQualifier_registry 
                         WHERE LOWER(name) = LOWER(i_name) and boardid IS NULL
 LOOP
 RETURN NEXT _rec;
@@ -8055,14 +8210,16 @@ END LOOP;
  	ELSE 	
  		IF i_name IS NULL OR i_name = '' THEN
  		FOR _rec IN
- 			SELECT * FROM databaseSchema.objectQualifier_registry 
+ 			SELECT registryid,name,value,boardid  
+			FROM databaseSchema.objectQualifier_registry 
                         WHERE boardid=i_boardid
 LOOP
 RETURN NEXT _rec;
 END LOOP;
  		 ELSE
  		FOR _rec IN
- 			SELECT * FROM databaseSchema.objectQualifier_registry 
+ 			SELECT registryid,name,value,boardid  
+			FROM databaseSchema.objectQualifier_registry 
                         WHERE LOWER(name) = LOWER(i_Name) and boardid=i_boardid
 LOOP
 RETURN NEXT _rec;
@@ -8158,7 +8315,8 @@ $BODY$DECLARE
 BEGIN
  	IF (i_id IS NOT NULL AND i_id <> 0) THEN
 FOR _rec IN
- 		SELECT * FROM databaseSchema.objectQualifier_replace_words
+ 		SELECT id, boardid, badword,goodword 
+		FROM databaseSchema.objectQualifier_replace_words
  		WHERE boardid = i_boardid AND id = i_id
 LOOP
 RETURN NEXT _rec;
@@ -8166,7 +8324,7 @@ EXIT;
 END LOOP;
  	ELSE
 FOR _rec IN
- 		SELECT * FROM databaseSchema.objectQualifier_replace_words WHERE boardid = i_boardid
+ 		SELECT id, boardid, badword,goodword  FROM databaseSchema.objectQualifier_replace_words WHERE boardid = i_boardid
 LOOP
 RETURN NEXT _rec;
 END LOOP;
@@ -8236,15 +8394,17 @@ $BODY$DECLARE
 BEGIN
 IF i_smileyid IS NULL THEN
 FOR _rec IN
- 		SELECT * FROM databaseSchema.objectQualifier_smiley
- 		 WHERE boardid=i_boardid ORDER BY sortorder, code DESC
+ 		SELECT  smileyid,boardid,code,icon,emoticon,sortorder 
+		FROM databaseSchema.objectQualifier_smiley
+ 		WHERE boardid=i_boardid ORDER BY sortorder, code DESC
 LOOP
 RETURN NEXT _rec;
 END LOOP;
  	ELSE
 FOR _rec IN
- 		SELECT * FROM databaseSchema.objectQualifier_smiley 
- 		WHERE smileyid=i_smileyid
+ 		SELECT smileyid,boardid,code,icon,emoticon,sortorder  
+		FROM databaseSchema.objectQualifier_smiley 
+ 		WHERE smileyid=i_smileyid LIMIT 1
 LOOP
 RETURN NEXT _rec;
 EXIT;
@@ -8418,7 +8578,7 @@ BEGIN
  	PERFORM databaseSchema.objectQualifier_registry_save('culture' , CAST(i_culture AS text),null);
 	PERFORM databaseSchema.objectQualifier_registry_save('language', CAST(i_languagefile AS text),null);
  
- 	 /*initalize new board*/
+ 	-- initalize new board
  	PERFORM databaseSchema.objectQualifier_board_create (i_name, i_languagefile, i_culture , ici_varnull,ici_varnull,i_user,i_useremail,i_userkey,true,i_newboardguid,i_roleprefix,i_utctimestamp  );
  	RETURN;
  END;
@@ -8821,7 +8981,7 @@ $BODY$DECLARE
     PERFORM databaseSchema.objectQualifier_pollgroup_remove (ici_pollID, i_topicid, null, null, null, false, false);
 	END IF;
 
-    /*delete messages and topics*/
+    -- delete messages and topics
       
     DELETE FROM  databaseSchema.objectQualifier_topic WHERE topicmovedid = i_topicid;
    
@@ -8847,7 +9007,7 @@ $BODY$DECLARE
    
 	
 
-    /*commit*/
+    -- commit
     IF i_updatelastpost IS NOT FALSE THEN
  		PERFORM  databaseSchema.objectQualifier_forum_updatelastpost (ici_ForumID);END IF;
  	
@@ -9770,14 +9930,14 @@ BEGIN
          SELECT forumid,userid,username,userdisplayname,posted,topic,0,flags,priority,pollid,i_TopicID,lastposted,0,ici_newTimestamp
          FROM databaseSchema.objectQualifier_topic where topicid = i_topicid;
      END IF;    
-    /* move the topic */
+    -- move the topic 
      UPDATE databaseSchema.objectQualifier_topic SET forumid = i_forumid WHERE topicid = i_topicid;
  
-     /* update last posts */
+    -- update last posts 
     PERFORM databaseSchema.objectQualifier_forum_updatelastpost(ici_OldForumID);
     PERFORM databaseSchema.objectQualifier_forum_updatelastpost(i_forumid);
      
-     /* update stats */
+     -- update stats 
       PERFORM databaseSchema.objectQualifier_forum_updatestats (ici_OldForumID);
      PERFORM databaseSchema.objectQualifier_forum_updatestats (i_forumid);
   END IF;   
@@ -9825,7 +9985,7 @@ BEGIN
         WHERE  forumid = ici_ForumID
         AND priority = 0
         AND (flags & 512) = 0
-        /* not flagged as persistent */
+        -- not flagged as persistent 
         AND (current_date-CAST(lastposted AS date) > i_days);
      LOOP
   FETCH ref_tprune1  INTO iciTopicID; 
@@ -9854,9 +10014,9 @@ END LOOP;
      CLOSE ref_tprune1;
      END IF;
 	 
-     /*
+    
      -- This takes forever with many posts...
-     --CALL databaseSchema.objectQualifier_topic_updatelastpost(null)*/
+     --CALL databaseSchema.objectQualifier_topic_updatelastpost(null)
 
      RETURN iciCount;
      END;
@@ -11023,7 +11183,8 @@ $BODY$DECLARE
 BEGIN
 		FOR _rec in SELECT 
 			        a.userid,    
-                    a.boardid ,    
+                    a.boardid,  
+					b.name,  
                     a.provideruserkey,    
                     a.name,    
                     a.password,    
@@ -11064,7 +11225,10 @@ BEGIN
 			COALESCE(c.IsAdmin,0) AS IsAdmin,			
 			COALESCE(a.Flags & 1,0) AS IsHostAdmin
 		from 
-			databaseSchema.objectQualifier_user a	
+			databaseSchema.objectQualifier_user a
+			JOIN
+			databaseSchema.objectQualifier_board b	
+			ON b.boardid = a.boardid
 			JOIN
 			databaseSchema.objectQualifier_rank r	
 			ON r.rankid = a.rankid
@@ -11072,14 +11236,60 @@ BEGIN
 			databaseSchema.objectQualifier_vaccess c 
 			ON c.userid = a.userid
 		where 			
-			a.boardID = i_boardid and
+			(i_boardid is null or a.boardID = i_boardid) and
 			-- is not guest 
 			a.isguest IS FALSE and
 			COALESCE(c.forumid,0) = 0 and
 			-- is admin 
 			COALESCE(c.isadmin,0) <> 0 
 		order by 
-			a.Name
+			a.displayname
+			LOOP			
+			RETURN NEXT _rec;
+			END LOOP;
+END;
+$BODY$
+  LANGUAGE 'plpgsql' STABLE SECURITY DEFINER
+  COST 100 ROWS 1000;   
+--GO
+
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_admin_pageaccesslist(
+                           i_boardid integer,                       
+						   i_stylednicks boolean,
+						   i_utctimestamp timestampTZ)
+                  RETURNS SETOF databaseSchema.objectQualifier_admin_pageaccess_rt AS
+$BODY$DECLARE
+             _rec databaseSchema.objectQualifier_admin_pageaccess_rt%ROWTYPE;
+BEGIN
+		FOR _rec in SELECT 
+			        a.userid,    
+                    a.boardid,
+					b.name,                  
+                    a.name,                 
+					a.displayname,
+					a.culture,				
+			case(i_stylednicks)
+			when true THEN  (SELECT us.userstyle FROM databaseSchema.objectQualifier_user us where us.userid = a.userid)  
+			else ''	 end as Style
+		from 
+			databaseSchema.objectQualifier_user a	
+            JOIN
+			databaseSchema.objectQualifier_board b	
+			ON b.boardid = a.boardid
+			LEFT  JOIN	
+			databaseSchema.objectQualifier_vaccess c 
+			ON c.userid = a.userid
+		where 			
+			(i_boardid is null or a.boardID = i_boardid) and
+			-- is not guest 
+			a.isguest IS FALSE and
+			COALESCE(c.forumid,0) = 0 and
+			-- is admin 
+			COALESCE(c.isadmin,0) <> 0 and
+			-- is not host admin 
+			COALESCE((a.flags & 1),0) = 0 
+		order by 
+			a.displayname
 			LOOP			
 			RETURN NEXT _rec;
 			END LOOP;
@@ -11573,7 +11783,7 @@ BEGIN
 		AND (a.flags & 8) = 0;
 		
 		SELECT 
-		COUNT(*) INTO ici_countarchivedin
+		COUNT(1) INTO ici_countarchivedin
 	FROM 
 		databaseSchema.objectQualifier_userpmessage a
 		WHERE
@@ -12026,7 +12236,7 @@ $BODY$DECLARE
 			 ici_boardid		integer;
 			 ici_rankboardid	integer;
  BEGIN   
-    /* Get user and rank information */
+    -- Get user and rank information 
     SELECT  
        b.flags,
        b.minposts,
@@ -12043,7 +12253,7 @@ $BODY$DECLARE
       ON b.rankid = a.rankid
     WHERE   a.userid = i_userid;
     
-    /*If user isn't member of a ladder rank, exit*/
+    -- If user isn't member of a ladder rank, exit
     IF (ici_flags & 2) != 0 THEN
      		-- retrieve board current user's rank beling to	
     SELECT boardid
@@ -12224,6 +12434,8 @@ BEGIN
 		INSERT INTO databaseSchema.objectQualifier_usergroup(userid,groupid)
 		VALUES (i_userid,i_groupid); END IF;
         END IF;
+
+PERFORM databaseSchema.objectQualifier_user_savestyle(i_groupid,null);
 END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100; 
@@ -12246,11 +12458,18 @@ $BODY$DECLARE
 BEGIN
 FOR _rec IN
  	SELECT
- 		a.*,
+ 		a.pmessageid,
+		a.replyto,
+		a.fromuserid,
+		a.created,
+		a.subject,
+		a.body,
+		a.flags,
  		b.name AS FromUser,
  		c.userid AS ToUserID,
  		c.name AS ToUser,
- 		d.isread AS IsRead, 		
+ 		d.isread AS IsRead, 
+		d.isreply,		
  		d.userpmessageid AS UserPMessageID
  	FROM
  		databaseSchema.objectQualifier_pmessage a
@@ -12511,24 +12730,26 @@ $BODY$DECLARE
 			 ici_activeflags integer := 1;
 			 ici_crawler boolean := i_iscrawler;
 			 ici_guestid integer;
+			 
 			 _rec1 databaseSchema.objectQualifier_pageload_return_type;
 BEGIN
      -- find a guest id should do it every time to be sure that guest access rights are in ActiveAccess table
-     BEGIN	
-          SELECT userid INTO ici_guestid
+	 SELECT userid INTO ici_guestid
 		  FROM databaseSchema.objectQualifier_user 
-		  WHERE boardid=ici_boardid AND isguest IS TRUE ORDER BY joined;	
+		  WHERE boardid=ici_boardid AND isguest IS TRUE limit 1;
+    /*  BEGIN	
+          	
           SELECT  COUNT(1) INTO ici_rowcount
 		  FROM databaseSchema.objectQualifier_user 
 		  WHERE boardid=ici_boardid AND isguest IS TRUE GROUP BY 1;		
              EXCEPTION
              WHEN  OTHERS THEN
              RAISE NOTICE 'Found too many possible guest users. There should be one and only one user marked as guest.';
-     END;		
+     END;	*/	
 	
 -- verify that there's not the same session for other board and drop it IF required.Test·code for portals with many boards  
  
-delete from databaseSchema.objectQualifier_active where (sessionid = i_sessionid and boardid != ici_boardid) ;
+-- delete from databaseSchema.objectQualifier_active where (sessionid = i_sessionid and boardid != ici_boardid) ;
  
 
 	IF i_userkey IS NULL THEN	
@@ -12561,32 +12782,33 @@ delete from databaseSchema.objectQualifier_active where (sessionid = i_sessionid
 	   i_forumid := NULL; 
     END IF;
 	
-	/* Check valid CategoryID*/
+	-- Check valid CategoryID
 	IF i_categoryid IS NOT NULL 
 	                AND NOT EXISTS
 	         (SELECT 1 FROM databaseSchema.objectQualifier_category 
-	         WHERE categoryid=i_categoryid) THEN 
+	         WHERE categoryid=i_categoryid LIMIT 1) THEN 
 	   i_categoryid := NULL;
 	END IF;
-	/*Check valid MessageID*/
+	-- Check valid MessageID
 	IF i_messageid IS NOT NULL 
 	               AND NOT EXISTS
 	         (SELECT 1 FROM databaseSchema.objectQualifier_message 
-	         WHERE messageid=i_messageid)  THEN
+	         WHERE messageid=i_messageid LIMIT 1)  THEN
 		i_messageid := NULL;
 	END IF;
-	/*Check valid TopicID*/
+	-- Check valid TopicID
 	IF i_TopicID IS NOT NULL 
 	             AND NOT EXISTS
 	         (SELECT 1 FROM databaseSchema.objectQualifier_topic 
-	         WHERE topicid=i_topicid) THEN
+	         WHERE topicid=i_topicid LIMIT 1) THEN
 		i_topicid := NULL;
 	END IF;
 	
 	
+	
 
 	-- get previous visit
-	IF ici_isguest IS NOT TRUE THEN
+	IF NOT ici_isguest THEN
 		select  lastvisit  into ici_previousvisit from databaseSchema.objectQualifier_user where userid = ici_userid;
 	END IF;
 	
@@ -12597,7 +12819,7 @@ delete from databaseSchema.objectQualifier_active where (sessionid = i_sessionid
 	WHERE userid = ici_userid;
 
 	/*find missing ForumID/TopicID*/
-	IF i_messageid IS NOT NULL THEN
+	IF i_messageid IS NOT NULL and i_messageid > 0 THEN
 		SELECT
 			c.categoryid,
 			b.forumid,
@@ -12614,7 +12836,7 @@ delete from databaseSchema.objectQualifier_active where (sessionid = i_sessionid
 		WHERE
 			a.messageid = i_messageid AND
 			d.boardid = i_boardid;
-	ELSEIF i_topicid IS NOT NULL THEN
+	ELSEIF i_topicid IS NOT NULL AND i_topicid > 0 THEN
 		SELECT 
 			b.categoryid,
 			a.forumid 
@@ -12629,7 +12851,7 @@ delete from databaseSchema.objectQualifier_active where (sessionid = i_sessionid
 			a.topicid = i_topicid AND
 			c.boardid = i_boardid;
 	
-	ELSEIF i_forumid IS NOT NULL THEN
+	ELSEIF i_forumid IS NOT NULL AND i_forumid > 0 THEN
 		SELECT
 			 a.categoryid
 		INTO     i_categoryid
@@ -12641,18 +12863,20 @@ delete from databaseSchema.objectQualifier_active where (sessionid = i_sessionid
 			a.forumid = i_forumid and
 			b.boardid = i_boardid;
 	END IF;
-	/*update active*/
-		-- update active
+		
+		
+			 DELETE FROM databaseSchema.objectQualifier_active
+			 WHERE  userid<>ici_userid  
+			 AND boardid=ici_boardid 
+			 AND sessionid=i_sessionid; 
+		
 	-- ensure that access right are in place		
 	
-	IF i_donttrack IS NOT TRUE
-	AND ici_userid IS NOT NULL 
-	AND ici_userboardid=ici_boardid THEN
+	IF NOT i_donttrack
+	THEN
+	 -- user with the same session can be a user from other board or a guest who just logged in or user who just logged out. 
 		IF EXISTS(SELECT 1 FROM databaseSchema.objectQualifier_active 
-		WHERE (sessionid=i_sessionid 
-		 OR ( browser = i_browser AND (flags & 8) = 8 )) AND boardid=i_boardid) THEN	
-		  -- user is not a crawler - use his session id
-		  IF (ici_crawler IS FALSE) THEN
+		WHERE (sessionid=i_sessionid  AND boardid=ici_boardid)) THEN
 		  UPDATE databaseSchema.objectQualifier_active SET
 				userid = ici_userid,
 				ip = i_ip,
@@ -12663,28 +12887,18 @@ delete from databaseSchema.objectQualifier_active where (sessionid = i_sessionid
 				browser = i_browser,
 				platform = i_platform,
 				forumpage = i_forumpage
-			WHERE sessionid = i_sessionid AND boardid=i_boardid ;	
-			else
-			 UPDATE databaseSchema.objectQualifier_active SET
-				userid = ici_userid,
-				ip = i_ip,
-				lastactive = i_currenttime,
-				location = i_location,				
-				forumid = i_forumid,
-				topicid = i_topicid,
-				browser = i_browser,
-				platform = i_platform,
-				forumpage = i_forumpage
-			WHERE browser = i_browser AND ip = i_ip AND boardid=i_boardid;
-			-- trace crawler: the cache is reset every time crawler moves to next page ? Disabled as cache reset will overload server 
-			-- set @ActiveUpdate = 1	 sessionid = i_sessionid;	
-		 END IF;	
+			WHERE sessionid = i_sessionid AND boardid=i_boardid;
+			IF ici_isguest IS FALSE AND ici_crawler IS FALSE THEN		
+		          ici_activeupdate := true;
+			END IF;			
 		ELSE
 			-- we set @ActiveFlags ready flags 	
 			INSERT INTO databaseSchema.objectQualifier_active(sessionid,boardid,
 			userid,ip,login,lastactive,location,
 			forumid,topicid,browser,platform,forumpage, flags)
-			VALUES(i_sessionid,ici_userboardid,ici_userid,i_ip,i_currenttime,i_currenttime,i_location,i_forumid,i_topicid,i_browser,i_platform, i_forumpage, ici_activeflags);
+			VALUES(i_sessionid,ici_userboardid,
+			ici_userid,i_ip,i_currenttime,i_currenttime,i_location,
+			i_forumid,i_topicid,i_browser,i_platform, i_forumpage, ici_activeflags);
 			-- parameter to update active users cache IF this is a new user
 			IF ici_isguest IS FALSE THEN		
 		          ici_activeupdate := true;
@@ -12737,7 +12951,7 @@ AND name = 'maxuserswhen';
 		IF ici_isguest IS FALSE THEN
 			DELETE FROM databaseSchema.objectQualifier_active
 			 WHERE userid=ici_userid 
-			 AND boardid=ici_userboardid 
+			 AND boardid=ici_boardid 
 			 AND sessionid<>i_sessionid; 
 		END IF;	
 	END IF;	
@@ -12964,7 +13178,7 @@ END;$BODY$
 --GO
 
 
-/* User Ignore Procedures */
+-- User Ignore Procedures 
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_addignoreduser(
                            i_userid INTEGER,						   
@@ -12972,7 +13186,7 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_addignoreduser(
 				  RETURNS void AS
 $BODY$	
 BEGIN
-	IF NOT EXISTS (SELECT * FROM databaseSchema.objectQualifier_ignoreuser WHERE userid = i_userid AND ignoreduserid = i_ignoreduserid LIMIT 1)
+	IF NOT EXISTS (SELECT 1 FROM databaseSchema.objectQualifier_ignoreuser WHERE userid = i_userid AND ignoreduserid = i_ignoreduserid LIMIT 1)
 	THEN
 		INSERT INTO databaseSchema.objectQualifier_ignoreuser (userid, ignoreduserid) VALUES (i_userid, i_ignoreduserid);
 	END IF;
@@ -13557,7 +13771,7 @@ BEGIN
 		x.readaccess IS TRUE and
 		cat.boardid = i_boardid and
 		(i_categoryid is null or cat.categoryid=i_categoryid) and
-		/* topic is not deleted */
+		-- topic is not deleted 
 		c.isdeleted IS FALSE
 	order by
 	    c.lastposted desc,
@@ -13634,7 +13848,7 @@ FOR _rec IN
 		x.readaccess IS TRUE and
 		cat.boardid = i_boardid and
 		(i_categoryid is null or cat.categoryid=i_categoryid) and
-		/* topic is not deleted */
+		-- topic is not deleted 
 		c.isdeleted IS FALSE
 	order by
 	    c.lastposted desc,
@@ -13740,7 +13954,7 @@ $BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER;
 --GO
 
-/* Stored procedures for Buddy feature */
+-- Stored procedures for Buddy feature 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_buddy_approverequest(
                            i_fromuserid integer,
 						   i_touserid integer,
@@ -13792,7 +14006,7 @@ $BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER;
 --GO
 
-/* Stored procedures for Buddy feature */
+-- Stored procedures for Buddy feature
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_buddy_list(
                            i_fromuserid integer)
 				  RETURNS SETOF databaseSchema.objectQualifier_buddy_list_return_type AS
@@ -15215,3 +15429,248 @@ $BODY$
     LANGUAGE 'plpgsql' STABLE SECURITY DEFINER
     COST 100;  
 --GO
+
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_adminpageaccess_save
+                           (
+                           i_userid integer,
+						   i_pagename varchar(128)
+						   )
+                  RETURNS void AS
+$BODY$
+begin
+    if not exists (select 1 from databaseSchema.objectQualifier_adminpageuseraccess where userid = i_userid and pagename = i_pagename limit 1) then		
+		insert into databaseSchema.objectQualifier_adminpageuseraccess (userid,pagename) 
+		values(i_userid,i_pagename);
+	end if;	
+	
+END;$BODY$
+  LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
+  COST 100; 
+   
+ --GO
+ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_adminpageaccess_delete(
+                           i_userid integer,
+						   i_pagename varchar(128))
+                  RETURNS void AS
+$BODY$
+begin    	
+		delete from  databaseSchema.objectQualifier_adminpageuseraccess  where userid = i_userid AND (i_pagename IS NULL OR pagename = i_pagename);	
+END;$BODY$
+  LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
+  COST 100;  
+ --GO
+
+
+ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_adminpageaccess_list(
+                           i_userid integer,
+						   i_pagename varchar(128)) 
+	              RETURNS SETOF databaseSchema.objectQualifier_adminpageaccess_list_rt AS
+$BODY$DECLARE 
+             _rec databaseSchema.objectQualifier_adminpageaccess_list_rt%ROWTYPE;
+BEGIN
+
+ if (i_userid > 0  and i_pagename IS NOT NULL) then 
+		for  _rec IN  select ap.userid,			                		
+			                 ap.pagename,			                
+		u.name as UserName, 
+		u.displayname as UserDisplayName, 
+		b.name as BoardName 
+		from databaseSchema.objectQualifier_adminpageuseraccess ap 
+		JOIN  databaseSchema.objectQualifier_User u on ap.userid = u.userid 
+		JOIN databaseSchema.objectQualifier_Board b ON b.boardid = u.boardid 
+		where u.userid = i_userid and pagename = i_pagename and (u.flags & 1) <> 1 
+		order by  b.boardid,u.displayname,ap.pagename
+		LOOP
+	    RETURN NEXT _rec;
+	    END LOOP;
+		elseif (i_userid > 0 and i_pagename IS  NULL) then
+		for  _rec IN  select ap.userid,			                			
+			                 ap.pagename, 
+		u.name as UserName, 
+		u.displayname as UserDisplayName, 
+		b.name as BoardName 
+		 from databaseSchema.objectQualifier_adminpageuseraccess ap 
+		JOIN  databaseSchema.objectQualifier_user u on ap.userid = u.userid 
+		JOIN databaseSchema.objectQualifier_board b ON b.boardid = u.boardid 
+		where u.userid = i_userid and (u.Flags & 1) <> 1 
+		order by  b.boardid,u.displayname,ap.pagename 
+		LOOP
+	    RETURN NEXT _rec;
+	    END LOOP; 
+		else
+		for  _rec IN  select ap.userid,			              		
+			                 ap.pagename,			                
+		u.name as UserName, 
+		u.displayname as UserDisplayName, 
+		b.name as BoardName 
+		from databaseSchema.objectQualifier_adminpageuseraccess ap 
+		JOIN  databaseSchema.objectQualifier_user u on ap.userid = u.userid 
+		JOIN databaseSchema.objectQualifier_board b ON b.boardid = u.boardid 
+		where (u.flags & 1) <> 1
+		order by  b.boardid,u.displayname,ap.pagename 
+		LOOP
+	    RETURN NEXT _rec;
+	    END LOOP;
+	END IF;
+
+END;$BODY$
+    LANGUAGE 'plpgsql' STABLE SECURITY DEFINER
+    COST 100 ROWS 1000;  
+--GO
+
+ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_group_eventlogaccesslist(
+                           i_boardid integer) 
+	              RETURNS SETOF databaseSchema.objectQualifier_group_eventlogaccesslist_rt AS
+$BODY$DECLARE 
+             _rec databaseSchema.objectQualifier_group_eventlogaccesslist_rt%ROWTYPE;
+BEGIN
+		if i_boardid is null then
+	for _rec in select g.groupid,
+			 g.boardid,
+			 g.name,
+			 g.flags,
+			 g.pmlimit,
+			 g.style,
+			 g.sortorder,
+			 g.description,
+			 g.usrsigchars,
+			 g.usrsigbbcodes,
+			 g.usrsightmltags,
+			 g.usralbums,
+			 g.usralbumimages,
+			 b.Name as BoardName 
+			 from databaseSchema.objectQualifier_group g
+		join databaseSchema.objectQualifier_board b on b.boardid = g.boardid order by g.sortorder
+		LOOP
+	    RETURN NEXT _rec;
+	    END LOOP; 
+	else
+	for _rec in	select g.groupid,
+			 g.boardid,
+			 g.name,
+			 g.flags,
+			 g.pmlimit,
+			 g.style,
+			 g.sortorder,
+			 g.description,
+			 g.usrsigchars,
+			 g.usrsigbbcodes,
+			 g.usrsightmltags,
+			 g.usralbums,
+			 g.usralbumimages,
+			 b.Name as BoardName 
+			 from databaseSchema.objectQualifier_group g
+		join databaseSchema.objectQualifier_board b on b.boardid = g.boardid where g.boardid=i_boardid  order by g.sortorder
+		LOOP
+	    RETURN NEXT _rec;
+	    END LOOP;
+		end if;
+END;$BODY$
+    LANGUAGE 'plpgsql' STABLE SECURITY DEFINER
+    COST 100 ROWS 1000;  
+--GO
+
+ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_eventlog_deletebyuser(
+                           i_boardid integer,
+						   i_pageuserid integer) 
+	              RETURNS void AS
+$BODY$
+BEGIN
+-- hostadmin - delete all
+if (exists (select 1 from databaseSchema.objectQualifier_user where ((flags & 1) = 1 and userid = i_pageuserid) limit 1)) then
+delete from databaseSchema.objectQualifier_eventlog where
+			(userid is null or
+			userid in (select userid from databaseSchema.objectQualifier_user where boardid=i_boardid));
+else	
+		delete from databaseSchema.objectQualifier_eventlog
+		where EventLogID in (select a.eventlogid from databaseSchema.objectQualifier_eventlog a
+		left join databaseSchema.objectQualifier_eventloggroupaccess e on e.eventtypeid = a.type 
+		join databaseSchema.objectQualifier_usergroup ug on (ug.userid =  i_pageuserid and ug.groupid = e.groupid)
+		left join databaseSchema.objectQualifier_user b on b.userid=a.userid
+	    where e.deleteaccess is true);
+		end if;
+END;$BODY$
+    LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
+    COST 100;  
+--GO
+
+ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_eventloggroupaccess_save
+                            (
+                            i_groupid integer, 
+							i_eventtypeid integer, 
+							i_eventtypename varchar(128), 
+							i_deleteaccess boolean
+							) 
+	               RETURNS void AS
+$BODY$
+BEGIN
+	if not exists (select 1 from databaseSchema.objectQualifier_eventloggroupaccess where groupid = i_groupid and eventtypename = i_eventtypename limit 1) then
+		insert into databaseSchema.objectQualifier_eventloggroupaccess  (groupid,eventtypeid,eventtypename,deleteaccess) 
+		values(i_groupid,i_eventtypeid,i_eventtypename,i_deleteaccess);
+	else
+		update databaseSchema.objectQualifier_eventloggroupaccess  set deleteaccess = i_deleteaccess
+		where groupid = i_groupid and eventtypeid = i_eventtypeid;
+	end if;
+END;$BODY$
+    LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
+    COST 100;  
+--GO
+
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_eventloggroupaccess_delete
+                            (
+                            i_groupid integer, 
+							i_eventtypeid integer, 
+							i_eventtypename varchar(128)
+							) 
+	               RETURNS void AS
+$BODY$
+BEGIN
+	if i_eventtypename is not null then
+		delete from databaseSchema.objectQualifier_eventloggroupaccess  where groupid = i_groupid and eventtypeid = i_eventtypeid;
+		else
+	-- delete all access rights
+	    delete from databaseSchema.objectQualifier_eventloggroupaccess  where groupid = i_groupid; 
+	end if;
+END;$BODY$
+    LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
+    COST 100;  
+--GO
+
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_eventloggroupaccess_list
+                            (
+                            i_groupid integer, 
+							i_eventtypeid integer
+							) 
+	               RETURNS SETOF databaseSchema.objectQualifier_eventloggroupaccess_list_rt AS
+$BODY$DECLARE 
+             _rec databaseSchema.objectQualifier_eventloggroupaccess_list_rt%ROWTYPE;
+BEGIN
+-- TODO - exclude host admins from list   
+if i_eventtypeid is null   then
+		for _rec in select 
+		e.groupid,	
+		e.eventtypeid,  	
+		e.eventtypename,
+		e.deleteaccess,    
+		g.Name as GroupName from databaseSchema.objectQualifier_eventloggroupaccess e 
+		join databaseSchema.objectQualifier_group g on g.groupid = e.groupid where  e.groupid = i_groupid
+		LOOP
+	    RETURN NEXT _rec;
+	    END LOOP;
+		else
+		for _rec in select e.groupid,	
+		e.eventtypeid,  	
+		e.eventtypename,
+		e.deleteaccess,   
+		g.Name as GroupName from databaseSchema.objectQualifier_eventloggroupaccess e 
+		join databaseSchema.objectQualifier_group g on g.groupid = e.groupid where  e.groupid = i_groupid and e.eventtypeid = i_eventtypeid
+		LOOP
+	    RETURN NEXT _rec;
+	    END LOOP;
+		end if;
+END;$BODY$
+    LANGUAGE 'plpgsql' STABLE SECURITY DEFINER
+    COST 100 ROWS 1000;  
+--GO
+
+

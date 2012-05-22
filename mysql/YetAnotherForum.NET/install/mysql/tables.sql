@@ -62,6 +62,24 @@ CREATE TABLE IF NOT EXISTS {databaseName}.{objectQualifier}ActiveAccess
 		ENGINE=InnoDB DEFAULT CHARSET={databaseEncoding};
 --GO
 
+CREATE TABLE IF NOT EXISTS {databaseName}.{objectQualifier}AdminPageUserAccess
+       (
+       `UserID` INT NOT NULL,	  
+	   `PageName` VARCHAR(255) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NOT NULL	  
+	   )
+	   ENGINE=InnoDB DEFAULT CHARSET={databaseEncoding};
+--GO
+
+CREATE TABLE IF NOT EXISTS {databaseName}.{objectQualifier}EventLogGroupAccess
+       (
+	   `GroupID`		       int NOT NULL,
+	   `EventTypeID`           int NOT NULL,
+	   `EventTypeName`	       varchar (128) NOT NULL,
+	   `DeleteAccess`          TINYINT(1) NOT NULL DEFAULT 0
+	)
+	   ENGINE=InnoDB DEFAULT CHARSET={databaseEncoding};
+--GO
+
 CREATE TABLE IF NOT EXISTS {databaseName}.{objectQualifier}Attachment
        (
        `AttachmentID` INT NOT NULL AUTO_INCREMENT,
@@ -408,6 +426,7 @@ CREATE TABLE IF NOT EXISTS {databaseName}.{objectQualifier}PMessage
 	   `Subject` VARCHAR(128) CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NOT NULL,
 	   `Body` LONGTEXT CHARACTER SET {databaseEncoding} COLLATE {databaseEncoding}_{databaseCollation} NOT NULL,
 	   `Flags` INT NOT NULL,
+	   `ReplyTo` INT,
 	   PRIMARY KEY (`PMessageID`)
 	   )
 	   ENGINE=InnoDB DEFAULT CHARSET={databaseEncoding};
@@ -653,6 +672,7 @@ CREATE TABLE IF NOT EXISTS {databaseName}.{objectQualifier}UserPMessage
 	   `UserID` INT NOT NULL,
 	   `PMessageID` INT NOT NULL,
 	   `Flags` INT NOT NULL DEFAULT 0,
+	   `IsReply` TINYINT(1) NOT NULL DEFAULT 0,
 	   PRIMARY KEY (`UserPMessageID`)
 	   )
 	   ENGINE=InnoDB DEFAULT CHARSET={databaseEncoding};
@@ -1516,6 +1536,21 @@ IF EXISTS (SELECT 1 FROM information_schema.COLUMNS
   AND COLUMN_NAME='Reported' AND IS_NULLABLE='YES' LIMIT 1) THEN
  ALTER TABLE {databaseName}.{objectQualifier}MessageReportedAudit CHANGE `Reported` `Reported` DATETIME NOT NULL;
   END IF; 
+
+      IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  LOWER(TABLE_NAME)=LOWER('{objectQualifier}PMessage')
+  AND COLUMN_NAME='ReplyTo' LIMIT 1) THEN
+ ALTER TABLE {databaseName}.{objectQualifier}PMessage ADD `ReplyTo`  INT;
+  END IF; 
+
+   IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS 
+  WHERE LOWER(TABLE_SCHEMA)=LOWER('{databaseName}')  AND
+  LOWER(TABLE_NAME)=LOWER('{objectQualifier}UserPMessage')
+  AND COLUMN_NAME='IsReply' LIMIT 1) THEN
+ ALTER TABLE {databaseName}.{objectQualifier}UserPMessage ADD `IsReply`  TINYINT(1) NOT NULL DEFAULT 0;
+  END IF; 
+  
   END;
 --GO
 

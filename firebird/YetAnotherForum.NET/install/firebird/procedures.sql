@@ -470,7 +470,9 @@ begin
 end;
 
 --GO
-CREATE PROCEDURE  objQual_ATTACHMENT_LIST(I_MESSAGEID integer,I_ATTACHMENTID INTEGER,I_BOARDID INTEGER) 
+CREATE PROCEDURE  objQual_ATTACHMENT_LIST(I_MESSAGEID integer,I_ATTACHMENTID INTEGER,I_BOARDID INTEGER,
+I_PAGEINDEX INTEGER,
+I_PAGESIZE INTEGER) 
 RETURNS
 (
 "AttachmentID" integer,
@@ -486,10 +488,16 @@ RETURNS
 "ForumID" integer,
 "ForumName" VARCHAR(128),
 "TopicID" integer, 
-"TopicName"  VARCHAR(128)
+"TopicName"  VARCHAR(128),
+"TotalRows" integer
 )
-as begin
+AS
+DECLARE VARIABLE ICI_FIRSTSELECTROWNUMBER INTEGER DEFAULT 0;
+DECLARE ICI_TOTALROWS  INTEGER DEFAULT 0;
+DECLARE ICI_TOROW  INTEGER DEFAULT 0;
+ BEGIN
 	if (I_MESSAGEID is not null) THEN
+	begin
 		for select 
 			a.ATTACHMENTID,
 			a.MESSAGEID,
@@ -504,7 +512,8 @@ as begin
 			(SELECT null FROM RDB$DATABASE) AS "ForumID",
 			(SELECT null FROM RDB$DATABASE) AS "ForumName",
 			(SELECT null FROM RDB$DATABASE) AS "TopicID",
-			(SELECT null FROM RDB$DATABASE) AS "TopicName"  
+			(SELECT null FROM RDB$DATABASE) AS "TopicName",
+		    (SELECT 1 FROM RDB$DATABASE) 
 		from
 			objQual_ATTACHMENT a
 			inner join objQual_MESSAGE b on b.MESSAGEID = a.MESSAGEID
@@ -528,10 +537,12 @@ as begin
 			:"ForumID",
 			:"ForumName",
 			:"TopicID", 
-			:"TopicName"
+			:"TopicName",
+			:"TotalRows"
 			DO SUSPEND;
-			
+			end
 	else if (I_ATTACHMENTID is not null) THEN
+	begin
 		for select 
 			a.ATTACHMENTID,
 			a.MESSAGEID,
@@ -546,7 +557,8 @@ as begin
 			(SELECT null FROM RDB$DATABASE) AS "ForumID",
 			(SELECT null FROM RDB$DATABASE) AS  "ForumName",
 			(SELECT null FROM RDB$DATABASE) AS "TopicID",
-			(SELECT null FROM RDB$DATABASE) AS  "TopicName"			
+			(SELECT null FROM RDB$DATABASE) AS  "TopicName"	,
+		    (SELECT 1 FROM RDB$DATABASE)		
 		from
 			objQual_ATTACHMENT a
 			inner join objQual_MESSAGE b on b.MESSAGEID = a.MESSAGEID
@@ -555,7 +567,7 @@ as begin
 			inner join objQual_CATEGORY e on e.CATEGORYID = d.CATEGORYID
 			inner join objQual_BOARD brd on brd.BOARDID = e.BOARDID
 		where 
-			a.ATTACHMENTID=:I_ATTACHMENTID
+			a.ATTACHMENTID=:I_ATTACHMENTID 
 			INTO
 			:"AttachmentID",
 			:"MessageID",
@@ -570,9 +582,25 @@ as begin
 			:"ForumID",
 			:"ForumName",
 			:"TopicID", 
-			:"TopicName"
+			:"TopicName",
+			:"TotalRows"
 			DO SUSPEND;
+			end
 	else
+	begin
+	I_PAGEINDEX = :I_PAGEINDEX + 1;	 
+     select count(1)  
+		FROM   objQual_ATTACHMENT a
+			inner join objQual_MESSAGE b on b.MESSAGEID = a.MESSAGEID
+			inner join objQual_TOPIC c on c.TOPICID = b.TOPICID
+			inner join objQual_FORUM d on d.FORUMID = c.FORUMID
+			inner join objQual_CATEGORY e on e.CATEGORYID = d.CATEGORYID
+			inner join objQual_BOARD brd on brd.BOARDID = e.BOARDID
+        WHERE  e.BOARDID = :I_BOARDID
+		into :ICI_TOTALROWS ;
+			
+        ICI_FIRSTSELECTROWNUMBER = (:I_PAGEINDEX - 1) * :I_PAGESIZE + 1;
+		ICI_TOROW = :ICI_FIRSTSELECTROWNUMBER + :I_PAGESIZE - 1;
 		for select 
 			a.ATTACHMENTID,
 			a.MESSAGEID,
@@ -582,12 +610,13 @@ as begin
 			a.CONTENTTYPE,
 			a.DOWNLOADS,
 			a.FILEDATA,
-			(SELECT :I_BOARDID FROM RDB$DATABASE) AS BOARDID,			
+			e.BOARDID,			
 			b.POSTED AS "Posted",
 			d.FORUMID AS "ForumID",
 			d.NAME AS "ForumName",
 			c.TOPICID AS "TopicID",
-			c.TOPIC AS "TopicName"
+			c.TOPIC AS "TopicName",
+		   (SELECT :ICI_TOTALROWS FROM RDB$DATABASE) 
 		from 
 			objQual_ATTACHMENT a
 			inner join objQual_MESSAGE b on b.MESSAGEID = a.MESSAGEID
@@ -596,11 +625,9 @@ as begin
 			inner join objQual_CATEGORY e on e.CATEGORYID = d.CATEGORYID
 			inner join objQual_BOARD brd on brd.BOARDID = e.BOARDID
 		where
-			e.BOARDID = :I_BOARDID
+			e.BOARDID = :I_BOARDID 
 		order by
-			d.NAME,
-			c.TOPIC,
-			b.POSTED
+			a.ATTACHMENTID ROWS (:ICI_FIRSTSELECTROWNUMBER) TO (:ICI_TOROW)
 			INTO
 			:"AttachmentID",
 			:"MessageID",
@@ -615,8 +642,10 @@ as begin
 			:"ForumID",
 			:"ForumName",
 			:"TopicID", 
-			:"TopicName"
+			:"TopicName",
+			:"TotalRows"
 			DO SUSPEND;
+			end
 end;
 --GO
 
@@ -640,7 +669,9 @@ END;
 
 CREATE  PROCEDURE objQual_bannedip_list(
 I_BOARDID INTEGER,
-I_ID      INTEGER)
+I_ID      INTEGER,
+I_PAGEINDEX INTEGER,
+I_PAGESIZE INTEGER)
 RETURNS
 (
 "ID" integer,
@@ -648,37 +679,56 @@ RETURNS
 "Mask" VARCHAR(57),
 "Since" timestamp,
 "Reason" VARCHAR(128),
-"UserID" integer
+"UserID" integer,
+"TotalRows" integer
 )
 AS
 DECLARE VARIABLE ici_ID INTEGER DEFAULT NULL;
+DECLARE VARIABLE ICI_FIRSTSELECTROWNUMBER INTEGER DEFAULT 0;
+DECLARE ICI_TOTALROWS  INTEGER DEFAULT 0;
+DECLARE ICI_TOROW  INTEGER DEFAULT 0;
 BEGIN
 IF (I_ID IS NOT NULL OR ici_ID>0) THEN 
  ici_ID=I_ID;
+
 IF (ici_ID IS NULL OR ici_ID=0) THEN
+BEGIN
+I_PAGEINDEX = :I_PAGEINDEX + 1;	 
+select count(1)  
+		FROM   objQual_BANNEDIP
+        WHERE  BOARDID = :I_BOARDID
+		into :ICI_TOTALROWS ;
+			
+        ICI_FIRSTSELECTROWNUMBER = (:I_PAGEINDEX - 1) * :I_PAGESIZE + 1;
+		ICI_TOROW = :ICI_FIRSTSELECTROWNUMBER + :I_PAGESIZE - 1;
 FOR SELECT ID,
            BOARDID,
 		   MASK,
 		   SINCE,
 		   REASON,
-		   USERID
+		   USERID,
+		   (SELECT :ICI_TOTALROWS FROM RDB$DATABASE) as TotalRows
 FROM   objQual_BANNEDIP
-WHERE  BOARDID = :I_BOARDID
+WHERE  BOARDID = :I_BOARDID ORDER BY MASK  ROWS (:ICI_FIRSTSELECTROWNUMBER) TO (:ICI_TOROW)
 INTO
 :"ID",
 :"BoardID",
 :"Mask",
 :"Since",
 :"Reason",
-:"UserID"
+:"UserID",
+:"TotalRows"
 DO SUSPEND;
+END
 ELSE
+BEGIN
 FOR SELECT ID,
            BOARDID,
 		   MASK,
 		   SINCE,
 		   REASON,
-		   USERID
+		   USERID,
+		   (SELECT CAST(1 AS INTEGER) FROM RDB$DATABASE)
 FROM   objQual_BANNEDIP
 WHERE  BOARDID = :I_BOARDID
 AND "ID" = :ici_ID
@@ -688,8 +738,10 @@ INTO
 :"Mask",
 :"Since",
 :"Reason",
-:"UserID"
+:"UserID",
+:"TotalRows"
 DO SUSPEND;
+END
 END;
 --GO
 
@@ -1918,31 +1970,15 @@ FROM RDB$DATABASE), :I_UTCTIMESTAMP,:I_USERID,
 :I_SOURCE,
 :I_DESCRIPTION,
 :I_TYPE);
-/*delete entries older than 10 days*/
-DELETE FROM objQual_EVENTLOG
-WHERE  DATEDIFF(DAY, :I_UTCTIMESTAMP, EVENTTIME) > 10;
-
-	   /*or if there are more then 1000*/
-	  SELECT COUNT(1)
-		   FROM   objQual_EVENTLOG INTO :recCount;
-		   
-		IF (recCount >= 1050) THEN
-			BEGIN
-		  DELETE FROM objQual_EVENTLOG WHERE EVENTLOGID IN (SELECT  FIRST 100 EVENTLOGID FROM objQual_EVENTLOG ORDER BY EVENTTIME) ;             
-		   
-	  --     SELECT  FIRST 1 DISTINCT EVENTLOGID  FROM  objQual_EVENTLOG ORDER BY EVENTLOGID INTO :topLogID ; 
-		   
-	   --    DELETE FROM objQual_EVENTLOG
-	   --    WHERE       EVENTLOGID BETWEEN "topLogID"  AND "topLogID"  +100;
-	   END
-		
+	
 	END;
 --GO
 
 CREATE  PROCEDURE objQual_EVENTLOG_DELETE
  (
 	I_EVENTLOGID INTEGER, 
-	I_BOARDID  INTEGER
+	I_BOARDID  INTEGER,
+	I_PAGEUSERID INTEGER
  ) 
  AS
  BEGIN
@@ -2511,6 +2547,8 @@ BEGIN
 		I_GROUPID INTEGER)
 		AS
 		BEGIN
+		DELETE FROM objQual_EVENTLOGGROUPACCESS
+		WHERE       GROUPID = :I_GROUPID;
 		DELETE FROM objQual_FORUMACCESS
 		WHERE       GROUPID = :I_GROUPID;
 		DELETE FROM objQual_USERGROUP
@@ -4147,7 +4185,16 @@ I_REPORTTEXT VARCHAR(4000),
 I_UTCTIMESTAMP TIMESTAMP) 
 AS
  BEGIN
-	
+		IF (NOT EXISTS (SELECT MESSAGEID FROM objQual_MESSAGEREPORTED 
+	WHERE MESSAGEID=:I_MESSAGEID)) THEN
+		INSERT INTO objQual_MESSAGEREPORTED(MESSAGEID, MESSAGE)
+		SELECT 		    
+			a.MESSAGEID,
+			a.MESSAGE
+		FROM
+			objQual_MESSAGE a
+		WHERE
+			a.MESSAGEID = :I_MESSAGEID; 	
 	IF (NOT EXISTS (SELECT MESSAGEID 
 	from objQual_MESSAGEREPORTEDAUDIT 
 	WHERE MESSAGEID=:I_MESSAGEID AND USERID=:I_REPORTERID)) THEN
@@ -4158,16 +4205,7 @@ AS
 		SET REPORTEDNUMBER = ( CASE WHEN REPORTEDNUMBER < 2147483647 THEN  REPORTEDNUMBER + 1 ELSE REPORTEDNUMBER END ), REPORTED = :I_REPORTEDDATE, REPORTTEXT= (CASE WHEN (char_length(REPORTTEXT) + char_length(:I_REPORTTEXT ) + 255 < 4000)  THEN  REPORTTEXT || '|' ||  CAST(:I_UTCTIMESTAMP AS varchar(40)) || '??' ||  :I_REPORTTEXT ELSE REPORTTEXT END) 
 		WHERE MESSAGEID = :I_MESSAGEID AND USERID = :I_REPORTERID ;	
 
-	IF (NOT EXISTS (SELECT MESSAGEID FROM objQual_MESSAGEREPORTED 
-	WHERE MESSAGEID=:I_MESSAGEID)) THEN
-		INSERT INTO objQual_MESSAGEREPORTED(MESSAGEID, MESSAGE)
-		SELECT 		    
-			a.MESSAGEID,
-			a.MESSAGE
-		FROM
-			objQual_MESSAGE a
-		WHERE
-			a.MESSAGEID = :I_MESSAGEID; 	
+
 	/*update Message table to set message with flag Reported*/
 	UPDATE objQual_MESSAGE 
 	SET FLAGS = BIN_OR(FLAGS, 128) 
@@ -4306,7 +4344,7 @@ CREATE PROCEDURE  objQual_MESSAGE_SAVE(
   END 	
 
 	SELECT SIGN(COUNT(Name)) FROM objQual_User WHERE UserID = :i_UserID AND  NAME != :i_UserName INTO :ici_OverrideDisplayName;	
-  
+    
 	-- Here we set bit flag to 0
 	SELECT NEXT VALUE FOR SEQ_objQual_MESSAGE_MESSAGEID FROM RDB$DATABASE INTO :I_MESSAGEID;
 	INSERT INTO objQual_MESSAGE ( MESSAGEID,USERID, MESSAGE, TOPICID, POSTED, USERNAME, USERDISPLAYNAME, IP, REPLYTO, "POSITION", INDENT, FLAGS, BLOGPOSTID, EXTERNALMESSAGEID, REFERENCEMESSAGEID)
@@ -5180,6 +5218,7 @@ CREATE PROCEDURE  objQual_PMESSAGE_LIST(I_FROMUSERID INTEGER,I_TOUSERID INTEGER,
 RETURNS
 (
 "PMessageID" integer,
+"ReplyTo" integer,
 "UserPMessageID" integer,
 "FromUserID" integer,
 "FromUser" varchar(128),
@@ -5192,12 +5231,14 @@ RETURNS
 "IsRead" BOOL,
 "IsInOutbox" BOOL,
 "IsArchived" BOOL,
-"IsDeleted" BOOL
+"IsDeleted" BOOL,
+"IsReply" BOOL
 )
 AS
 BEGIN
 	FOR SELECT 
 	PMESSAGEID, 
+	REPLYTO,
 	USERPMESSAGEID, 
 	FROMUSERID, 
 	FROMUSER, 
@@ -5210,7 +5251,8 @@ BEGIN
 	ISREAD, 
 	ISINOUTBOX, 
 	ISARCHIVED,
-	ISDELETED
+	ISDELETED,
+	ISREPLY
 		FROM objQual_PMessageView
 		WHERE	((:I_USERPMESSAGEID IS NOT NULL 
 		AND USERPMESSAGEID=:I_USERPMESSAGEID) OR 
@@ -5221,6 +5263,7 @@ BEGIN
 		ORDER BY CREATED DESC
 		INTO
 		:"PMessageID",
+		:"ReplyTo",
 		:"UserPMessageID",
 		:"FromUserID",
 		:"FromUser",
@@ -5233,7 +5276,8 @@ BEGIN
 		:"IsRead",
 		:"IsInOutbox",
 		:"IsArchived",
-		:"IsDeleted"
+		:"IsDeleted",
+		:"IsReply"
 DO SUSPEND;
 END;
 --GO
@@ -5254,6 +5298,7 @@ CREATE PROCEDURE  objQual_PMESSAGE_SAVE(
 	I_SUBJECT	varchar(128),
 	I_BODY		BLOB SUB_TYPE 1,
 	I_FLAGS		INTEGER,
+	I_REPLYTO INTEGER,
 	I_UTCTIMESTAMP TIMESTAMP
 	
  ) 
@@ -5263,10 +5308,20 @@ CREATE PROCEDURE  objQual_PMESSAGE_SAVE(
 BEGIN
 	
 	SELECT NEXT VALUE FOR SEQ_objQual_PMESSAGE_PMESSAGEID FROM RDB$DATABASE INTO :ici_PMessageID;
+	IF (:I_REPLYTO < 0) THEN
+	BEGIN
 	INSERT INTO objQual_PMESSAGE(PMESSAGEID,FROMUSERID,CREATED,SUBJECT,BODY,FLAGS)
 	VALUES(:ici_PMessageID,
 	:I_FROMUSERID,:I_UTCTIMESTAMP,:I_SUBJECT,:I_BODY,:I_FLAGS);
-	
+	END
+	ELSE
+	BEGIN
+	INSERT INTO objQual_PMESSAGE(PMESSAGEID,REPLYTO, FROMUSERID,CREATED,SUBJECT,BODY,FLAGS)
+	VALUES(:ici_PMessageID,:I_REPLYTO,
+	:I_FROMUSERID,:I_UTCTIMESTAMP,:I_SUBJECT,:I_BODY,:I_FLAGS);
+	UPDATE objQual_USERPMESSAGE SET ISREPLY = 1 WHERE PMESSAGEID = :I_REPLYTO;
+	END
+
 	IF (I_TOUSERID = 0) THEN
 	BEGIN
 		INSERT INTO objQual_USERPMESSAGE(USERPMESSAGEID,USERID,PMESSAGEID,FLAGS)
@@ -7927,7 +7982,7 @@ BEGIN
 	DELETE FROM  objQual_BUDDY where TOUSERID=:I_USERID;
 	-- Delete all the FavoriteTopic entries associated with this UserID.
 	DELETE FROM objQual_FAVORITETOPIC where USERID=:I_USERID;
-	
+	DELETE FROM objQual_ADMINPAGEUSERACCESS where USERID=:I_USERID;
 	
 	DELETE FROM  objQual_USER WHERE USERID = :I_USERID;
 	END
@@ -8472,7 +8527,9 @@ CREATE PROCEDURE  objQual_ADMIN_LIST(I_BOARDID INTEGER, I_STYLEDNICKS BOOL, I_UT
 RETURNS
 (
  "UserID" integer,
+ "Name" VARCHAR(255),
  "DisplayName" VARCHAR(255),
+ "BoardName" VARCHAR(255),
  "Avatar" VARCHAR(255),
  "AvatarImage" VARCHAR(255),
  "Email"  VARCHAR(255),
@@ -8492,7 +8549,9 @@ as
 begin
 		FOR select 
 			a.USERID,
+			a.NAME,
 			a.DISPLAYNAME,
+			b.NAME,
 			a.AVATAR,
 			(CASE WHEN (bit_length(a.AVATARIMAGE) > 10) THEN '1' ELSE '' END),
 			a.EMAIL,
@@ -8511,23 +8570,27 @@ begin
 			COALESCE(c.ISADMIN,0) as IsAdmin,			
 			COALESCE(BIN_AND(a.FLAGS, 1),0) AS IsHostAdmin
 		from 
-			objQual_USER a	
+			objQual_USER a
+			JOIN objQual_BOARD b	
+			ON b.BOARDID = a.BOARDID		
 			JOIN
 			objQual_RANK r	
 			ON r.RANKID = a.RANKID		
 			left join objQual_VACCESS c on c.USERID=a.USERID
-		where 			
-			a.BOARDID = :I_BOARDID and
+		where		
+			(:I_BOARDID IS NULL OR a.BOARDID = :I_BOARDID) and
 			-- is not guest 
 			a.ISGUEST = 0 and
 			c.FORUMID = 0 and
 			-- is admin 
 			(COALESCE(c.ISADMIN,0) != 0) 
 		order by 
-			a.NAME
+			a.DISPLAYNAME
 			INTO
 			 :"UserID",
+			 :"Name",
 			 :"DisplayName",
+			 :"BoardName",
 			 :"Avatar",
 			 :"AvatarImage",
 			 :"Email", 
@@ -8543,6 +8606,60 @@ begin
              :"HasAvatarImage",
              :"IsAdmin",
              :"IsHostAdmin"
+			 DO SUSPEND;
+end;
+--GO
+
+CREATE PROCEDURE  objQual_ADMIN_PAGEACCESSLIST(I_BOARDID INTEGER, I_STYLEDNICKS BOOL, I_UTCTIMESTAMP TIMESTAMP) 
+RETURNS
+(
+ "UserID" integer,
+ "BoardID" integer,
+ "BoardName" VARCHAR(255),
+ "Name"  VARCHAR(255),
+ "DisplayName" VARCHAR(255),
+ "CultureUser" VARCHAR(10),
+ "NumPosts" integer,
+ "Style" VARCHAR(255)
+ )
+as
+begin
+		FOR select 
+			a.USERID,
+			a.BOARDID,
+			b.NAME,
+			a.NAME,
+			a.DISPLAYNAME,				
+			a.CULTURE AS CultureUser,
+			a.NUMPOSTS,
+			(case (:I_STYLEDNICKS)
+			when 1 then a.USERSTYLE
+			else ''	 end) as Style
+		from 
+			objQual_USER a
+			JOIN objQual_BOARD b	
+			ON b.BOARDID = a.BOARDID				
+			left join objQual_VACCESS c on c.USERID=a.USERID
+		where		
+			((:I_BOARDID IS NULL OR a.BOARDID = :I_BOARDID) and
+			-- is not guest 
+			a.ISGUEST = 0 and
+			c.FORUMID = 0 and
+			-- is admin
+			(COALESCE(c.ISADMIN,0) != 0) and
+			-- is not host admin
+			BIN_AND(a.FLAGS, 1) <> 1)
+		order by 
+			a.DISPLAYNAME
+			INTO
+			 :"UserID",
+			 :"BoardID",
+			 :"BoardName",
+			 :"Name",
+			 :"DisplayName",		
+	         :"CultureUser",
+             :"NumPosts",
+             :"Style"
 			 DO SUSPEND;
 end;
 --GO
@@ -9769,8 +9886,9 @@ BEGIN
 	IF (NOT EXISTS(SELECT 1 FROM objQual_USERGROUP 
 	WHERE USERID=:I_USERID AND GROUPID=:I_GROUPID)) THEN
 		INSERT INTO objQual_USERGROUP(USERID,GROUPID)
-		VALUES (:I_USERID,:I_GROUPID);
+		VALUES (:I_USERID,:I_GROUPID);       
 	 END 
+	 EXECUTE PROCEDURE objQual_USER_SAVESTYLE :I_GROUPID, NULL;
 END;
 --GO
 
@@ -9790,22 +9908,31 @@ RETURNS
 "Subject" varchar(128),
 "Body" BLOB SUB_TYPE 1,
 "Flags" integer,
+"ReplyTo" integer,
 "FromUser" varchar(128),
 "ToUserID" integer,
 "ToUser" varchar(128),
 "IsRead" BOOL,
 "IsDeleted" BOOL,
+"IsReply" bool,
 "UserPMessageID" integer
 ) 
 AS
 BEGIN
 	FOR SELECT
-		a.*,
+		a.PMESSAGEID,
+		a.FROMUSERID,
+		a.CREATED,
+		a.SUBJECT,
+		a.BODY,
+		a.FLAGS,
+		a.REPLYTO,
 		b.NAME AS "FromUser",
 		c.USERID AS ToUserID,
 		c.NAME AS ToUser,
 		d.ISREAD,
 		d.ISDELETED,
+		d.ISREPLY,
 		d.USERPMESSAGEID
 	FROM
 		objQual_PMESSAGE a
@@ -9816,17 +9943,19 @@ BEGIN
 		d.USERPMESSAGEID = :I_USERPMESSAGEID AND
 		d.ISDELETED=0
 		INTO
-		:"PMessageID",
+		:"PMessageID",		
 		:"FromUserID",
 		:"Created",
 		:"Subject",
 		:"Body",
 		:"Flags",
+		:"ReplyTo",
 		:"FromUser",
 		:"ToUserID",
 		:"ToUser",
 		:"IsRead",
 		:"IsDeleted",
+		:"IsReply",
 		:"UserPMessageID"
 		DO SUSPEND;
 END;
@@ -11690,6 +11819,7 @@ CREATE PROCEDURE  objQual_RECENT_USERS(
 				 "UserID" integer,
 				 "UserName" VARCHAR(255),
 				 "UserDisplayName" VARCHAR(255),
+				 "LastVisit" TIMESTAMP,
 				 "IsCrawler" BOOL,
 				 "UserCount" INTEGER,
 				 "IsHidden" BOOL,	
@@ -11701,6 +11831,7 @@ CREATE PROCEDURE  objQual_RECENT_USERS(
 	FOR   SELECT U.USERID,
 	U.NAME,
 	U.DISPLAYNAME,
+	U.LASTVISIT,
 	   (SELECT 0 FROM RDB$DATABASE) AS IsCrawler,
      (SELECT 1 FROM RDB$DATABASE) as UserCount,
     u.IsActiveExcluded as IsHidden,
@@ -11726,6 +11857,7 @@ CREATE PROCEDURE  objQual_RECENT_USERS(
 	:"UserID",
 	:"UserName",
 	:"UserDisplayName",
+	:"LastVisit",
 	:"IsCrawler",
 	:"UserCount",
 	:"IsHidden",

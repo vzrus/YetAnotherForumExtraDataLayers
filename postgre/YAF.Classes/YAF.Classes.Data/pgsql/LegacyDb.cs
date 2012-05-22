@@ -1385,15 +1385,17 @@ namespace YAF.Classes.Data
 		/// <param name="attachmentID">attachementID</param>
 		/// <param name="boardId">boardId</param>
 		/// <returns>DataTable with attachement list</returns>
-        static public DataTable attachment_list( object messageID, object attachmentID, object boardId)
+        public static DataTable attachment_list([NotNull] object messageID, [NotNull] object attachmentID, [NotNull] object boardID, [CanBeNull] object pageIndex, [CanBeNull] object pageSize)
 		{
-			using ( NpgsqlCommand cmd = MsSqlDbAccess.GetCommand( "attachment_list" ) )
+			using ( var cmd = MsSqlDbAccess.GetCommand( "attachment_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new NpgsqlParameter("i_messageid", NpgsqlDbType.Integer)).Value = messageID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_attachmentid", NpgsqlDbType.Integer)).Value = attachmentID;
-				cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardId;
+				cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardID;
+                cmd.Parameters.Add(new NpgsqlParameter("i_pageindex", NpgsqlDbType.Integer)).Value = pageIndex;
+                cmd.Parameters.Add(new NpgsqlParameter("i_pageisize", NpgsqlDbType.Integer)).Value = pageSize;
 
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
@@ -1447,6 +1449,8 @@ namespace YAF.Classes.Data
 					cmd.Parameters.Add(new NpgsqlParameter("i_messageid", NpgsqlDbType.Integer)).Value = DBNull.Value;
 					cmd.Parameters.Add(new NpgsqlParameter("i_attachmentid", NpgsqlDbType.Integer)).Value = attachmentID;
 					cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = DBNull.Value;
+                    cmd.Parameters.Add(new NpgsqlParameter("i_pageindex", NpgsqlDbType.Integer)).Value = 0;
+                    cmd.Parameters.Add(new NpgsqlParameter("i_pageisize", NpgsqlDbType.Integer)).Value = 1000;
 
                     DataTable tbAttachments = MsSqlDbAccess.Current.GetData(cmd);
 					string uploadDir = HostingEnvironment.MapPath(String.Concat(BaseUrlBuilder.ServerFileRoot, YafBoardFolders.Current.Uploads));
@@ -1505,15 +1509,17 @@ namespace YAF.Classes.Data
 		/// <param name="boardId">ID of board</param>
 		/// <param name="ID">ID</param>
 		/// <returns>DataTable of banned IPs</returns>
-        static public DataTable bannedip_list( object boardId, object ID)
+        public static DataTable bannedip_list([NotNull] object boardID, [CanBeNull] object ID, [CanBeNull] object pageIndex, [CanBeNull] object pageSize)
 		{
 			using ( NpgsqlCommand cmd = MsSqlDbAccess.GetCommand( "bannedip_list" ) )
 			{
 
 				cmd.CommandType = CommandType.StoredProcedure;
 
-				cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardId;
+				cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_id", NpgsqlDbType.Integer)).Value = ID;
+                cmd.Parameters.Add(new NpgsqlParameter("i_pageindex", NpgsqlDbType.Integer)).Value = pageIndex;
+                cmd.Parameters.Add(new NpgsqlParameter("i_pagesize", NpgsqlDbType.Integer)).Value = pageSize;
 
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
@@ -1726,7 +1732,7 @@ namespace YAF.Classes.Data
 		/// <param name="boardName">Name of new board</param>
 		/// <param name="boardMembershipName">Membership Provider Application Name for new board</param>
 		/// <param name="boardRolesName">Roles Provider Application Name for new board</param>
-        static public int board_create( object adminUsername, object adminUserEmail, object adminUserKey, object boardName, object culture, object languageFile, object boardMembershipName, object boardRolesName, object rolePrefix)
+        public static int board_create([NotNull] object adminUsername, [NotNull] object adminUserEmail, [NotNull] object adminUserKey, [NotNull] object boardName, [NotNull] object culture, [NotNull] object languageFile, [NotNull] object boardMembershipName, [NotNull] object boardRolesName, [NotNull] object rolePrefix, [NotNull] object isHostUser)
 		{
 			using ( NpgsqlCommand cmd = MsSqlDbAccess.GetCommand( "board_create" ) )
 			{
@@ -1740,7 +1746,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_username", NpgsqlDbType.Varchar)).Value = adminUsername;
 				cmd.Parameters.Add(new NpgsqlParameter("i_useremail", NpgsqlDbType.Varchar)).Value = adminUserEmail;
 				cmd.Parameters.Add(new NpgsqlParameter("i_userkey", NpgsqlDbType.Uuid)).Value = adminUserKey;
-				cmd.Parameters.Add(new NpgsqlParameter("i_ishostadmin", NpgsqlDbType.Boolean)).Value = false;
+                cmd.Parameters.Add(new NpgsqlParameter("i_ishostadmin", NpgsqlDbType.Boolean)).Value = isHostUser;
                 cmd.Parameters.Add(new NpgsqlParameter("i_newguid", NpgsqlDbType.Uuid)).Value = Guid.NewGuid();
                 cmd.Parameters.Add(new NpgsqlParameter("i_roleprefix", NpgsqlDbType.Varchar)).Value = rolePrefix;
                 cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
@@ -1966,6 +1972,7 @@ namespace YAF.Classes.Data
 					cmd.Parameters.Add(new NpgsqlParameter("i_source", NpgsqlDbType.Varchar)).Value = source.ToString();
 					cmd.Parameters.Add(new NpgsqlParameter("i_description", NpgsqlDbType.Text)).Value = description.ToString();
 					cmd.Parameters.Add(new NpgsqlParameter("i_type", NpgsqlDbType.Integer)).Value = type;
+                    cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 					
 					MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 				}
@@ -1977,17 +1984,17 @@ namespace YAF.Classes.Data
 		}
 
 
-        static public void eventlog_delete(int boardId)
+        static public void eventlog_delete(int boardId, object pageuserId)
         {
-            eventlog_delete(null, boardId);
+            eventlog_delete(null, boardId, pageuserId);
         }
         /// <summary>
         /// Deletes event log entry of given ID.
         /// </summary>
         /// <param name="eventLogID">ID of event log entry.</param>
-        static public void eventlog_delete(object eventLogID)
+        static public void eventlog_delete(object eventLogID, object pageuserId)
         {
-            eventlog_delete(eventLogID, null);
+            eventlog_delete(eventLogID, null, pageuserId);
         }
 
 		/// <summary>
@@ -1995,7 +2002,7 @@ namespace YAF.Classes.Data
 		/// </summary>
 		/// <param name="eventLogID">When not null, only given event log entry is deleted.</param>
 		/// <param name="boardId">Specifies board. It is ignored if eventLogID parameter is not null.</param>
-        static public void eventlog_delete( object eventLogID, object boardId)
+        static public void eventlog_delete(object eventLogID, object boardId, object pageUserId)
 		{
 			using ( NpgsqlCommand cmd = MsSqlDbAccess.GetCommand( "eventlog_delete" ) )
 			{
@@ -2003,22 +2010,157 @@ namespace YAF.Classes.Data
 
 				cmd.Parameters.Add(new NpgsqlParameter("i_eventlogid", NpgsqlDbType.Integer)).Value = eventLogID;
 				cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardId;
-						
+                cmd.Parameters.Add(new NpgsqlParameter("i_pageuserid", NpgsqlDbType.Integer)).Value = pageUserId;
+
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
 			}
 		}
 
-		static public DataTable eventlog_list( object boardId )
+        /// <summary>
+        /// Deletes events of a type.
+        /// </summary>
+        /// <param name="boardId">
+        /// The board Id.
+        /// </param>
+        /// <param name="pageUserId">
+        /// The page User Id.
+        /// </param>
+        public static void eventlog_deletebyuser([NotNull] object boardId, [NotNull] object pageUserId)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("eventlog_deletebyuser"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardId;
+                cmd.Parameters.Add(new NpgsqlParameter("i_pageuserid", NpgsqlDbType.Integer)).Value = pageUserId;
+
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+        /// <summary>
+        /// The eventlog_list.
+        /// </summary>
+        /// <param name="boardID">
+        /// The board id.
+        /// </param>
+        /// <returns>
+        /// A list of events for the pageUserID access level. 
+        /// </returns>
+        public static DataTable eventlog_list([NotNull] object boardID, [NotNull] object pageUserID, [NotNull] object maxRows, [NotNull] object maxDays, [NotNull] object pageIndex, [NotNull] object pageSize, [NotNull] object sinceDate, [NotNull] object toDate, [NotNull] object eventIDs)
+
 		{
 			using ( NpgsqlCommand cmd = MsSqlDbAccess.GetCommand( "eventlog_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
-				cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardId;
+				cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardID;
+                cmd.Parameters.Add(new NpgsqlParameter("i_pageuserid", NpgsqlDbType.Integer)).Value = pageUserID;
+                cmd.Parameters.Add(new NpgsqlParameter("i_maxrows", NpgsqlDbType.Integer)).Value = maxRows;
+                cmd.Parameters.Add(new NpgsqlParameter("i_maxdays", NpgsqlDbType.Integer)).Value = maxDays;
+                cmd.Parameters.Add(new NpgsqlParameter("i_pageindex", NpgsqlDbType.Integer)).Value = pageIndex;
+                cmd.Parameters.Add(new NpgsqlParameter("i_pagesize", NpgsqlDbType.Integer)).Value = pageSize;
+                cmd.Parameters.Add(new NpgsqlParameter("i_sincedate", NpgsqlDbType.TimestampTZ)).Value = sinceDate;
+                cmd.Parameters.Add(new NpgsqlParameter("i_todate", NpgsqlDbType.TimestampTZ)).Value = toDate;
+                cmd.Parameters.Add(new NpgsqlParameter("i_eventids", NpgsqlDbType.Varchar)).Value = eventIDs;
+
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 
                 return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
+
+        /// <summary>
+        /// Saves access entry for a log type for a user.
+        /// </summary>
+        /// <param name="groupID">
+        /// The group Id.
+        /// </param>
+        /// <param name="eventTypeId">
+        /// The event Type Id.
+        /// </param>
+        /// <param name="eventTypeName">
+        /// The event Type Name.
+        /// </param>
+        public static void eventloggroupaccess_save([NotNull] object groupID, [NotNull] object eventTypeId, [NotNull] object eventTypeName, [NotNull] object deleteAccess)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("eventloggroupaccess_save"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new NpgsqlParameter("i_groupid", NpgsqlDbType.Integer)).Value = groupID;
+                cmd.Parameters.Add(new NpgsqlParameter("i_eventtypeid", NpgsqlDbType.Integer)).Value = eventTypeId;
+                cmd.Parameters.Add(new NpgsqlParameter("i_eventtypename", NpgsqlDbType.Varchar)).Value = eventTypeName;
+                cmd.Parameters.Add(new NpgsqlParameter("i_deleteaccess", NpgsqlDbType.Boolean)).Value = deleteAccess;
+
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+        /// <summary>
+        /// Deletes event log access entries from table.
+        /// </summary>
+        /// <param name="groupID">
+        /// The group Id.
+        /// </param>
+        /// <param name="eventTypeId">
+        /// The event Type Id.
+        /// </param>
+        /// <param name="eventTypeName">
+        /// The event Type Name.
+        /// </param>
+        public static void eventloggroupaccess_delete([NotNull] object groupID, [NotNull] object eventTypeId, [NotNull] object eventTypeName)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("eventloggroupaccess_delete"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new NpgsqlParameter("i_groupid", NpgsqlDbType.Integer)).Value = groupID;
+                cmd.Parameters.Add(new NpgsqlParameter("i_eventtypeid", NpgsqlDbType.Integer)).Value = eventTypeId;
+                cmd.Parameters.Add(new NpgsqlParameter("i_eventtypename", NpgsqlDbType.Varchar)).Value = eventTypeName;
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+        /// <summary>
+        /// Returns a list of access entries for a group.
+        /// </summary>
+        /// <param name="groupID">
+        /// The group Id.
+        /// </param>
+        /// <param name="eventTypeId">
+        /// The event Type Id.
+        /// </param>
+        /// <returns>Returns a list of access entries for a group.</returns>
+        public static DataTable eventloggroupaccess_list([NotNull] object groupID, [NotNull] object eventTypeId)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("eventloggroupaccess_list"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new NpgsqlParameter("i_groupid", NpgsqlDbType.Integer)).Value = groupID;
+                cmd.Parameters.Add(new NpgsqlParameter("i_eventtypeid", NpgsqlDbType.Integer)).Value = eventTypeId;
+                return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
+        /// <summary>
+        /// Lists group for the board Id handy to display on the calling admin page. 
+        /// </summary>
+        /// <param name="boardId">
+        /// The board Id.
+        /// </param>
+        /// <returns>Lists group for the board Id handy to display on the calling admin page.
+        /// </returns>
+        public static DataTable group_eventlogaccesslist([CanBeNull] object boardId)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("group_eventlogaccesslist"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardId;
+                return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
+
 		#endregion yaf_EventLog
 
 		// Admin control of file extensions - MJ Hufford
@@ -3413,7 +3555,8 @@ namespace YAF.Classes.Data
 					cmd.Parameters.Add(new NpgsqlParameter("i_messageid", NpgsqlDbType.Integer)).Value = messageID;
 					cmd.Parameters.Add(new NpgsqlParameter("i_attachmentid", NpgsqlDbType.Integer)).Value = null;
 					cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = null;
-					 
+                    cmd.Parameters.Add(new NpgsqlParameter("i_pageindex", NpgsqlDbType.Integer)).Value = 0;
+                    cmd.Parameters.Add(new NpgsqlParameter("i_pageisize", NpgsqlDbType.Integer)).Value = 1000000;
 					DataTable tbAttachments = MsSqlDbAccess.Current.GetData(cmd);
 					string uploadDir = HostingEnvironment.MapPath(String.Concat(BaseUrlBuilder.ServerFileRoot, YafBoardFolders.Current.Uploads));
 
@@ -4526,7 +4669,7 @@ namespace YAF.Classes.Data
 			}
 		}
 
-        static public void pmessage_save( object fromUserID, object toUserID, object subject, object body, object Flags)
+        static public void pmessage_save( object fromUserID, object toUserID, object subject, object body, object Flags, object replyTo)
 		{
 			using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand("pmessage_save"))
 			{
@@ -4537,6 +4680,7 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new NpgsqlParameter("i_subject", NpgsqlDbType.Varchar)).Value = subject;
 				cmd.Parameters.Add(new NpgsqlParameter("i_body", NpgsqlDbType.Text)).Value = body;
 				cmd.Parameters.Add(new NpgsqlParameter("i_flags", NpgsqlDbType.Integer)).Value = Flags;
+                cmd.Parameters.Add(new NpgsqlParameter("i_replyto", NpgsqlDbType.Integer)).Value = replyTo;
                 cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
 						
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
@@ -6717,6 +6861,70 @@ namespace YAF.Classes.Data
         }
 
         /// <summary>
+        /// The admin_pageaccesslist.
+        /// </summary>
+        /// <param name="boardId">
+        /// The board id.
+        /// </param>
+        /// <param name="useStyledNicks">
+        /// The use styled nicks.
+        /// </param>
+        /// <returns>
+        /// </returns>
+        public static DataTable admin_pageaccesslist([CanBeNull] object boardId, [NotNull] object useStyledNicks)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("admin_pageaccesslist"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardId;
+                cmd.Parameters.Add(new NpgsqlParameter("i_stylednicks", NpgsqlDbType.Boolean)).Value = useStyledNicks;
+                cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
+
+                return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
+        public static void adminpageaccess_save([NotNull] object userId, [NotNull] object pageName)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("adminpageaccess_save"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userId;
+                cmd.Parameters.Add(new NpgsqlParameter("i_pagename", NpgsqlDbType.Varchar)).Value = pageName;
+            
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+        public static void adminpageaccess_delete([NotNull] object userId, [CanBeNull] object pageName)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("adminpageaccess_delete"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userId;
+                cmd.Parameters.Add(new NpgsqlParameter("i_pagename", NpgsqlDbType.Varchar)).Value = pageName;
+
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+        public static DataTable adminpageaccess_list([CanBeNull] object userId, [CanBeNull] object pageName)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("adminpageaccess_list"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Integer)).Value = userId;
+                cmd.Parameters.Add(new NpgsqlParameter("i_pagename", NpgsqlDbType.Varchar)).Value = pageName;
+
+                return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
+        /// <summary>
         /// The user_list20members.
         /// </summary>
         /// <param name="boardId">
@@ -8329,14 +8537,13 @@ namespace YAF.Classes.Data
                     connMan.InfoMessage += new YafDBConnInfoMessageEventHandler(runSql_InfoMessage);
                     sql = MsSqlDbAccess.GetCommandTextReplaced(sql.Trim());
 
-                    string txtResult = "";
-                    var results = new System.Text.StringBuilder();
+                   var results = new System.Text.StringBuilder();
 
-                    using (NpgsqlCommand cmd = new NpgsqlCommand(sql, connMan.OpenDBConnection))
+                    using (var cmd = new NpgsqlCommand(sql, connMan.OpenDBConnection))
                     {
                         cmd.CommandTimeout = 9999;
                         NpgsqlDataReader reader = null;
-                        NpgsqlTransaction trans = useTransaction ? cmd.Connection.BeginTransaction(MsSqlDbAccess.IsolationLevel)
+                        var trans = useTransaction ? cmd.Connection.BeginTransaction(MsSqlDbAccess.IsolationLevel)
                                                                    : null;
                      
                             try

@@ -174,7 +174,8 @@ CREATE TYPE databaseSchema.objectQualifier_attachment_list_return_type AS
 "ForumID" integer,
 "ForumName" varchar(128),
 "TopicID" integer, 
-"TopicName"  varchar(128)
+"TopicName"  varchar(128),
+"TotalRows" integer
 );
 --GO
 
@@ -187,7 +188,8 @@ CREATE TYPE databaseSchema.objectQualifier_bannedip_list_return_type AS
 "Mask" varchar(57),
 "Since" timestampTZ,
 "Reason" varchar(128),
-"UserID" integer
+"UserID" integer,
+"TotalRows" integer
 );
 
 --GO
@@ -354,7 +356,20 @@ CREATE TYPE  databaseSchema.objectQualifier_eventlog_list_return_type AS
 "Source" varchar(128),
 "Description" text,
 "Type" integer,
-"Name" varchar(255)
+"Name" varchar(255),
+"TotalRows" integer
+);
+--GO
+
+SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_eventloggroupaccess_list_rt');
+--GO
+CREATE TYPE  databaseSchema.objectQualifier_eventloggroupaccess_list_rt AS
+(
+"GroupID" integer,
+"EventTypeID" integer,
+"EventTypeName" varchar(128),
+"DeleteAccess" boolean,
+"GroupName" varchar(255)
 );
 --GO
 
@@ -640,6 +655,26 @@ CREATE TYPE databaseSchema.objectQualifier_group_list_return_type AS
 );
 --GO
 
+SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_adminpageaccess_list_rt');
+--GO
+CREATE TYPE databaseSchema.objectQualifier_adminpageaccess_list_rt AS
+(
+"GroupID" integer,
+"BoardID" integer,
+"Name" varchar(128),
+"Flags" integer,
+"PMLimit" integer,
+"Style" varchar(256),
+"SortOrder" integer,
+"Description" varchar(128),
+"UsrSigChars" integer,
+"UsrSigBBCodes" varchar(255),
+"UsrSigHTMLTags"  varchar(255),
+"UsrAlbums" integer,
+"UsrAlbumImages" integer
+);
+--GO
+
 SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_group_medal_list_return_type');
 --GO
 CREATE TYPE databaseSchema.objectQualifier_group_medal_list_return_type AS
@@ -911,6 +946,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_pmessage_list_return_type AS 
 (
 "PMessageID" integer,
+"ReplyTo" integer,
 "UserPMessageID" integer,
 "FromUserID" integer,
 "FromUser" varchar(128),
@@ -923,7 +959,8 @@ CREATE TYPE databaseSchema.objectQualifier_pmessage_list_return_type AS
 "IsRead" boolean,
 "IsInOutbox" boolean,
 "IsArchived" boolean,
-"IsDeleted" boolean
+"IsDeleted" boolean,
+"IsReply" boolean
 );
 --GO
 
@@ -1732,8 +1769,9 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_admin_list_rt AS
 (
   -- databaseSchema.objectQualifier_user_table_type	
-  	"UserID" integer,
+  "UserID" integer,
   "BoardID" integer,
+  "BoardName" varchar(128),
   "ProviderUserKey" uuid,
   "Name" varchar(128),
   "Password" varchar(32),
@@ -1773,6 +1811,21 @@ CREATE TYPE databaseSchema.objectQualifier_admin_list_rt AS
   "IsHostAdmin" boolean,
   "IsForumModerator" boolean, 
   "IsModerator" boolean
+);
+--GO
+
+SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_admin_pageaccess_rt');
+--GO
+CREATE TYPE databaseSchema.objectQualifier_admin_pageaccess_rt AS
+(
+  -- databaseSchema.objectQualifier_user_table_type	
+  "UserID" integer,
+  "BoardID" integer,
+  "BoardName" varchar(128), 
+  "Name" varchar(128),  
+  "DisplayName" varchar(128),
+  "CultureUser" varchar(10),  
+  "Style"  varchar(255)
 );
 --GO
 
@@ -1965,6 +2018,7 @@ SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifie
 CREATE TYPE databaseSchema.objectQualifier_userpmessage_list_return_type AS
 (
 "PMessageID" integer,
+"ReplyTo" boolean,
 "FromUserID" integer,
 "Created" timestampTZ,
 "Subject" varchar(100),
@@ -1974,6 +2028,7 @@ CREATE TYPE databaseSchema.objectQualifier_userpmessage_list_return_type AS
 "ToUserID" integer,
 "ToUser" varchar(128),
 "IsRead" boolean,
+"IsReply" boolean,
 "UserPMessageID" integer
 );
 --GO
@@ -2582,4 +2637,37 @@ CREATE TYPE databaseSchema.objectQualifier_forum_ns_getchildren_rt AS
 );
 --GO
 
+SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_adminpageaccess_list_rt');
+--GO
+CREATE TYPE databaseSchema.objectQualifier_adminpageaccess_list_rt AS
+(
+"UserID" integer,
+"PageName" 	varchar(255),
+"UserName"  varchar(255), 
+"UserDisplayName"  varchar(255), 
+"BoardName"   varchar(255)
+);
+--GO
+
+SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_group_eventlogaccesslist_rt');
+--GO
+CREATE TYPE databaseSchema.objectQualifier_group_eventlogaccesslist_rt AS
+(
+"GroupID" integer,
+"BoardID" integer,
+"Name" varchar(128),
+"Flags" integer,
+"PMLimit" integer,
+"Style" varchar(255),
+"SortOrder" integer,
+"Description" varchar(128),
+"UsrSigChars" integer,
+"UsrSigBBCodes" varchar(255),
+"UsrSigHTMLTags"  varchar(255),
+"UsrAlbums" integer,
+"UsrAlbumImages" integer,
+"BoardName"  varchar(255)
+
+);
+--GO
 

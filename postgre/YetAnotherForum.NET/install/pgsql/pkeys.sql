@@ -69,6 +69,11 @@ ALTER TABLE ONLY databaseSchema.objectQualifier_eventlog
     ADD CONSTRAINT pk_databaseSchema_objectQualifier_eventlogid PRIMARY KEY (eventlogid);
 END IF;
 
+IF NOT EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_databaseSchema_objectQualifier_eventloggroupaccess_groupid_eventtypeid' LIMIT 1) THEN
+ALTER TABLE ONLY databaseSchema.objectQualifier_eventloggroupaccess
+    ADD CONSTRAINT pk_databaseSchema_objectQualifier_eventloggroupaccess_groupid_eventtypeid PRIMARY KEY (groupid,eventtypeid);
+END IF;
+
 IF NOT EXISTS (SELECT 1 FROM pg_constraint where contype='p' and conname ='pk_databaseSchema_objectQualifier_extensionid' LIMIT 1) THEN
 ALTER TABLE ONLY databaseSchema.objectQualifier_extension
     ADD CONSTRAINT pk_databaseSchema_objectQualifier_extensionid PRIMARY KEY (extensionid);
@@ -312,6 +317,13 @@ IF NOT EXISTS (SELECT 1 FROM pg_constraint
 			     and conname ='pk_databaseSchema_objectQualifier_repfruid_reptouid_reputationvote' LIMIT 1) THEN
    ALTER TABLE ONLY databaseSchema.objectQualifier_reputationvote
    ADD CONSTRAINT pk_databaseSchema_objectQualifier_repfruid_reptouid_reputationvote PRIMARY KEY (reputationfromuserid,reputationtouserid);
+END IF; 
+
+IF NOT EXISTS (SELECT 1 FROM pg_constraint 
+               where contype='p' 
+			     and conname ='pk_databaseSchema_objectQualifier_userid_pagename_adminpageuseraccess' LIMIT 1) THEN
+   ALTER TABLE ONLY databaseSchema.objectQualifier_adminpageuseraccess
+   ADD CONSTRAINT pk_databaseSchema_objectQualifier_userid_pagename_adminpageuseraccess PRIMARY KEY (userid,pagename);
 END IF; 
 
 IF NOT EXISTS (SELECT 1 FROM pg_constraint 

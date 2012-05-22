@@ -18,7 +18,7 @@ BEGIN
 IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS T WHERE T.CONSTRAINT_TYPE = 'PRIMARY KEY' AND
 T.CONSTRAINT_SCHEMA = '{databaseName}'
 AND LOWER(T.TABLE_NAME) = LOWER(CONCAT('{objectQualifier}',pk_t_name))
-AND T.CONSTRAINT_NAME = 'PRIMARY') THEN
+AND T.CONSTRAINT_TYPE = 'PRIMARY KEY') THEN
 
 set @pk_t_name = pk_t_name ;
 set @pk_c_name = pk_c_name ;
@@ -156,6 +156,9 @@ CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('MessageReported',null,
 --GO
 CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('MessageReportedAudit',null,'LogID',null);
 --GO
-
+CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('AdminPageUserAccess',null,'UserID', 'PageName');
+--GO
+CALL  {databaseName}.{objectQualifier}add_or_check_pkeys('EventLogGroupAccess',null,'GroupID', 'EventTypeID');
+--GO
 DROP  PROCEDURE IF EXISTS {databaseName}.{objectQualifier}add_or_check_pkeys;
 --GO

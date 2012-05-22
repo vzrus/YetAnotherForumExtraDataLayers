@@ -64,7 +64,7 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\YetAnotherForum.NET\Bin\Autofac.dll</HintPath>
     </Reference>
-    <Reference Include="MySql.Data, Version=6.4.4.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
+    <Reference Include="MySql.Data, Version=6.5.4.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\YetAnotherForum.NET\Bin\MySql.Data.dll</HintPath>
     </Reference>
@@ -93,7 +93,6 @@
     <Compile Include="BaseDataTableResultFilter.cs" />
     <Compile Include="DataModule.cs" />
     <Compile Include="DataRowConvert.cs" />
-    <Compile Include="Import\DataImport.cs" />
     <Compile Include="mysql\LegacyDb.cs">
       <SubType>
       </SubType>

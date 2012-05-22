@@ -1272,23 +1272,19 @@ namespace YAF.Classes.Data
 		/// <param name="attachmentID">attachementID</param>
 		/// <param name="boardID">boardID</param>
 		/// <returns>DataTable with attachement list</returns>
-        static public DataTable attachment_list( object messageID, object attachmentID, object boardID)
+        public static DataTable attachment_list([NotNull] object messageID, [NotNull] object attachmentID, [NotNull] object boardID, [CanBeNull] object pageIndex, [CanBeNull] object pageSize)
 		{
 			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "attachment_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
 
-				cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer));
-				cmd.Parameters[0].Value = messageID;
-
-				cmd.Parameters.Add(new FbParameter("@I_ATTACHMENTID", FbDbType.Integer));
-				cmd.Parameters[1].Value = attachmentID;
-
-				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer));
-				cmd.Parameters[2].Value = boardID;
-
+				cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer)).Value = messageID;
+				cmd.Parameters.Add(new FbParameter("@I_ATTACHMENTID", FbDbType.Integer)).Value = attachmentID;
+				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
+                cmd.Parameters.Add(new FbParameter("@I_PAGEINDEX", FbDbType.Integer)).Value = pageIndex;
+                cmd.Parameters.Add(new FbParameter("@I_PAGESIZE", FbDbType.Integer)).Value = pageSize;
 			
-				return MsSqlDbAccess.Current.GetData( cmd );
+				return MsSqlDbAccess.Current.GetData(cmd);
 			}
 		}
 		/// <summary>
@@ -1312,21 +1308,11 @@ namespace YAF.Classes.Data
 				}
 				cmd.CommandType = CommandType.StoredProcedure;
 
-				cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer));
-				cmd.Parameters[0].Value = messageID;
-
-				cmd.Parameters.Add(new FbParameter("@I_FILENAME", FbDbType.VarChar));
-				cmd.Parameters[1].Value = fileName;
-
-				cmd.Parameters.Add(new FbParameter("@I_BYTES", FbDbType.Integer));
-				cmd.Parameters[2].Value = bytes;
-
-				cmd.Parameters.Add(new FbParameter("@I_CONTENTTYPE", FbDbType.VarChar));
-				cmd.Parameters[3].Value = contentType;
-
-				cmd.Parameters.Add(new FbParameter("@I_FILEDATA", FbDbType.Binary));
-				cmd.Parameters[4].Value = fileData;
-
+				cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer)).Value = messageID;
+				cmd.Parameters.Add(new FbParameter("@I_FILENAME", FbDbType.VarChar)).Value = fileName;
+				cmd.Parameters.Add(new FbParameter("@I_BYTES", FbDbType.Integer)).Value = bytes;
+				cmd.Parameters.Add(new FbParameter("@I_CONTENTTYPE", FbDbType.VarChar)).Value = contentType;
+				cmd.Parameters.Add(new FbParameter("@I_FILEDATA", FbDbType.Binary)).Value = fileData;
 				
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 			}
@@ -1351,6 +1337,9 @@ namespace YAF.Classes.Data
 					cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer)).Value = DBNull.Value;
 					cmd.Parameters.Add(new FbParameter("@I_ATTACHMENTID", FbDbType.Integer)).Value = attachmentID;
 					cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = DBNull.Value;
+                    cmd.Parameters.Add(new FbParameter("@I_PAGEINDEX", FbDbType.Integer)).Value = 0;
+                    cmd.Parameters.Add(new FbParameter("@I_PAGESIZE", FbDbType.Integer)).Value = 1;
+			
 									
 					DataTable tbAttachments = MsSqlDbAccess.Current.GetData( cmd );
 					string uploadDir = HostingEnvironment.MapPath(String.Concat(BaseUrlBuilder.ServerFileRoot, YafBoardFolders.Current.Uploads));
@@ -1409,16 +1398,15 @@ namespace YAF.Classes.Data
 		/// <param name="boardID">ID of board</param>
 		/// <param name="ID">ID</param>
 		/// <returns>DataTable of banned IPs</returns>
-        static public DataTable bannedip_list( object boardID, object ID)
+        public static DataTable bannedip_list([NotNull] object boardID, [CanBeNull] object ID, [CanBeNull] object pageIndex, [CanBeNull] object pageSize)
 		{
 			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "bannedip_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer));
-				cmd.Parameters[0].Value = boardID;
-
-				cmd.Parameters.Add(new FbParameter("@I_ID", FbDbType.Integer));
-				cmd.Parameters[1].Value = ID;
+				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
+				cmd.Parameters.Add(new FbParameter("@I_ID", FbDbType.Integer)).Value = ID;
+                cmd.Parameters.Add(new FbParameter("@I_PAGEINDEX", FbDbType.Integer)).Value = pageIndex;
+                cmd.Parameters.Add(new FbParameter("@I_PAGESIZE", FbDbType.Integer)).Value = pageSize;
 								
 				return MsSqlDbAccess.Current.GetData( cmd );
 			}
@@ -1627,7 +1615,7 @@ namespace YAF.Classes.Data
 		/// <param name="boardName">Name of new board</param>
 		/// <param name="boardMembershipName">Membership Provider Application Name for new board</param>
 		/// <param name="boardRolesName">Roles Provider Application Name for new board</param>
-        static public int board_create( object adminUsername, object adminUserEmail, object adminUserKey, object boardName, object culture, object languageFile, object boardMembershipName, object boardRolesName, object rolePrefix)
+        public static int board_create([NotNull] object adminUsername, [NotNull] object adminUserEmail, [NotNull] object adminUserKey, [NotNull] object boardName, [NotNull] object culture, [NotNull] object languageFile, [NotNull] object boardMembershipName, [NotNull] object boardRolesName, [NotNull] object rolePrefix, [NotNull] object isHostUser)
 		{
 			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "BOARD_CREATE" ) )
 			{
@@ -1640,8 +1628,8 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add("@I_ROLESAPPNAME", FbDbType.VarChar).Value = boardRolesName;
 				cmd.Parameters.Add("@I_USERNAME", FbDbType.VarChar).Value = adminUsername;
 				cmd.Parameters.Add("@I_USEREMAIL", FbDbType.VarChar).Value = adminUserEmail;   
-				cmd.Parameters.Add("@I_USERKEY", FbDbType.VarChar).Value = adminUserKey;         
-				cmd.Parameters.Add("@I_ISHOSTADMIN", FbDbType.Boolean).Value = 0;
+				cmd.Parameters.Add("@I_USERKEY", FbDbType.VarChar).Value = adminUserKey;
+                cmd.Parameters.Add("@I_ISHOSTADMIN", FbDbType.Boolean).Value = isHostUser;
                 cmd.Parameters.Add("@I_ROLEPREFIX", FbDbType.VarChar).Value = rolePrefix;  
 				cmd.Parameters.Add("@I_UTCTIMESTAMP", FbDbType.TimeStamp).Value = DateTime.UtcNow;                
 
@@ -1909,24 +1897,24 @@ namespace YAF.Classes.Data
 		/// Deletes all event log entries for given board.
 		/// </summary>
 		/// <param name="boardID">ID of board.</param>
-        static public void eventlog_delete( int boardID)
+        static public void eventlog_delete(int boardID, int pageUserId)
 		{
-            eventlog_delete(null, boardID);
+            eventlog_delete(null, boardID, pageUserId);
 		}
 		/// <summary>
 		/// Deletes event log entry of given ID.
 		/// </summary>
 		/// <param name="eventLogID">ID of event log entry.</param>
-        static public void eventlog_delete( object eventLogID)
+        static public void eventlog_delete(object eventLogID, int pageUserId)
 		{
-            eventlog_delete( eventLogID, null);
+            eventlog_delete(eventLogID, null, pageUserId);
 		}
 		/// <summary>
 		/// Calls underlying stroed procedure for deletion of event log entry(ies).
 		/// </summary>
 		/// <param name="eventLogID">When not null, only given event log entry is deleted.</param>
 		/// <param name="boardID">Specifies board. It is ignored if eventLogID parameter is not null.</param>
-        static public void eventlog_delete( object eventLogID, object boardID)
+        static public void eventlog_delete(object eventLogID, object boardID, int pageUserId)
 		{
 			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "eventlog_delete" ) )
 			{
@@ -1934,22 +1922,146 @@ namespace YAF.Classes.Data
 
                 cmd.Parameters.Add(new FbParameter("@I_EVENTLOGID", FbDbType.Integer)).Value = eventLogID;
                 cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
-			
+                cmd.Parameters.Add(new FbParameter("@I_PAGEUSERID", FbDbType.Integer)).Value = pageUserId;
+                cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
+
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd );
 			}
 		}
 
-        static public DataTable eventlog_list( object boardID)
+        /// <summary>
+        /// Deletes events of a type.
+        /// </summary>
+        /// <param name="boardId">
+        /// The board Id.
+        /// </param>
+        /// <param name="pageUserId">
+        /// The page User Id.
+        /// </param>
+        public static void eventlog_deletebyuser([NotNull] object boardId, [NotNull] object pageUserId)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("eventlog_deletebyuser"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId;
+                cmd.Parameters.Add(new FbParameter("@I_PAGEUSERID", FbDbType.Integer)).Value = pageUserId;
+
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+
+         public static DataTable eventlog_list([NotNull] object boardID, [NotNull] object pageUserID, [NotNull] object maxRows, [NotNull] object maxDays, [NotNull] object pageIndex, [NotNull] object pageSize, [NotNull] object sinceDate, [NotNull] object toDate, [NotNull] object eventIDs)
+
 		{
 			using ( FbCommand cmd = MsSqlDbAccess.GetCommand( "eventlog_list" ) )
 			{
 				cmd.CommandType = CommandType.StoredProcedure;
-				cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer));
-				cmd.Parameters[0].Value = boardID;
+                cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardID;
+                cmd.Parameters.Add(new FbParameter("@I_PAGEUSERID", FbDbType.Integer)).Value = pageUserID;
+                cmd.Parameters.Add(new FbParameter("@I_MAXROWS", FbDbType.Integer)).Value = maxRows;
+                cmd.Parameters.Add(new FbParameter("@I_MAXDAYS", FbDbType.Integer)).Value = maxDays;
+                cmd.Parameters.Add(new FbParameter("@I_PAGEINDEX", FbDbType.Integer)).Value = pageIndex;
+                cmd.Parameters.Add(new FbParameter("@I_PAGESIZE", FbDbType.Integer)).Value = pageSize;
+                cmd.Parameters.Add(new FbParameter("@I_SINCEDATE", FbDbType.TimeStamp)).Value = sinceDate;
+                cmd.Parameters.Add(new FbParameter("@I_TODATE", FbDbType.TimeStamp)).Value = toDate;
+                cmd.Parameters.Add(new FbParameter("@I_EVENTIDS", FbDbType.Text)).Value = eventIDs;
 
+                cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
+               
 				return MsSqlDbAccess.Current.GetData( cmd );
 			}
 		}
+        /// <summary>
+        /// Saves access entry for a log type for a user.
+        /// </summary>
+        /// <param name="groupID">
+        /// The group Id.
+        /// </param>
+        /// <param name="eventTypeId">
+        /// The event Type Id.
+        /// </param>
+        /// <param name="eventTypeName">
+        /// The event Type Name.
+        /// </param>
+        public static void eventloggroupaccess_save([NotNull] object groupID, [NotNull] object eventTypeId, [NotNull] object eventTypeName, [NotNull] object deleteAccess)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("eventloggroupaccess_save"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new FbParameter("@I_GROUPID", FbDbType.Integer)).Value = groupID;
+                cmd.Parameters.Add(new FbParameter("@I_EVENTTYPEID", FbDbType.Integer)).Value = eventTypeId;
+                cmd.Parameters.Add(new FbParameter("@I_EVENTTYPENAME", FbDbType.VarChar)).Value = eventTypeName;
+                cmd.Parameters.Add(new FbParameter("@I_DELETEACCESS", FbDbType.Boolean)).Value = deleteAccess;
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+        /// <summary>
+        /// Deletes event log access entries from table.
+        /// </summary>
+        /// <param name="groupID">
+        /// The group Id.
+        /// </param>
+        /// <param name="eventTypeId">
+        /// The event Type Id.
+        /// </param>
+        /// <param name="eventTypeName">
+        /// The event Type Name.
+        /// </param>
+        public static void eventloggroupaccess_delete([NotNull] object groupID, [NotNull] object eventTypeId, [NotNull] object eventTypeName)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("eventloggroupaccess_delete"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new FbParameter("@I_GROUPID", FbDbType.Integer)).Value = groupID;
+                cmd.Parameters.Add(new FbParameter("@I_EVENTTYPEID", FbDbType.Integer)).Value = eventTypeId;
+                cmd.Parameters.Add(new FbParameter("@I_EVENTTYPENAME", FbDbType.VarChar)).Value = eventTypeName;
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+        /// <summary>
+        /// Returns a list of access entries for a group.
+        /// </summary>
+        /// <param name="groupID">
+        /// The group Id.
+        /// </param>
+        /// <param name="eventTypeId">
+        /// The event Type Id.
+        /// </param>
+        /// <returns>Returns a list of access entries for a group.</returns>
+        public static DataTable eventloggroupaccess_list([NotNull] object groupID, [NotNull] object eventTypeId)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("eventloggroupaccess_list"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new FbParameter("@I_GROUPID", FbDbType.Integer)).Value = groupID;
+                cmd.Parameters.Add(new FbParameter("@I_EVENTTYPEID", FbDbType.Integer)).Value = eventTypeId;
+                return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
+        /// <summary>
+        /// Lists group for the board Id handy to display on the calling admin page. 
+        /// </summary>
+        /// <param name="boardId">
+        /// The board Id.
+        /// </param>
+        /// <returns>Lists group for the board Id handy to display on the calling admin page.
+        /// </returns>
+        public static DataTable group_eventlogaccesslist([CanBeNull] object boardId)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("group_eventlogaccesslist"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId;
+                return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
+
 		#endregion yaf_EventLog
 
 		// Admin control of file extensions - MJ Hufford
@@ -3386,7 +3498,7 @@ namespace YAF.Classes.Data
 			if (DeleteLinked)
 			{
 				//Delete replies
-				using (FbCommand cmd = MsSqlDbAccess.GetCommand("message_getReplies"))
+				using (var cmd = MsSqlDbAccess.GetCommand("message_getReplies"))
 				{
 					cmd.CommandType = CommandType.StoredProcedure;
 					cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer));
@@ -3403,20 +3515,16 @@ namespace YAF.Classes.Data
 			//If the files are actually saved in the Hard Drive
 			if (!UseFileTable)
 			{
-				using (FbCommand cmd = MsSqlDbAccess.GetCommand("attachment_list"))
+				using (var cmd = MsSqlDbAccess.GetCommand("attachment_list"))
 				{
 					cmd.CommandType = CommandType.StoredProcedure;
 
-					cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer));
-					cmd.Parameters[0].Value = messageID;
+					cmd.Parameters.Add(new FbParameter("@I_MESSAGEID", FbDbType.Integer)).Value = messageID;
+					cmd.Parameters.Add(new FbParameter("@I_ATTACHMENTID", FbDbType.Integer)).Value = null;
+					cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = null;
+                    cmd.Parameters.Add(new FbParameter("@I_PAGEINDEX", FbDbType.Integer)).Value = 0;
+                    cmd.Parameters.Add(new FbParameter("@I_PAGESIZE", FbDbType.Integer)).Value = 1000000;
 
-					cmd.Parameters.Add(new FbParameter("@I_ATTACHMENTID", FbDbType.Integer));
-					cmd.Parameters[1].Value = null;
-
-					cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer));
-					cmd.Parameters[2].Value = null;
-
- 
 					DataTable tbAttachments = MsSqlDbAccess.Current.GetData(cmd);
 					string uploadDir = HostingEnvironment.MapPath(String.Concat(BaseUrlBuilder.ServerFileRoot, YafBoardFolders.Current.Uploads));
 
@@ -4577,7 +4685,8 @@ namespace YAF.Classes.Data
             object toUserID, 
             object subject, 
             object body, 
-            object Flags)
+            object Flags,
+            object replyTo)
 		{
 			using (FbCommand cmd = MsSqlDbAccess.GetCommand("pmessage_save"))
 			{
@@ -4587,7 +4696,8 @@ namespace YAF.Classes.Data
 				cmd.Parameters.Add(new FbParameter("@I_TOUSERID", FbDbType.Integer)).Value = toUserID;
 				cmd.Parameters.Add(new FbParameter("@I_SUBJECT", FbDbType.VarChar)).Value = subject;
 				cmd.Parameters.Add(new FbParameter("@I_BODY", FbDbType.Text)).Value = body;
-				cmd.Parameters.Add(new FbParameter("@I_FLAGS", FbDbType.Integer)).Value = Flags;               
+				cmd.Parameters.Add(new FbParameter("@I_FLAGS", FbDbType.Integer)).Value = Flags;
+                cmd.Parameters.Add(new FbParameter("@I_REPLYTO", FbDbType.Integer)).Value = replyTo;   
 				cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
 			   
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
@@ -8867,7 +8977,7 @@ public static void user_addpoints([NotNull] object userID, [CanBeNull] object fr
                 } */
 
                 sqlBuilder = new StringBuilder();
-                sqlBuilder.Append("SELECT up.Birthday, u.USERID as \"UserID\", u.Name as \"UserName\",u.DisplayName as \"UserDisplayName\",(case(?) when 1 then  u.USERSTYLE ");
+                sqlBuilder.Append("SELECT up.Birthday, u.USERID as \"UserID\", u.LastVisit as \"LastVisit\", u.Name as \"UserName\",u.DisplayName as \"UserDisplayName\",(case(?) when 1 then  u.USERSTYLE ");
                 sqlBuilder.Append(" else '' end) AS Style ");
                 sqlBuilder.Append(" FROM ");
                 sqlBuilder.Append(MsSqlDbAccess.GetObjectName("UserProfile"));
@@ -9284,6 +9394,71 @@ public static void user_addpoints([NotNull] object userID, [CanBeNull] object fr
                 return MsSqlDbAccess.Current.GetData(cmd);
             }
         }
+
+        /// <summary>
+        /// The admin_pageaccesslist.
+        /// </summary>
+        /// <param name="boardId">
+        /// The board id.
+        /// </param>
+        /// <param name="useStyledNicks">
+        /// The use styled nicks.
+        /// </param>
+        /// <returns>
+        /// </returns>
+        public static DataTable admin_pageaccesslist([CanBeNull] object boardId, [NotNull] object useStyledNicks)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("admin_pageaccesslist"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new FbParameter("@I_BOARDID", FbDbType.Integer)).Value = boardId;
+                cmd.Parameters.Add(new FbParameter("@I_STYLEDNICKS", FbDbType.Integer)).Value = useStyledNicks;
+                cmd.Parameters.Add(new FbParameter("@I_UTCTIMESTAMP", FbDbType.TimeStamp)).Value = DateTime.UtcNow;
+
+                return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
+        public static void adminpageaccess_save([NotNull] object userId, [NotNull] object pageName)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("adminpageaccess_save"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
+                cmd.Parameters.Add(new FbParameter("@I_PAGENAME", FbDbType.VarChar)).Value = pageName;
+
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+        public static void adminpageaccess_delete([NotNull] object userId, [CanBeNull] object pageName)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("adminpageaccess_delete"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
+                cmd.Parameters.Add(new FbParameter("@I_PAGENAME", FbDbType.VarChar)).Value = pageName;
+
+                MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+            }
+        }
+
+        public static DataTable adminpageaccess_list([CanBeNull] object userId, [CanBeNull] object pageName)
+        {
+            using (var cmd = MsSqlDbAccess.GetCommand("adminpageaccess_list"))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new FbParameter("@I_USERID", FbDbType.Integer)).Value = userId;
+                cmd.Parameters.Add(new FbParameter("@I_PAGENAME", FbDbType.VarChar)).Value = pageName;
+
+                return MsSqlDbAccess.Current.GetData(cmd);
+            }
+        }
+
 
 		#region Album
 		/// <summary>

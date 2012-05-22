@@ -146,11 +146,9 @@ GROUP BY a.USERID, x_1.FORUMID;
 
 --GO
 
-
-
-
  CREATE VIEW objQual_PMESSAGEVIEW(PMESSAGEID, 
-        USERPMESSAGEID, 
+        USERPMESSAGEID,
+		REPLYTO, 
         FROMUSERID, 
         FROMUSER, 
  	    TOUSERID, 
@@ -162,10 +160,12 @@ GROUP BY a.USERID, x_1.FORUMID;
         ISREAD, 
         ISINOUTBOX, 
         ISARCHIVED,
-        ISDELETED)
+        ISDELETED,
+		ISREPLY)
  AS
  SELECT
-	    a.PMESSAGEID, 
+	    a.PMESSAGEID,
+		a.REPLYTO, 
         b.USERPMESSAGEID, 
         a.FROMUSERID, 
         d.NAME AS FROMUSER, 
@@ -178,7 +178,8 @@ GROUP BY a.USERID, x_1.FORUMID;
         b.ISREAD, 
         b.ISINOUTBOX, 
         b.ISARCHIVED,
-        b.ISDELETED
+        b.ISDELETED,
+		b.ISREPLY
  FROM
  	objQual_PMESSAGE a
  INNER JOIN

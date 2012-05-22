@@ -575,7 +575,7 @@ END;
 
 
 CREATE  PROCEDURE objQual_EVENTLOG_LIST(
-                I_BOARDID INTEGER)
+                I_BOARDID INTEGER, I_PAGEUSERID INTEGER, I_MAXROWS INTEGER, I_MAXDAYS INTEGER,I_PAGEINDEX INTEGER,I_PAGESIZE INTEGER, I_SINCEDATE TIMESTAMP,I_TODATE TIMESTAMP, I_EVENTIDS  BLOB SUB_TYPE 1, I_UTCTIMESTAMP TIMESTAMP)
                 RETURNS
                 (
                 "EventLogID" INTEGER,
@@ -584,19 +584,101 @@ CREATE  PROCEDURE objQual_EVENTLOG_LIST(
   "Source" VARCHAR(128) CHARACTER SET UTF8,
   "Description" BLOB SUB_TYPE 1 SEGMENT SIZE 20 CHARACTER SET UTF8,
   "Type" INTEGER,
-  "Name" VARCHAR(128)
+  "Name" VARCHAR(128),
+  "TotalRows" INTEGER
                 )
                 AS
+DECLARE recCount INTEGER DEFAULT 0;
+DECLARE VARIABLE ICI_EVENTID varchar(11);
+DECLARE VARIABLE ICI_EVENTIDSCHUNK varchar(4000);
+DECLARE VARIABLE ICI_POS integer;
+DECLARE VARIABLE ICI_ITR integer;
+DECLARE VARIABLE ICI_TRIMINDEX integer;
+DECLARE VARIABLE ICI_LONG INTEGER DEFAULT 0;
+DECLARE VARIABLE ICI_EVENTIDSCHUNKCURRENT integer DEFAULT 0;
+DECLARE VARIABLE ICI_FIRSTSELECTROWNUMBER INTEGER DEFAULT 0;
+DECLARE ICI_TOTALROWS  INTEGER DEFAULT 0;
+DECLARE ICI_TOROW  INTEGER;
 BEGIN
+	ICI_ITR = 0; 
+	ICI_POS = 0; 
+	ICI_TRIMINDEX = 0;
+	ICI_EVENTIDSCHUNK  = SUBSTRING( :I_EVENTIDS FROM 1 FOR 4000 );	
+	ICI_TOROW = :I_PAGESIZE;
+
+  IF (NOT EXISTS(SELECT 1  FROM rdb$relations r
+  JOIN rdb$types t ON r.rdb$relation_type = t.rdb$type
+  WHERE t.rdb$field_name = 'RDB$RELATION_TYPE'
+  AND r.rdb$relation_name = 'objQual_TMPEVLOGIDS')) THEN
+	EXECUTE STATEMENT 'CREATE GLOBAL TEMPORARY TABLE objQual_TMPEVLOGIDS
+   (EVENTTYPEID INTEGER)  ON COMMIT DELETE ROWS;';
+
+
+ IF ( REPLACE(:ICI_EVENTIDSCHUNK, ',', '') <> '') THEN
+	BEGIN
+	  WHILE (:ICI_POS > 0) DO
+	   BEGIN	
+	   ICI_EVENTID = LEFT(:ICI_EVENTIDSCHUNK, :ICI_POS  - 1);
+	   ICI_EVENTID = TRIM( BOTH FROM :ICI_EVENTID  );					
+			
+	IF (:ICI_EVENTID <> '') THEN
+	BEGIN
+	    INSERT INTO objQual_TMPEVLOGIDS(EVENTTYPEID)
+		SELECT (SELECT CAST(:ICI_EVENTID AS integer) FROM RDB$DATABASE)
+			FROM  objQual_MESSAGE d WHERE d.MESSAGEID = (CAST(:ICI_EVENTID AS integer));				
+	END
+	END
+END 
+-- delete entries older than I_MAXDAYS days
+DELETE FROM objQual_EVENTLOG
+WHERE  DATEDIFF(DAY, :I_UTCTIMESTAMP, EVENTTIME) > :I_MAXDAYS;
+
+	   -- or if there are more then I_MAXROWS
+	  SELECT COUNT(1)
+		   FROM   objQual_EVENTLOG INTO :recCount;
+		   
+		IF (:recCount >= (:I_MAXROWS + 50)) THEN
+			BEGIN
+		  DELETE FROM objQual_EVENTLOG WHERE EVENTLOGID IN (SELECT  FIRST 100 EVENTLOGID FROM objQual_EVENTLOG ORDER BY EVENTTIME) ;             
+		   
+	  --     SELECT  FIRST 1 DISTINCT EVENTLOGID  FROM  objQual_EVENTLOG ORDER BY EVENTLOGID INTO :topLogID ; 
+		   
+	   --    DELETE FROM objQual_EVENTLOG
+	   --    WHERE       EVENTLOGID BETWEEN "topLogID"  AND "topLogID"  +100;
+	   END
+I_PAGEINDEX = :I_PAGEINDEX + 1;	 
+if (exists (select  1 from objQual_USER where (BIN_AND(FLAGS,1) = 1 and USERID = :I_PAGEUSERID) ROWS 1)) THEN
+BEGIN
+select count(1)  from
+		objQual_EVENTLOG el		
+		left join objQual_USER b 
+		on b.USERID=el.USERID
+	    where	   
+		 (b.USERID IS NULL or b.BoardID = :I_BOARDID)	
+		 and ((:ICI_EVENTIDSCHUNK IS NULL )  OR  
+		 el."TYPE" IN (select EVENTTYPEID from objQual_TMPEVLOGIDS))  
+		 and (el.EventTime between :I_SINCEDATE and :I_TODATE) 
+		 into :ICI_TOTALROWS ;
+			
+        ICI_FIRSTSELECTROWNUMBER = (:I_PAGEINDEX - 1) * :I_PAGESIZE + 1;
+		ICI_TOROW = :ICI_FIRSTSELECTROWNUMBER + :I_PAGESIZE - 1;
 FOR
-        SELECT   a.*,
-                 COALESCE(b.NAME,'System')  AS "Name"
-        FROM     objQual_EVENTLOG a
+        SELECT   el.EVENTLOGID,
+				 el.EVENTTIME,
+				 el.USERID,
+				 el.SOURCE,
+				 el.DESCRIPTION,
+				 el."TYPE",
+                 COALESCE(b.NAME,'System')  AS "Name",
+				 (SELECT :ICI_TOTALROWS FROM RDB$DATABASE) as TotalRows
+        FROM     objQual_EVENTLOG el
                  LEFT JOIN objQual_USER b
-                   ON b.USERID = a.USERID
-        WHERE    (b.USERID IS NULL 
-          OR b.BOARDID = :I_BOARDID)
-        ORDER BY a.EVENTLOGID DESC
+                   ON b.USERID = el.USERID
+        WHERE    (b.UserID IS NULL or b.BOARDID = :I_BOARDID)	
+		 and ((:ICI_EVENTIDSCHUNK IS NULL )  OR  
+		 el."TYPE" IN (select EVENTTYPEID from objQual_TMPEVLOGIDS))  
+		 and el.EventTime between :I_SINCEDATE and :I_TODATE 
+        ORDER BY el.EVENTLOGID DESC  ROWS (:ICI_FIRSTSELECTROWNUMBER) TO (:ICI_TOROW)
         INTO
         :"EventLogID",
         :"EventTime",
@@ -604,9 +686,55 @@ FOR
         :"Source",
         :"Description",
         :"Type",
-        :"Name"
+        :"Name",
+		:"TotalRows"
          DO SUSPEND;
-
+END
+ ELSE
+BEGIN
+select count(1) from
+		objQual_EVENTLOG el
+		         left join objQual_EVENTLOGGROUPACCESS e on e.eventtypeid = el."TYPE"
+				 join objQual_USERGROUP ug on (ug.userid =  :i_pageuserid and ug.groupid = e.groupid)
+                 LEFT JOIN objQual_USER u
+                 ON u.userid = el.userid
+	    where	   
+		(u.UserID IS NULL or u.BoardID = :I_BOARDID)	
+		 and ((:ICI_EVENTIDSCHUNK IS NULL )  OR  
+		el."TYPE" IN (select EVENTTYPEID from objQual_TMPEVLOGIDS))  
+		 and el.EventTime between :I_SINCEDATE and :I_TODATE 
+		 into :ICI_TOTALROWS;
+			
+         ICI_FIRSTSELECTROWNUMBER = (:I_PAGEINDEX - 1) * :I_PAGESIZE + 1;
+		ICI_TOROW = :ICI_FIRSTSELECTROWNUMBER + :ICI_TOROW - 1;
+        FOR SELECT   el.EVENTLOGID,
+				 el.EVENTTIME,
+				 el.USERID,
+				 el.SOURCE,
+				 el.DESCRIPTION,
+				 el."TYPE",
+                 COALESCE(b.NAME,'System')  AS "Name",
+				(SELECT :ICI_TOTALROWS FROM RDB$DATABASE) as TotalRows
+        FROM   objQual_EVENTLOG el
+		       LEFT JOIN objQual_EVENTLOGGROUPACCESS e ON e.EVENTTYPEID = el."TYPE"
+		       JOIN objQual_USERGROUP ug ON (ug.USERID = :I_PAGEUSERID and ug.GROUPID = e.GROUPID)
+			   LEFT JOIN objQual_USER b  ON b.USERID = el.USERID
+        WHERE   (b.UserID IS NULL or b.BoardID = :I_BOARDID)	
+		 and ((:ICI_EVENTIDSCHUNK IS NULL )  OR  
+		 el."TYPE" IN (select EVENTTYPEID from objQual_TMPEVLOGIDS))  
+		 and el.EventTime between :I_SINCEDATE and :I_TODATE 
+        ORDER BY el.EVENTLOGID DESC ROWS (:ICI_FIRSTSELECTROWNUMBER) TO (:ICI_TOROW)
+        INTO
+        :"EventLogID",
+        :"EventTime",
+        :"UserID",
+        :"Source",
+        :"Description",
+        :"Type",
+        :"Name",
+		:"TotalRows"
+         DO SUSPEND;
+END 
 END;
 --GO
 
@@ -1630,8 +1758,8 @@ select
 		b.Styles,
 		b.ParentID,
 		b.PollGroupID,
-		(SELECT * FROM objQual_FORUM_TOPICS(b.FORUMID)),
-		(SELECT * FROM objQual_FORUM_POSTS(b.FORUMID)),			
+		(SELECT I_NUMTOPICS FROM objQual_FORUM_TOPICS(b.FORUMID)),
+		(SELECT I_NUMPOSTS FROM objQual_FORUM_POSTS(b.FORUMID)),			
 		t.LastPosted AS LastPosted,
 		t.LastMessageID AS LastMessageID,
 		t.LASTMESSAGEFLAGS AS LastMessageFlags,
@@ -4034,6 +4162,98 @@ BEGIN
 end;
 --GO
 
+
+CREATE PROCEDURE objQual_ADMINPAGEACCESS_SAVE 
+(
+I_USERID	    integer,
+I_PAGENAME	    VARCHAR(255)
+)
+AS
+BEGIN
+	 If (not exists (select 1 from  objQual_ADMINPAGEUSERACCESS where USERID = :I_USERID and PAGENAME = :I_PAGENAME ROWS 1)) THEN		
+		insert into objQual_ADMINPAGEUSERACCESS  (USERID,PAGENAME) 
+		values(:I_USERID,:I_PAGENAME);			
+end;
+--GO
+
+CREATE PROCEDURE objQual_ADMINPAGEACCESS_DELETE
+(
+I_USERID	    integer,
+I_PAGENAME	    VARCHAR(255)
+)
+AS
+BEGIN
+		DELETE FROM objQual_ADMINPAGEUSERACCESS	
+		WHERE USERID = :I_USERID and (PAGENAME IS NULL OR PAGENAME = :I_PAGENAME);	
+END;
+--GO
+
+CREATE PROCEDURE objQual_ADMINPAGEACCESS_LIST(I_USERID integer, I_PAGENAME VARCHAR(255))
+ 
+	RETURNS (
+"UserID" integer,
+"PageName"  VARCHAR(255),	
+"UserName"  VARCHAR(255),
+"UserDisplayName"  VARCHAR(255),
+"BoardName"  VARCHAR(255)
+) AS
+BEGIN
+if (:I_USERID > 0  and :I_PAGENAME IS NOT NULL) then
+		FOR select 
+		ap.USERID,
+		ap.PAGENAME,					  
+		u.NAME as UserName, 
+		u.DISPLAYNAME as UserDisplayName, 
+		b.NAME as BoardName 
+		from objQual_ADMINPAGEUSERACCESS ap 
+		JOIN  objQual_USER u on ap.USERID = u.USERID 
+		JOIN objQual_BOARD b ON b.BOARDID = u.BOARDID 
+		where u.UserID = :I_USERID and PAGENAME = :I_PAGENAME
+		 and (BIN_AND(u.FLAGS,1) <> 1) 
+		 order by  b.BOARDID,u.NAME,ap.PAGENAME
+		INTO "UserID",
+             "PageName",
+			 "UserName",
+			 "UserDisplayName",
+			 "BoardName" DO SUSPEND;
+		else if (:I_USERID > 0 and :I_PAGENAME IS  NULL) then
+		FOR select
+		ap.USERID,
+		ap.PAGENAME,					  
+		u.NAME as UserName, 
+		u.DISPLAYNAME as UserDisplayName, 
+		b.NAME as BoardName 
+		 from objQual_ADMINPAGEUSERACCESS ap 
+		JOIN  objQual_USER u on ap.USERID = u.USERID 
+		JOIN objQual_BOARD b ON b.BOARDID = u.BOARDID 
+		where u.UserID = :I_USERID 
+		and (BIN_AND(u.FLAGS,1) <> 1) order by  b.BOARDID,u.NAME,ap.PAGENAME
+		INTO "UserID",
+			 "PageName",
+			 "UserName",
+			 "UserDisplayName",
+			 "BoardName" DO SUSPEND;
+		else
+		FOR select
+		ap.USERID,
+		ap.PAGENAME,					  
+		u.NAME as UserName, 
+		u.DISPLAYNAME as UserDisplayName, 
+		b.NAME as BoardName 
+		from objQual_ADMINPAGEUSERACCESS ap 
+		JOIN  objQual_USER u on ap.USERID = u.USERID 
+		JOIN objQual_BOARD b ON b.BOARDID = u.BOARDID 
+		where (BIN_AND(u.FLAGS,1) <> 1)
+		order by  b.BOARDID,u.NAME,ap.PAGENAME 
+		INTO "UserID",
+			 "PageName",
+			 "UserName",
+			 "UserDisplayName",
+			 "BoardName" DO SUSPEND;
+
+end;
+--GO
+
 CREATE PROCEDURE objQual_FORUM_MAXID(I_BOARDID INTEGER)
 RETURNS ("ForumID" integer)
 	AS
@@ -4044,3 +4264,184 @@ begin
 	SUSPEND;
 end;
 --GO
+
+CREATE PROCEDURE objQual_EVENTLOG_DELETEBYUSER
+(
+I_BOARDID	    integer,
+I_PAGEUSERID	integer
+)
+AS
+BEGIN
+		if (exists (select 1  from objQual_USER where (BIN_AND(FLAGS,1) = 1 and USERID = :I_PAGEUSERID) ROWS 1)) THEN
+begin
+delete from objQual_EVENTLOG where
+			(USERID is null or
+			USERID in (select USERID from objQual_USER where BOARDID=:I_BOARDID));
+end
+else
+begin
+		-- either EventLogID or BoardID must be null, not both at the same time
+	
+		delete from objQual_EVENTLOG
+		where EVENTLOGID in (select a.EVENTLOGID from objQual_EVENTLOG a
+		left join objQual_EVENTLOGGROUPACCESS e on e.EVENTTYPEID = a.TYPE 
+		join objQual_USERGROUP ug on (ug.USERID =  :I_PAGEUSERID and ug.GROUPID = e.GROUPID)
+		left join objQual_USER b on b.USERID=a.USERID
+	    where e.DELETEACCESS = 1);
+end		
+END;
+--GO
+
+CREATE PROCEDURE objQual_GROUP_EVENTLOGACCESSLIST(I_BOARDID integer)
+ 
+RETURNS (
+"GroupID" integer,
+"BoardID" integer,
+"Name"  VARCHAR(255),
+"Flags" integer,
+"PMLimit" integer,	
+"Style"  VARCHAR(255),
+"SortOrder" integer,
+"Description" VARCHAR(128),
+"BoardName"  VARCHAR(255)
+) AS
+BEGIN
+		if (:I_BOARDID is null) then
+		for select g.GROUPID,
+			   g.BOARDID,
+			   g.NAME,
+			   g.FLAGS,
+			   g.PMLIMIT,
+			   g.STYLE,
+			   g.SORTORDER,
+			   g.DESCRIPTION,
+			   b.Name as BoardName 
+			   from objQual_GROUP g
+			   join objQual_BOARD b 
+			   on b.BoardID = g.BoardID order by g.SortOrder 
+			   into
+			   :"GroupID",
+			   :"BoardID",
+			   :"Name",
+			   :"Flags",
+			   :"PMLimit",
+			   :"Style",
+			   :"SortOrder",
+			   :"Description",
+			   :"BoardName"
+			    DO SUSPEND;
+
+	else
+		for select g.GROUPID,
+			   g.BOARDID,
+			   g.NAME,
+			   g.FLAGS,
+			   g.PMLIMIT,
+			   g.STYLE,
+			   g.SORTORDER,
+			   g.DESCRIPTION,
+			   b.NAME as BoardName 
+			   from objQual_GROUP g
+			   join objQual_BOARD b 
+			   on b.BOARDID = g.BOARDID where g.BOARDID= :I_BOARDID  order by g.SortOrder 
+			   into
+			   :"GroupID",
+			   :"BoardID",
+			   :"Name",
+			   :"Flags",
+			   :"PMLimit",
+			   :"Style",
+			   :"SortOrder",
+			   :"Description",
+			   :"BoardName" 
+			   DO SUSPEND;
+END;
+--GO
+
+CREATE PROCEDURE objQual_EVENTLOGGROUPACCESS_SAVE
+(
+I_GROUPID	    integer,
+I_EVENTTYPEID	integer,
+I_EVENTTYPENAME VARCHAR(128),
+I_DELETEACCESS  BOOL
+)
+AS
+BEGIN
+	if (not exists (select 1 from objQual_EVENTLOGGROUPACCESS where GROUPID = :I_GROUPID and EVENTTYPENAME = :I_EVENTTYPENAME ROWS 1)) THEN
+		insert into objQual_EVENTLOGGROUPACCESS  (GROUPID,EVENTTYPEID,EVENTTYPENAME,DELETEACCESS) 
+		values(:I_GROUPID,:I_EVENTTYPEID,:I_EVENTTYPENAME,:I_DELETEACCESS);	
+	else	
+		update objQual_EVENTLOGGROUPACCESS  set DELETEACCESS = :I_DELETEACCESS
+		where GROUPID = :I_GROUPID and EVENTTYPEID = :I_EVENTTYPEID;	
+END;
+--GO
+
+CREATE PROCEDURE objQual_EVENTLOGGROUPACCESS_DELETE
+(
+I_GROUPID	    integer,
+I_EVENTTYPEID	integer,
+I_EVENTTYPENAME VARCHAR(128)
+)
+AS
+BEGIN
+if (:I_EVENTTYPENAME is not null) THEN
+	begin
+		delete from objQual_EVENTLOGGROUPACCESS  where GROUPID = :I_GROUPID and EVENTTYPEID = :I_EVENTTYPEID;
+	end	
+	else
+	begin
+	-- delete all access rights
+	    delete from objQual_EVENTLOGGROUPACCESS  where GROUPID = :I_GROUPID; 
+	end
+END;
+--GO
+
+
+CREATE PROCEDURE objQual_EVENTLOGGROUPACCESS_LIST(
+I_GROUPID	    integer,
+I_EVENTTYPEID	integer
+) 
+RETURNS (
+"GroupID" integer,
+"EventTypeID" integer,
+"EventTypeName"  VARCHAR(255),
+"DeleteAccess" bool,
+"GroupName"  VARCHAR(255)
+) AS
+BEGIN
+-- TODO - exclude host admins from list   
+if (:I_EVENTTYPEID is null)  THEN  
+		FOR select  e.GROUPID,
+				e.EVENTTYPEID,
+				e.EVENTTYPENAME,
+				e.DELETEACCESS, 
+				g.NAME as GroupName 
+				from objQual_EVENTLOGGROUPACCESS e 
+		join objQual_GROUP g on g.GROUPID = e.GROUPID 
+		where  e.GROUPID = :I_GROUPID
+		into
+		:"GroupID",
+		:"EventTypeID",
+		:"EventTypeName",
+		:"DeleteAccess",
+		:"GroupName"
+		DO SUSPEND;
+		else
+		FOR select  e.GROUPID,
+				e.EVENTTYPEID,
+				e.EVENTTYPENAME,
+				e.DELETEACCESS, 
+				g.NAME as GroupName 
+				from objQual_EVENTLOGGROUPACCESS e 
+		join objQual_GROUP g on g.GROUPID = e.GROUPID 
+		where e.GROUPID = :I_GROUPID and e.EVENTTYPEID = :I_EVENTTYPEID
+		into
+		:"GroupID",
+		:"EventTypeID",
+		:"EventTypeName",
+		:"DeleteAccess",
+		:"GroupName"
+		DO SUSPEND;
+END;
+--GO
+

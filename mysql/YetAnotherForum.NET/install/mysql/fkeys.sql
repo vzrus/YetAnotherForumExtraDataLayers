@@ -201,7 +201,11 @@ CALL {databaseName}.{objectQualifier}add_or_check_fkeys('UserAlbum','AlbumID','U
 --GO
 CALL {databaseName}.{objectQualifier}add_or_check_fkeys('MessageHistory','MessageID','Message','MessageID','FK_{databaseName}_{objectQualifier}MessageHistory_{objectQualifier}Message','NO ACTION','NO ACTION');
 --GO
-CALL {databaseName}.{objectQualifier}add_or_check_fkeys('UserProfile','userID','User','userID','FK_{databaseName}_{objectQualifier}UserProfile_{objectQualifier}User','CASCADE','NO ACTION');
+CALL {databaseName}.{objectQualifier}add_or_check_fkeys('UserProfile','UserID','User','UserID','FK_{databaseName}_{objectQualifier}UserProfile_{objectQualifier}User','CASCADE','NO ACTION');
+--GO
+CALL {databaseName}.{objectQualifier}add_or_check_fkeys('AdminPageUserAccess','UserID','User','UserID','FK_{databaseName}_{objectQualifier}AdminPageUserAccess_{objectQualifier}User','CASCADE','NO ACTION');
+--GO
+CALL {databaseName}.{objectQualifier}add_or_check_fkeys('EventLogGroupAccess','GroupID','Group','GroupID','FK_{databaseName}_{objectQualifier}EventLogGroupAccess_{objectQualifier}Group','CASCADE','NO ACTION');
 --GO
 
 DROP PROCEDURE IF EXISTS {databaseName}.{objectQualifier}add_or_check_fkeys;

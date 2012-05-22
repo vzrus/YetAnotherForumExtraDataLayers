@@ -57,7 +57,7 @@ IF NOT EXISTS(SELECT 1 FROM pg_constraint where contype='f' and conname ='fk_dat
 ALTER TABLE ONLY databaseSchema.objectQualifier_messagehistory
     ADD CONSTRAINT fk_databaseSchema_objectQualifier_messagehistory_messageid 
     FOREIGN KEY (messageid) 
-    REFERENCES databaseSchema.objectQualifier_message(messageid);
+    REFERENCES databaseSchema.objectQualifier_message(messageid) ON DELETE CASCADE;
 END IF;  
 
 IF NOT EXISTS(SELECT 1 FROM pg_constraint where contype='f' and conname ='fk_databaseSchema_objectQualifier_active_objectQualifier_topic_topicid' LIMIT 1) THEN
@@ -383,6 +383,7 @@ ALTER TABLE databaseSchema.objectQualifier_useralbum
       REFERENCES databaseSchema.objectQualifier_user(userid) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE NO ACTION; 
 END IF;
+
  IF NOT EXISTS(SELECT 1 FROM pg_constraint where contype='f' and conname ='fk_databaseSchema_objectQualifier_activeaccess_objectQualifier_user' LIMIT 1) THEN
 ALTER TABLE databaseSchema.objectQualifier_activeaccess
   ADD CONSTRAINT fk_databaseSchema_objectQualifier_activeaccess_objectQualifier_user FOREIGN KEY (userid)
@@ -394,6 +395,68 @@ END IF;
 ALTER TABLE databaseSchema.objectQualifier_messagereportedaudit
   ADD CONSTRAINT fk_databaseSchema_objectQualifier_messagereportedaudit_objectQualifier_messagereported FOREIGN KEY (messageid)
       REFERENCES databaseSchema.objectQualifier_messagereported(messageid) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE CASCADE; 
+END IF;
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint where contype='f' and conname ='fk_databaseSchema_objectQualifier_forumreadtracking_objectQualifier_user_userid' LIMIT 1) THEN
+ALTER TABLE databaseSchema.objectQualifier_forumreadtracking
+  ADD CONSTRAINT fk_databaseSchema_objectQualifier_forumreadtracking_objectQualifier_user_userid FOREIGN KEY (userid)
+      REFERENCES databaseSchema.objectQualifier_user(userid) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE CASCADE; 
+END IF;
+
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint where contype='f' and conname ='fk_databaseSchema_objectQualifier_forumreadtracking_objectQualifier_forum_forumid' LIMIT 1) THEN
+ALTER TABLE databaseSchema.objectQualifier_forumreadtracking
+  ADD CONSTRAINT fk_databaseSchema_objectQualifier_forumreadtracking_objectQualifier_forum_forumid FOREIGN KEY (forumid)
+      REFERENCES databaseSchema.objectQualifier_forum(forumid) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE CASCADE; 
+END IF;
+
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint where contype='f' and conname ='fk_databaseSchema_objectQualifier_topicreadtracking_objectQualifier_user_userid' LIMIT 1) THEN
+ALTER TABLE databaseSchema.objectQualifier_topicreadtracking
+  ADD CONSTRAINT fk_databaseSchema_objectQualifier_topicreadtracking_objectQualifier_user_userid FOREIGN KEY (userid)
+      REFERENCES databaseSchema.objectQualifier_user(userid) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE CASCADE; 
+END IF;
+
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint where contype='f' and conname ='fk_databaseSchema_objectQualifier_topicreadtracking_objectQualifier_topic_topicid' LIMIT 1) THEN
+ALTER TABLE databaseSchema.objectQualifier_topicreadtracking
+  ADD CONSTRAINT fk_databaseSchema_objectQualifier_topicreadtracking_objectQualifier_topic_topicid FOREIGN KEY (topicid)
+      REFERENCES databaseSchema.objectQualifier_topic(topicid) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE CASCADE; 
+END IF;
+
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint where contype='f' and conname ='fk_databaseSchema_objectQualifier_reputationvote_objectQualifier_user_to' LIMIT 1) THEN
+ALTER TABLE databaseSchema.objectQualifier_reputationvote
+  ADD CONSTRAINT fk_databaseSchema_objectQualifier_reputationvote_objectQualifier_user_to FOREIGN KEY (reputationtouserid)
+      REFERENCES databaseSchema.objectQualifier_user(userid) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE CASCADE; 
+END IF;
+
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint where contype='f' and conname ='fk_databaseSchema_objectQualifier_reputationvote_objectQualifier_user_from' LIMIT 1) THEN
+ALTER TABLE databaseSchema.objectQualifier_reputationvote
+  ADD CONSTRAINT fk_databaseSchema_objectQualifier_reputationvote_objectQualifier_user_from FOREIGN KEY (reputationfromuserid)
+      REFERENCES databaseSchema.objectQualifier_user(userid) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE CASCADE; 
+END IF;
+
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint where contype='f' and conname ='fk_databaseSchema_objectQualifier_reputationvote_objectQualifier_user_to' LIMIT 1) THEN
+ALTER TABLE databaseSchema.objectQualifier_reputationvote
+  ADD CONSTRAINT fk_databaseSchema_objectQualifier_reputationvote_objectQualifier_user_to FOREIGN KEY (reputationtouserid)
+      REFERENCES databaseSchema.objectQualifier_user(userid) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE CASCADE; 
+END IF;
+
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint where contype='f' and conname ='fk_databaseSchema_objectQualifier_adminpageuseraccess_objectQualifier_user' LIMIT 1) THEN
+ALTER TABLE databaseSchema.objectQualifier_adminpageuseraccess
+  ADD CONSTRAINT fk_databaseSchema_objectQualifier_adminpageuseraccess_objectQualifier_user FOREIGN KEY (userid)
+      REFERENCES databaseSchema.objectQualifier_user(userid) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE CASCADE; 
+END IF;
+
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint where contype='f' and conname ='fk_databaseSchema_objectQualifier_eventloggroupaccess_objectQualifier_group_groupid' LIMIT 1) THEN
+ALTER TABLE databaseSchema.objectQualifier_eventloggroupaccess
+  ADD CONSTRAINT fk_databaseSchema_objectQualifier_eventloggroupaccess_objectQualifier_group_groupid FOREIGN KEY (groupid)
+      REFERENCES databaseSchema.objectQualifier_group(groupid) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE CASCADE; 
 END IF;
 

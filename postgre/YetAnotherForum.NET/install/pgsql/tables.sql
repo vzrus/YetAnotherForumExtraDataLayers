@@ -70,7 +70,31 @@ CREATE TABLE databaseSchema.objectQualifier_activeaccess
 			 downloadaccess		       boolean NOT NULL default false			
 			 ) 
 	   WITH (OIDS=withOIDs,fillfactor=10,autovacuum_enabled=true);
-	   END IF;
+END IF;
+
+IF NOT EXISTS (select 1 from pg_tables 
+               where schemaname='databaseSchema' 
+			   AND tablename='objectQualifier_adminpageuseraccess' limit 1) THEN
+CREATE TABLE databaseSchema.objectQualifier_adminpageuseraccess
+             (
+             userid                    integer NOT NULL,
+			 pagename                  varchar(128) NOT NULL CHECK (pagename <> '')
+			 ) 
+	   WITH (OIDS=withOIDs);
+END IF;
+
+IF NOT EXISTS (select 1 from pg_tables 
+               where schemaname='databaseSchema' 
+			   AND tablename='objectQualifier_eventloggroupaccess' limit 1) THEN
+CREATE TABLE databaseSchema.objectQualifier_eventloggroupaccess(
+		groupid		    integer NOT NULL,	
+		eventtypeid     integer NOT NULL,  	
+		eventtypename	varchar(128) NOT NULL CHECK (eventtypename <> ''),
+		deleteaccess    boolean NOT NULL default false
+	)
+WITH (OIDS=withOIDs,autovacuum_enabled=true);
+END IF;
+
 
 IF NOT EXISTS (select 1 from pg_tables 
                where schemaname='databaseSchema' 
@@ -448,6 +472,7 @@ IF NOT EXISTS (select 1 from pg_tables
 CREATE TABLE databaseSchema.objectQualifier_pmessage
              (
              pmessageid                serial NOT NULL,
+			 replyto                   integer,
 			 fromuserid                integer NOT NULL,
 			 created                   timestampTZ  NOT NULL,
 			 subject                   varchar(128) NOT NULL,
@@ -694,7 +719,8 @@ CREATE TABLE databaseSchema.objectQualifier_userpmessage
 			 isread                    boolean DEFAULT false NOT NULL,
 			 isinoutbox                boolean DEFAULT false NOT NULL,
 			 isarchived                boolean DEFAULT false NOT NULL,
-			 isdeleted                 boolean DEFAULT false NOT NULL
+			 isdeleted                 boolean DEFAULT false NOT NULL,
+			 isreply                   boolean DEFAULT false NOT NULL
 			 ) 
 	   WITH (OIDS=withOIDs);
 END IF;
@@ -1003,6 +1029,15 @@ BEGIN
 	 IF (NOT column_exists('databaseSchema.objectQualifier_message','ts_message')) THEN
          ALTER TABLE databaseSchema.objectQualifier_message ADD COLUMN ts_message  text;
      END IF;
+
+	 IF (NOT column_exists('databaseSchema.objectQualifier_pmessage','replyto')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_pmessage ADD COLUMN replyto  integer;
+     END IF;
+
+	 IF (NOT column_exists('databaseSchema.objectQualifier_userpmessage','isreply')) THEN
+         ALTER TABLE databaseSchema.objectQualifier_userpmessage ADD COLUMN isreply  boolean DEFAULT FALSE NOT NULL ;
+     END IF;
+
 	 /* IF (EXISTS (SELECT 1 FROM pg_indexes WHERE tablename='objectQualifier_forumreadtracking' 
 	                                           AND indexname='ix_objectQualifier_forumreadtracking_userid_forumid')) THEN
 		 DROP INDEX  ix_objectQualifier_forumreadtracking_userid_forumid;
@@ -1029,7 +1064,7 @@ BEGIN
 	 IF (EXISTS (SELECT 1 FROM pg_attribute where  attrelid = 'databaseSchema.objectQualifier_messagereportedaudit'::regclass and attname='reported' and not attnotnull)) THEN
 	 ALTER TABLE databaseSchema.objectQualifier_messagereportedaudit ALTER COLUMN reported SET NOT NULL;
     END IF;
-	 END;	
+	END;	
 $BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER STRICT
   COST 100;   
@@ -1046,6 +1081,8 @@ declare _rec1 RECORD;
 	    _rec2 RECORD;
 	    _rec3 RECORD;
 	    _rec4 RECORD;
+		_userdisplayname varchar(255);
+		_lastuserdisplayname varchar(255);
 BEGIN		
 		for _rec1 IN select forumid, lastuserid from databaseSchema.objectQualifier_forum
 		where lastuserdisplayname IS NULL and 	lastuserid is not null		
