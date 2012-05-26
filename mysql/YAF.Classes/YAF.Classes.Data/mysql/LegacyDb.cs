@@ -1772,7 +1772,7 @@ namespace YAF.Classes.Data
 		/// <returns>DataRow of Poststats</returns>	
         static public DataRow board_poststats(int? boardId, bool useStyledNick, bool showNoCountPosts)
 		{
-		    using (MySqlCommand cmd = MsSqlDbAccess.GetCommand("board_poststats"))
+		    using (var cmd = MsSqlDbAccess.GetCommand("board_poststats"))
 		    {
 		        cmd.CommandType = CommandType.StoredProcedure;
 		        cmd.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
@@ -1789,13 +1789,14 @@ namespace YAF.Classes.Data
 
 
 		    // vzrus - this happens at new install only when we don't have posts or when they are not visible to a user 
-		    using (MySqlCommand cmd1 = MsSqlDbAccess.GetCommand("board_poststats"))
+		    using (var cmd1 = MsSqlDbAccess.GetCommand("board_poststats"))
 		    {
 		        cmd1.CommandType = CommandType.StoredProcedure;
                 cmd1.Parameters.Add("i_BoardID", MySqlDbType.Int32).Value = boardId;
                 cmd1.Parameters.Add("i_StyledNicks", MySqlDbType.Byte).Value = useStyledNick;
                 cmd1.Parameters.Add("i_ShowNoCountPosts", MySqlDbType.Byte).Value = showNoCountPosts;
                 cmd1.Parameters.Add("i_GetDefaults", MySqlDbType.Byte).Value = 1;
+                cmd1.Parameters.Add("i_UTCTIMESTAMP", MySqlDbType.DateTime).Value = DateTime.UtcNow;
 		        
                 DataTable dt = MsSqlDbAccess.Current.GetData(cmd1);
 		        if (dt.Rows.Count > 0)
