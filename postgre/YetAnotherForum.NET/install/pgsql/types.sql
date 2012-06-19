@@ -729,7 +729,7 @@ CREATE TYPE databaseSchema.objectQualifier_mail_list_return_type AS (
 "ToUser" varchar(128),
 "ToUserName" varchar(128),
 "Created" timestampTZ,
-"Subject" varchar(128),
+"Subject" varchar(255),
 "Body" text,
 "BodyHtml" text,
 "SendTries" integer,

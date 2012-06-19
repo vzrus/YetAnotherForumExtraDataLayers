@@ -2516,7 +2516,7 @@ if (exists (select 1 from databaseSchema.objectQualifier_user where ((flags & 1)
 		left join databaseSchema.objectQualifier_user b 
 		on b.UserID=el.UserID
 	    where	   
-		 (b.UserID IS NULL or b.BoardID = i_boardid)	
+		 (b.userid IS NULL or b.boardid = i_boardid)	
 		 and ((i_eventids IS NULL )  OR  
 		 el.type IN (select * from unnest(ici_messagearray)))  
 		 and el.EventTime between i_sincedate and i_todate;
@@ -2550,7 +2550,7 @@ else
                  LEFT JOIN databaseSchema.objectQualifier_user u
                  ON u.userid = el.userid
 	    where	   
-		(b.UserID IS NULL or b.BoardID = i_boardid)	and ((i_eventids IS NULL )  OR  el.type IN (select * from unnest(ici_messagearray)))  and EventTime between i_sincedate and i_todate;
+		(u.UserID IS NULL or u.boardid = i_boardid)	and ((i_eventids IS NULL )  OR  el.type IN (select * from unnest(ici_messagearray)))  and EventTime between i_sincedate and i_todate;
 			
         ici_firstselectrownumber := (i_pageindex - 1) * i_pagesize ;
      
@@ -2569,7 +2569,7 @@ FOR _rec IN
 				 join databaseSchema.objectQualifier_usergroup ug on (ug.userid =  i_pageuserid and ug.groupid = e.groupid)
                  LEFT JOIN databaseSchema.objectQualifier_user u
                  ON u.userid = el.userid
-        WHERE  (u.UserID IS NULL or u.BoardID = i_boardid)	and ((i_eventids IS NULL )  OR  el.type IN (select * from unnest(ici_messagearray)))  and el.EventTime between i_sincedate and i_todate
+        WHERE  (u.UserID IS NULL or u.boardid = i_boardid)	and ((i_eventids IS NULL )  OR  el.type IN (select * from unnest(ici_messagearray)))  and el.EventTime between i_sincedate and i_todate
        ORDER BY el.eventlogid DESC OFFSET ici_firstselectrownumber LIMIT i_pagesize
         LOOP		
 	RETURN NEXT _rec;	
@@ -5053,6 +5053,40 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_mail_delete(
   LANGUAGE 'sql' VOLATILE SECURITY DEFINER
   COST 100; 
 --GO
+-- Function: databaseSchema.objectQualifier_mail_list(integer)
+
+-- DROP FUNCTION databaseSchema.objectQualifier_mail_list(integer);
+
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_mail_listupdate(
+                           i_processid integer,
+						   i_utctimestamp timestampTZ)
+                  RETURNS void AS
+$BODY$DECLARE 
+             intervaladd integer :=5;
+             timesendattempt timestampTZ ;
+BEGIN
+timesendattempt:=i_utctimestamp + (intervaladd || ' minute')::interval;
+
+      UPDATE databaseSchema.objectQualifier_mail  
+	  SET processid = NULL 
+	  WHERE processid IS NOT NULL 
+	  AND sendattempt > i_utctimestamp;
+
+     UPDATE databaseSchema.objectQualifier_mail
+ 	SET 
+ 		sendtries = sendtries + 1,
+ 		sendattempt = timesendattempt,
+ 		processid = i_processid
+ 	WHERE
+ 		mailid IN (SELECT mailid FROM databaseSchema.objectQualifier_mail 
+   WHERE sendattempt IS NULL OR sendattempt < i_utctimestamp ORDER BY sendattempt,created   LIMIT 10);
+          
+         
+         
+ END;$BODY$
+  LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
+  COST 100 ; 
+--GO
 
 -- Function: databaseSchema.objectQualifier_mail_list(integer)
 
@@ -5067,16 +5101,9 @@ $BODY$DECLARE
              intervaladd integer :=5;
              timesendattempt timestampTZ ;
 BEGIN
-timesendattempt:=i_utctimestamp +  interval '5 minute';
-     UPDATE databaseSchema.objectQualifier_mail
- 	SET 
- 		sendtries = sendtries + 1,
- 		sendattempt = timesendattempt,
- 		processid = i_processid
- 	WHERE
- 		mailid IN (SELECT mailid FROM databaseSchema.objectQualifier_mail 
-  WHERE (sendattempt < i_utctimestamp) OR sendattempt IS NULL ORDER BY sendattempt desc, created desc, mailid  LIMIT 10);
-          
+timesendattempt:=i_utctimestamp + (intervaladd || ' minute')::interval;
+
+      
          
  	-- now SELECT all mail reserved for this process...
  	FOR _rec IN
@@ -5092,8 +5119,8 @@ timesendattempt:=i_utctimestamp +  interval '5 minute';
 			 bodyhtml,
 			 sendtries,
 			 sendattempt,
-			 processid FROM databaseSchema.objectQualifier_mail x
- 	WHERE x.ProcessID = i_processid  ORDER BY x.sendattempt desc, created desc LIMIT 10
+			 processid FROM databaseSchema.objectQualifier_mail 
+ 	WHERE processid = i_processid  ORDER BY sendattempt, created LIMIT 10
 LOOP
 RETURN NEXT _rec;
 END LOOP; 	
@@ -5102,6 +5129,8 @@ END LOOP;
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100 ROWS 1000; 
 --GO
+
+
 
 -- Function: databaseSchema.objectQualifier_medal_delete(integer, integer, varchar)
 
@@ -7869,7 +7898,7 @@ END IF;
 		m.externalmessageid,
 		m.referencemessageid,
  		COALESCE(m.username,b.name) AS UserName,
-		COALESCE(m.userdisplayname,b.displayname) AS UserName,
+		COALESCE(m.userdisplayname,b.displayname) AS UserDisplayName,
 		b.suspended,
  		b.joined,
  		b.avatar,

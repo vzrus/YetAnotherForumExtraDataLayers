@@ -86,18 +86,36 @@ namespace YAF.Providers.Profile
             }
             else
             {
-                // transfer properties regardless...
-                foreach (SettingsProperty prop in collection)
+
+                foreach (SettingsProperty property in collection)
                 {
-                    settingPropertyCollection.Add(new SettingsPropertyValue(prop));
+                    if (property.PropertyType.IsPrimitive || property.PropertyType == typeof(string))
+                        property.SerializeAs = SettingsSerializeAs.String;
+                    else
+                        property.SerializeAs = SettingsSerializeAs.Xml;
+                   settingPropertyCollection.Add(new SettingsPropertyValue(property));
                 }
-              
+
+                // retrieve encoded profile data from the database
+
                 DataTable dt = DB.Current.__GetProfiles(ApplicationName, 0, 1, username, null);
+
                 if (dt.Rows.Count > 0)
                 {
                     YAF.Providers.Profile.DB.DecodeProfileData(dt.Rows[0], settingPropertyCollection);
-                }
+                   /* foreach (SettingsPropertyValue prop in settingPropertyCollection)
+                    {
+                        object val = dt.Rows[0][prop.Name];
 
+                        // Only initialize a SettingsPropertyValue for non-null values
+                        if ((val is DBNull || val == null)) continue;
+                        prop.PropertyValue = val;
+                        prop.IsDirty = false;
+                        prop.Deserialized = true;
+                    } */
+                }
+              
+               
                 // save this collection to the cache it should be deleted as useless or in other place?
 
                 if (!UserProfileCache.ContainsKey(username.ToLower()))
@@ -123,17 +141,9 @@ namespace YAF.Providers.Profile
                 ExceptionReporter.ThrowArgument("PROFILE", "NOANONYMOUS");
             }
 
-            bool itemsToSave = false;
+            bool itemsToSave = collection.Cast<SettingsPropertyValue>().Any(pp => pp.IsDirty);
 
             // First make sure we have at least one item to save
-            foreach (SettingsPropertyValue pp in collection)
-            {
-                if (pp.IsDirty)
-                {
-                    itemsToSave = true;
-                    break;
-                }
-            }
 
             if (!itemsToSave)
                 return;
@@ -142,13 +152,11 @@ namespace YAF.Providers.Profile
             LoadFromPropertyValueCollection(collection);
 
             object userID = DB.Current.__GetProviderUserKey( this.ApplicationName, username);
-            if (userID != null)
-            {
-                // start saving...
-                DB.Current.__SetProfileProperties( this.ApplicationName, userID, collection, _settingsColumnsList);
-                // erase from the cache
-                DeleteFromProfileCacheIfExists(username.ToLower());
-            }
+            if (userID == null) return;
+            // start saving...
+            DB.Current.__SetProfileProperties( this.ApplicationName, userID, collection, _settingsColumnsList);
+            // erase from the cache
+            DeleteFromProfileCacheIfExists(username.ToLower());
         }
 
     }

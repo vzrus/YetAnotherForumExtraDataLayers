@@ -349,17 +349,17 @@ namespace YAF.Providers.Profile
 
                 if (profileExists)
                 {
-
-                    using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand(
-                         String.Format(@"UPDATE {0} SET valueindex =@i_valueindex,stringdata=@i_stringData,binarydata=@i_binaryData,
-                            lastupdateddate=@i_lastupdateddate,lastactivitydate=@i_lastactivitydate,applicationid=@i_applicationid,username=@i_username WHERE userid =@i_userid;", MsSqlDbAccess.GetObjectName("prov_profile"), index, stringData, binaryData, userId), true))
+                    
+                    using (var cmd = MsSqlDbAccess.GetCommand(
+                         String.Format(@"UPDATE {0} SET valueindex = :i_valueindex,stringdata= :i_stringData,binarydata= :i_binaryData,
+                            lastupdateddate= :i_lastupdateddate,lastactivitydate= :i_lastactivitydate,username= :i_username WHERE userid = :i_userid and applicationid = :i_applicationid;", MsSqlDbAccess.GetObjectName("prov_profile")), true))
                     {
                         cmd.Parameters.Add(new NpgsqlParameter("i_valueindex", NpgsqlDbType.Varchar)).Value = index;
                         cmd.Parameters.Add(new NpgsqlParameter("i_stringData", NpgsqlDbType.Varchar)).Value = stringData;
                         cmd.Parameters.Add(new NpgsqlParameter("i_binaryData", NpgsqlDbType.Bytea)).Value = binaryData;
                         cmd.Parameters.Add(new NpgsqlParameter("i_lastupdateddate", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
                         cmd.Parameters.Add(new NpgsqlParameter("i_lastactivitydate", NpgsqlDbType.TimestampTZ)).Value = mu.LastActivityDate;
-                        cmd.Parameters.Add(new NpgsqlParameter("i_applicationid", NpgsqlDbType.Uuid)).Value = GetApplicationIdFromName( appName);
+                        cmd.Parameters.Add(new NpgsqlParameter("i_applicationid", NpgsqlDbType.Uuid)).Value = (Guid)GetApplicationIdFromName(appName);
                         cmd.Parameters.Add(new NpgsqlParameter("i_isanonymous", NpgsqlDbType.Boolean)).Value = false;
                         cmd.Parameters.Add(new NpgsqlParameter("i_username", NpgsqlDbType.Varchar)).Value = mu.UserName;
                         cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Uuid)).Value = userId;
@@ -385,15 +385,15 @@ namespace YAF.Providers.Profile
                       isanonymous,
                       username) 
                        VALUES (
-                     @i_userid,
-                     @i_valueindex, 
-                     @i_stringData,
-                     @i_binaryData,
-                     @i_lastupdateddate,                   
-                     @i_lastactivitydate,
-                     @i_applicationid,
-                     @i_isanonymous,
-                     @i_username) ;",
+                     :i_userid,
+                     :i_valueindex, 
+                     :i_stringData,
+                     :i_binaryData,
+                     :i_lastupdateddate,                   
+                     :i_lastactivitydate,
+                     :i_applicationid,
+                     :i_isanonymous,
+                     :i_username) ;",
                        YAF.Classes.Data.MsSqlDbAccess.GetObjectName("prov_profile")), true))
                        {
                            cmd.Parameters.Add(new NpgsqlParameter("i_userid", NpgsqlDbType.Uuid)).Value = userId;
@@ -403,7 +403,7 @@ namespace YAF.Providers.Profile
                            cmd.Parameters.Add(new NpgsqlParameter("i_lastupdateddate", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
                            cmd.Parameters.Add(new NpgsqlParameter("i_lastactivitydate", NpgsqlDbType.TimestampTZ)).Value = mu.LastActivityDate;
                            cmd.Parameters.Add(new NpgsqlParameter("i_applicationid", NpgsqlDbType.Uuid)).Value = GetApplicationIdFromName( appName);
-                           cmd.Parameters.Add(new NpgsqlParameter("i_isanonymous", NpgsqlDbType.Boolean)).Value = true;
+                           cmd.Parameters.Add(new NpgsqlParameter("i_isanonymous", NpgsqlDbType.Boolean)).Value = false;
                            cmd.Parameters.Add(new NpgsqlParameter("i_username", NpgsqlDbType.Varchar)).Value = mu.UserName;
 
                         int res = _dbAccess.ExecuteNonQueryInt(cmd);

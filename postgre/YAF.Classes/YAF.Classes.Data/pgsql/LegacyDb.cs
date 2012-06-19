@@ -3134,12 +3134,20 @@ namespace YAF.Classes.Data
     /// </returns>
         public static IEnumerable<TypedMailList> MailList( long processId)
     {
-        using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand("mail_list"))
+        DateTime dtm = DateTime.UtcNow;
+        using (NpgsqlCommand cmd = MsSqlDbAccess.GetCommand("mail_listupdate"))
         {
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add(new NpgsqlParameter("i_processid", NpgsqlDbType.Integer)).Value = processId;
-            cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = DateTime.UtcNow;
-            return MsSqlDbAccess.Current.GetData(cmd).SelectTypedList(x => new TypedMailList(x));
+            cmd.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = dtm;
+            MsSqlDbAccess.Current.ExecuteNonQuery(cmd);
+        }
+        using (NpgsqlCommand cmd1 = MsSqlDbAccess.GetCommand("mail_list"))
+        {
+            cmd1.CommandType = CommandType.StoredProcedure;
+            cmd1.Parameters.Add(new NpgsqlParameter("i_processid", NpgsqlDbType.Integer)).Value = processId;
+            cmd1.Parameters.Add(new NpgsqlParameter("i_utctimestamp", NpgsqlDbType.TimestampTZ)).Value = dtm;
+            return MsSqlDbAccess.Current.GetData(cmd1).SelectTypedList(x => new TypedMailList(x));
         }
     }
 
@@ -5504,7 +5512,7 @@ namespace YAF.Classes.Data
 				cmd.CommandType = CommandType.StoredProcedure;
 
 				cmd.Parameters.Add(new NpgsqlParameter("i_name", NpgsqlDbType.Varchar)).Value = name;
-				cmd.Parameters.Add(new NpgsqlParameter("i_value", NpgsqlDbType.Varchar)).Value = value;
+				cmd.Parameters.Add(new NpgsqlParameter("i_value", NpgsqlDbType.Text)).Value = value;
 				cmd.Parameters.Add(new NpgsqlParameter("i_boardid", NpgsqlDbType.Integer)).Value = boardId;
 				
 				MsSqlDbAccess.Current.ExecuteNonQuery(cmd);

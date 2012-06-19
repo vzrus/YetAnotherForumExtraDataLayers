@@ -259,7 +259,7 @@ namespace YAF.Providers.Profile
 			//DataSet allProfilesDS = DB.GetProfiles( this.ApplicationName, pageIndex, pageSize, userNameToMatch, inactiveSinceDate );
 
 			// create an instance for the profiles...
-			ProfileInfoCollection profiles = new ProfileInfoCollection();
+			var profiles = new ProfileInfoCollection();
             DataTable allProfilesDT = DB.Current.__GetProfiles(   this.ApplicationName, pageIndex, pageSize, userNameToMatch, inactiveSinceDate);
 			//DataTable allProfilesDT = allProfilesDS.Tables [0];
 			//DataTable profilesCountDT = allProfilesDS.Tables [1];
