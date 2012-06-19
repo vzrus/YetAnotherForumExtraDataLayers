@@ -8274,43 +8274,39 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_registry_save(
 $BODY$
 BEGIN
         
-        IF i_boardid IS NULL THEN
-        BEGIN
+        IF i_boardid IS NULL THEN        
             IF EXISTS (SELECT 1
                        FROM   databaseSchema.objectQualifier_registry
-                       WHERE  Lower(name) = Lower(i_name)) THEN
+                       WHERE  Lower("name") = Lower(i_name) LIMIT 1) THEN
             UPDATE databaseSchema.objectQualifier_registry
-            SET    value = i_value
-            WHERE  Lower(name) = Lower(i_name)
+            SET    "value" = i_value
+            WHERE  Lower("name") = Lower(i_name)
             AND boardid IS NULL;
             ELSE            
                 INSERT INTO databaseSchema.objectQualifier_registry
-                           (name,
-                            value)
+                           ("name",
+                            "value")
                 VALUES     (Lower(i_name),
                             i_value);
-            END IF;
-        END;
-        ELSE
-        BEGIN
+            END IF;        
+        ELSE        
             IF EXISTS (SELECT 1
                        FROM   databaseSchema.objectQualifier_registry
-                       WHERE  Lower(name) = Lower(i_name)
+                       WHERE  Lower("name") = Lower(i_name)
                        AND boardid = i_boardid LIMIT 1) THEN
             UPDATE databaseSchema.objectQualifier_registry
-            SET    value = i_value
-            WHERE  Lower(name) = Lower(i_name)
+            SET    "value" = i_value
+            WHERE  Lower("name") = Lower(i_name)
             AND boardid = i_boardid;
             ELSE            
                 INSERT INTO databaseSchema.objectQualifier_registry
-                           (name,
-                            value,
+                           ("name",
+                            "value",
                             boardid)
                 VALUES     (Lower(i_name),
                             i_value,
                             i_boardid);
-            END IF;
-        END;
+            END IF;        
         END IF;
         RETURN;
     END;$BODY$
