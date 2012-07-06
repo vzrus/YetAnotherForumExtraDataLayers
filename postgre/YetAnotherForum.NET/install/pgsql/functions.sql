@@ -218,7 +218,6 @@ END LOOP;
  END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100;
-  GRANT EXECUTE ON FUNCTION databaseSchema.objectQualifier_forum_lastposted(integer, integer, integer, timestamp with time zone) TO granteeName;
 --GO
 
 -- Function: databaseSchema.objectQualifier_medal_getribbonsetting(character varying, integer, boolean)
@@ -238,8 +237,7 @@ BEGIN
  END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100;
-  GRANT EXECUTE ON FUNCTION databaseSchema.objectQualifier_medal_getribbonsetting(character varying, integer, boolean) TO granteeName;
---GO
+ --GO
 
 -- Function: databaseSchema.objectQualifier_forum_topics(integer)
 
@@ -278,8 +276,7 @@ END LOOP;
 	
 	END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
-  COST 100;
-    GRANT EXECUTE ON FUNCTION databaseSchema.objectQualifier_forum_topics(integer) TO granteeName;
+  COST 100;  
 --GO
 
 -- Function: databaseSchema.objectQualifier_medal_getsortorder(smallint, smallint, integer)
@@ -296,8 +293,7 @@ RETURN ici_SortOrder;
 
 END;$BODY$
   LANGUAGE 'plpgsql' IMMUTABLE
-  COST 100;
-  GRANT EXECUTE ON FUNCTION databaseSchema.objectQualifier_medal_getsortorder(smallint, smallint, integer) TO granteeName;
+  COST 100; 
 --GO
 
 -- Function: databaseSchema.objectQualifier_medal_gethide(boolean, integer)
@@ -313,8 +309,7 @@ BEGIN
 	RETURN ici_hide;
 END$BODY$
   LANGUAGE 'plpgsql' IMMUTABLE
-  COST 100;
-  GRANT EXECUTE ON FUNCTION databaseSchema.objectQualifier_medal_gethide(boolean, integer) TO granteeName;
+  COST 100; 
 --GO
 
 
@@ -340,8 +335,7 @@ BEGIN
       return ici_style;	
 END$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
-  COST 100;
-  GRANT EXECUTE ON FUNCTION databaseSchema.objectQualifier_medal_gethide(boolean, integer) TO granteeName;
+  COST 100; 
 --GO
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_message_getthanksinfo(i_messageid integer, i_showthanksdate boolean)
@@ -367,8 +361,6 @@ END$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100;
   --GO
-  GRANT EXECUTE ON FUNCTION databaseSchema.objectQualifier_message_getthanksinfo(integer, boolean) TO granteeName;
---GO
 
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_forum_save_parentschecker(i_forumid integer, i_parentid integer)
   RETURNS integer AS
@@ -410,6 +402,31 @@ begin
     return COALESCE(ici_dependency,0);
 END$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
-  COST 100;
-  GRANT EXECUTE ON FUNCTION databaseSchema.objectQualifier_forum_save_parentschecker(integer, integer) TO granteeName;
+  COST 100; 
+--GO
+
+CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_registry_value( i_name varchar(64), i_boardid integer)
+  RETURNS text AS
+$BODY$DECLARE
+ici_returnValue text;
+begin
+    IF i_boardid IS NOT NULL AND EXISTS(SELECT 1 FROM databaseSchema.objectQualifier_registry WHERE LOWER("name") = LOWER(i_name) AND boardid = i_boardid) then
+   
+            SELECT "value"::text INTO ici_returnValue
+            FROM databaseSchema.objectQualifier_registry
+            WHERE LOWER("name") = LOWER(i_name) and  boardid = i_boardid;    
+    
+    ELSE
+    
+         SELECT "value"::text INTO ici_returnValue
+            FROM databaseSchema.objectQualifier_registry
+            WHERE LOWER("name") = LOWER(i_name) and
+                boardid is NULL;          
+    END IF;
+         
+
+    RETURN ici_returnValue;
+END$BODY$
+  LANGUAGE 'plpgsql' STABLE SECURITY DEFINER
+  COST 100; 
 --GO

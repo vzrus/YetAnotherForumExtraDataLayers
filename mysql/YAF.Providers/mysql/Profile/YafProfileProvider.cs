@@ -21,6 +21,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
+using System.Collections.Concurrent;
 using System.Web.Configuration;
 using YAF.Classes.Data;
 using YAF.Types.Interfaces;
@@ -112,21 +113,22 @@ namespace YAF.Providers.Profile
             }
         }
 
-        private IThreadSafeDictionary<string, SettingsPropertyValueCollection> _userProfileCache = null;
+        private ConcurrentDictionary<string, SettingsPropertyValueCollection> _userProfileCache = null;
 
         /// <summary>
         /// Gets UserProfileCache.
         /// </summary>
-        private IThreadSafeDictionary<string, SettingsPropertyValueCollection> UserProfileCache
+        private ConcurrentDictionary<string, SettingsPropertyValueCollection> UserProfileCache
         {
             get
             {
                 string key = this.GenerateCacheKey("UserProfileDictionary");
 
-                return this._userProfileCache ??
+              return this._userProfileCache ??
                        (this._userProfileCache =
                         YafContext.Current.Get<IObjectStore>().GetOrSet(
-                          key, () => new ThreadSafeDictionary<string, SettingsPropertyValueCollection>()));
+                          key, () => new ConcurrentDictionary<string, SettingsPropertyValueCollection>()));
+           
             }
         }
 
@@ -285,7 +287,8 @@ namespace YAF.Providers.Profile
                 }
 
                 // save this collection to the cache
-                UserProfileCache.MergeSafe(username.ToLower(), settingPropertyCollection);
+                this.UserProfileCache.AddOrUpdate(username.ToLower(), (k) => settingPropertyCollection, (k, v) => settingPropertyCollection);
+
                 return settingPropertyCollection;
             }
 
@@ -482,7 +485,10 @@ namespace YAF.Providers.Profile
          /// </param>
          private void DeleteFromProfileCacheIfExists(string key)
          {
-             UserProfileCache.RemoveSafe(key);
+             SettingsPropertyValueCollection collection;
+
+             this.UserProfileCache.TryRemove(key, out collection);
+
          }
 
         private void ClearUserProfileCache()

@@ -16,6 +16,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
+
+using System.Collections.Concurrent;
+
 namespace YAF.Providers.Roles
 {
   using System;
@@ -103,12 +106,12 @@ namespace YAF.Providers.Roles
       }
     }
 
-    private IThreadSafeDictionary<string, StringCollection> _userRoleCache = null;
+    private ConcurrentDictionary<string, StringCollection> _userRoleCache = null;
 
     /// <summary>
     /// Gets UserRoleCache.
     /// </summary>
-    private IThreadSafeDictionary<string, StringCollection> UserRoleCache
+    private ConcurrentDictionary<string, StringCollection> UserRoleCache
     {
       get
       {
@@ -117,7 +120,7 @@ namespace YAF.Providers.Roles
         return this._userRoleCache ??
                (this._userRoleCache =
                 YafContext.Current.Get<IObjectStore>().GetOrSet(
-                  key, () => new ThreadSafeDictionary<string, StringCollection>()));
+                  key, () => new ConcurrentDictionary<string, StringCollection>()));
       }
     }
 
@@ -282,7 +285,8 @@ namespace YAF.Providers.Roles
         }
 
         // add it to the dictionary cache...
-        this.UserRoleCache.MergeSafe(username.ToLower(), roleNames);
+        this.UserRoleCache.AddOrUpdate(username.ToLower(), (k) => roleNames, (s, v) => roleNames);
+
       }
       else
       {
@@ -454,7 +458,8 @@ namespace YAF.Providers.Roles
     /// </param>
     private void DeleteFromRoleCacheIfExists(string key)
     {
-      this.UserRoleCache.RemoveSafe(key);
+        StringCollection collection;
+        this.UserRoleCache.TryRemove(key, out collection);
     }
 
     /// <summary>

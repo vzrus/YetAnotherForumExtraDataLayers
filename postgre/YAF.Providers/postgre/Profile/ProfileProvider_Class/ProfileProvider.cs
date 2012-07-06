@@ -21,6 +21,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
+using System.Collections.Concurrent;
 using System.Web.Profile;
 using NpgsqlTypes;
 using YAF.Types.Interfaces;
@@ -106,12 +107,12 @@ namespace YAF.Providers.Profile
     /// <summary>
     /// Gets UserProfileCache.
     /// </summary>  
-        private IThreadSafeDictionary<string, SettingsPropertyValueCollection> _userProfileCache = null;
+        private ConcurrentDictionary<string, SettingsPropertyValueCollection> _userProfileCache = null;
 
         /// <summary>
         /// Gets UserProfileCache.
         /// </summary>
-        private IThreadSafeDictionary<string, SettingsPropertyValueCollection> UserProfileCache
+        private ConcurrentDictionary<string, SettingsPropertyValueCollection> UserProfileCache
         {
             get
             {
@@ -120,7 +121,7 @@ namespace YAF.Providers.Profile
                 return this._userProfileCache ??
                        (this._userProfileCache =
                         YafContext.Current.Get<IObjectStore>().GetOrSet(
-                          key, () => new ThreadSafeDictionary<string, SettingsPropertyValueCollection>()));
+                          key, () => new ConcurrentDictionary<string, SettingsPropertyValueCollection>()));
             }
         }
     
@@ -134,7 +135,10 @@ namespace YAF.Providers.Profile
         /// </param>
         private void DeleteFromProfileCacheIfExists(string key)
         {
-            this.UserProfileCache.RemoveSafe(key);
+            SettingsPropertyValueCollection collection;
+
+            this.UserProfileCache.TryRemove(key, out collection);
+
         }
         /// <summary>
         /// The clear user profile cache.

@@ -135,8 +135,8 @@ CREATE PROCEDURE objQual_BOARD_CREATE(
  BEGIN
  	
  
- 	   L_TIMEZONE = COALESCE((SELECT CAST(CAST("VALUE" as varchar(50)) as INTEGER) FROM   objQual_REGISTRY
-	   WHERE LOWER("NAME") = LOWER('TIMEZONE')), 0) ;
+ 	   L_TIMEZONE = (SELECT CAST(CAST("VALUE" as varchar(50)) as INTEGER) FROM   objQual_REGISTRY
+	   WHERE LOWER("NAME") = LOWER('TIMEZONE')) ;
         
         SELECT CAST("VALUE" AS CHAR(50))                           			
                            FROM   objQual_REGISTRY
@@ -3415,11 +3415,9 @@ BEGIN
 				  :I_EMAIL,
 				  :I_UTCTIMESTAMP,
 				  :I_UTCTIMESTAMP,
-				  0,
-				  COALESCE(
-				  (SELECT CAST(CAST("VALUE" AS VARCHAR(10)) AS INTEGER) from objQual_REGISTRY where "NAME" LIKE 'timezone' and BOARDID = :I_BOARDID),
-				  (SELECT CAST(CAST("VALUE" AS VARCHAR(10)) AS INTEGER) from objQual_REGISTRY where "NAME" LIKE 'timezone')
-				          ),
+				  0,				  
+				  -- (SELECT CAST(CAST("VALUE" AS VARCHAR(10)) AS INTEGER) from objQual_REGISTRY where "NAME" LIKE 'timezone' and BOARDID = :I_BOARDID),
+				  (SELECT CAST(CAST("VALUE" AS VARCHAR(10)) AS INTEGER) from objQual_REGISTRY where "NAME" LIKE 'timezone'),
 				  :ici_approvedFlag,
 				  CHAR_TO_UUID(:I_PROVIDERUSERKEY));
 	END

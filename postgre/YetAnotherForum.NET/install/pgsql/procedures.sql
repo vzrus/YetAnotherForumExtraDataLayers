@@ -1436,9 +1436,9 @@ $BODY$DECLARE
 BEGIN
  	
 
-   i_timezone := COALESCE((SELECT CAST(CAST(value AS varchar(10)) AS integer)                                           
+   i_timezone := (SELECT CAST(CAST(value AS varchar(10)) AS integer)                                           
                          FROM   databaseSchema.objectQualifier_registry
-                         WHERE  Lower(name) = Lower('TimeZone')),0);
+                         WHERE  Lower(name) = Lower('TimeZone'));
    i_forumemail := (SELECT CAST(value AS varchar(50))                                               			
                            FROM   databaseSchema.objectQualifier_registry
                            WHERE  Lower(name) = Lower('ForumEmail'));                          
@@ -10489,7 +10489,7 @@ BEGIN
 		END	IF;	
 		
         INSERT INTO databaseSchema.objectQualifier_user(boardid,rankid,name,displayname,password,email,joined,lastvisit,numposts,timezone,flags,provideruserkey)
-        VALUES(i_boardid,ici_rankid,i_username,COALESCE(ici_displayname,i_username),'-',i_email,i_utctimestamp,i_utctimestamp,0,COALESCE((SELECT value FROM  databaseSchema.objectQualifier_registry where name LIKE 'timezone' and boardid=i_boardid)::varchar::int,0),ici_approvedFlag,i_provideruserkey);
+        VALUES(i_boardid,ici_rankid,i_username,COALESCE(ici_displayname,i_username),'-',i_email,i_utctimestamp,i_utctimestamp,0,(SELECT value FROM  databaseSchema.objectQualifier_registry where name LIKE 'timezone' and boardid=i_boardid)::varchar::int,ici_approvedFlag,i_provideruserkey);
         SELECT CURRVAL(pg_get_serial_sequence('databaseSchema.objectQualifier_user','userid')) INTO _rec;                 
                  
     END IF;                          
@@ -11012,19 +11012,18 @@ FOR _rec IN
 			a.istwitteruser,
             a.texteditor,
             a.usesinglesignon,
-			COALESCE(CAST(SIGN(a.flags & 2) AS integer)>0,false) AS isapproved,
-            COALESCE(CAST(SIGN(a.flags & 16) AS integer)>0,false) AS isactiveexcluded,
+			a.isapproved,
+            a.isactiveexcluded,
  			b.name AS RankName,
  			(case(i_stylednicks)
 	        when true THEN  a.userstyle 
 	        else ''	 end),  			
  			date_part('day', i_utctimestamp - a.joined)+1 AS NumDays,
- 			(SELECT COUNT(1) FROM databaseSchema.objectQualifier_message x WHERE
-(x.flags & 24)=16) AS NumPostsForum,
- 			COALESCE((SELECT SIGN(1)  FROM databaseSchema.objectQualifier_user x  
+ 			(SELECT COUNT(1) FROM databaseSchema.objectQualifier_message x WHERE x.isapproved is true and x.isdeleted is false)::integer AS NumPostsForum,
+			 			COALESCE((SELECT SIGN(1)  FROM databaseSchema.objectQualifier_user x  
                           WHERE x.userid=a.userid 
-                            AND x.avatarimage IS NOT NULL limit 1),0) AS HasAvatarImage,  					
- 			COALESCE((a.flags & 4)=4,false) AS IsGuest,
+                            AND x.avatarimage IS NOT NULL limit 1),0) AS HasAvatarImage, 
+ 			COALESCE(databaseSchema.objectQualifier_int_to_bool_helper(a.flags & 4),FALSE) AS IsGuest,
  			COALESCE((a.flags & 1)=1,false)::integer AS IsHostAdmin,
  			0,
  			false,
@@ -11245,7 +11244,7 @@ BEGIN
 			when true THEN  (SELECT us.userstyle FROM databaseSchema.objectQualifier_user us where us.userid = a.userid)  
 			else ''	 end as Style, 
 			(date_part('days', i_utctimestamp - a.joined) + 1) as NumDays,		
-			(select count(1) from databaseSchema.objectQualifier_message x where (x.flags & 24)=16) AS NumPostsForum,
+			(select count(1) from databaseSchema.objectQualifier_message x where x.isapproved=1 and x.isdeleted = 0) AS NumPostsForum,
 			(select count(1) from databaseSchema.objectQualifier_user x where x.userid=a.userid and AvatarImage is not null) AS HasAvatarImage ,
 			COALESCE(c.IsAdmin,0) AS IsAdmin,			
 			COALESCE(a.Flags & 1,0) AS IsHostAdmin
@@ -12457,10 +12456,14 @@ BEGIN
     IF NOT EXISTS(SELECT 1 FROM databaseSchema.objectQualifier_usergroup 
     WHERE userid=i_userid AND groupid=i_groupid LIMIT 1) THEN
 		INSERT INTO databaseSchema.objectQualifier_usergroup(userid,groupid)
-		VALUES (i_userid,i_groupid); END IF;
+		VALUES (i_userid,i_groupid);
+		-- update style for the user
+UPDATE databaseSchema.objectQualifier_user SET userstyle= COALESCE((SELECT f.style FROM databaseSchema.objectQualifier_userGroup e 
+        join databaseSchema.objectQualifier_group f on f.groupid=e.groupid WHERE e.userid=i_userid AND CHAR_LENGTH(f.style) > 2 ORDER BY f.sortorder LIMIT 1), (SELECT r.style FROM databaseSchema.objectQualifier_rank r where r.rankid = databaseSchema.objectQualifier_user.rankid LIMIT 1)) 
+       WHERE userid = i_userid;   
+	  
+ END IF;
         END IF;
-
-PERFORM databaseSchema.objectQualifier_user_savestyle(i_groupid,null);
 END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100; 

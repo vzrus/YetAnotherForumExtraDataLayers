@@ -56,6 +56,8 @@ DROP FUNCTION IF EXISTS {databaseName}.{objectQualifier}vaccess_s_ismoderator;
 --GO
 DROP FUNCTION IF EXISTS {databaseName}.{objectQualifier}vaccess_s_moderatoraccess;
 --GO
+DROP FUNCTION IF EXISTS {databaseName}.{objectQualifier}registry_value;
+--GO
 
 -- vaccess functions 
 /* ********************************************************************  */
@@ -899,4 +901,31 @@ END;
  RETURN toconv; 
  END;
   --GO
+
+CREATE FUNCTION {databaseName}.{objectQualifier}registry_value (
+    i_Name VARCHAR(64)
+    ,i_BoardID INT
+    )
+RETURNS LONGTEXT
+READS SQL DATA
+BEGIN
+    DECLARE ici_returnValue LONGTEXT;
+
+    IF i_BoardID IS NOT NULL AND EXISTS(SELECT 1 FROM {databaseName}.{objectQualifier}registry WHERE LOWER(`Name`) = LOWER(i_Name) AND BoardID = i_BoardID) THEN
+  
+        SET ici_returnValue = (
+            SELECT `Value`
+            FROM {databaseName}.{objectQualifier}Registry
+            WHERE LOWER(`Name`) = LOWER(i_Name) AND BoardID = i_BoardID);
+  
+    ELSE  
+        SET ici_returnValue = (
+            SELECT `Value`
+            FROM {databaseName}.{objectQualifier}Registry
+            WHERE LOWER(`Name`) = LOWER(i_Name) AND BoardID IS NULL);
+    END IF;
+
+    RETURN ici_returnValue;
+END;
+--GO
 

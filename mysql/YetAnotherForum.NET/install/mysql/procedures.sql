@@ -1799,7 +1799,7 @@ MODIFIES SQL DATA
  	DECLARE l_UserFlags			    INT;
  
 
-        SELECT COALESCE(CAST(`Value` AS SIGNED),0)
+        SELECT CAST(`Value` AS SIGNED)
                          INTO l_TimeZone
                          FROM   {databaseName}.{objectQualifier}Registry
                          WHERE  Lower(`Name`) = Lower('TimeZone');
@@ -9416,7 +9416,7 @@ BEGIN
 		END IF;		
 
                   INSERT INTO {databaseName}.{objectQualifier}User(BoardID,RankID,`Name`,`DisplayName`,Password,Email,Joined,LastVisit,NumPosts,TimeZone,Flags,ProviderUserKey)
-                  VALUES(i_BoardID,ici_RankID,i_UserName,i_DisplayName,'-',i_Email,i_UTCTIMESTAMP,i_UTCTIMESTAMP,0,IFNULL((SELECT CAST(CAST(Value AS CHAR(10)) AS SIGNED) from {databaseName}.{objectQualifier}Registry where Name LIKE 'timezone' and BoardID = i_BoardID),0),ici_approvedFlag,i_ProviderUserKey);
+                  VALUES(i_BoardID,ici_RankID,i_UserName,i_DisplayName,'-',i_Email,i_UTCTIMESTAMP,i_UTCTIMESTAMP,0,(SELECT CAST(CAST(Value AS CHAR(10)) AS SIGNED) from {databaseName}.{objectQualifier}Registry where Name LIKE 'timezone' and BoardID = i_BoardID),ici_approvedFlag,i_ProviderUserKey);
 
                   SET ici_UserID = LAST_INSERT_ID();
        END IF;
@@ -11110,7 +11110,13 @@ BEGIN
 	ELSE
     IF NOT EXISTS(SELECT 1 FROM {databaseName}.{objectQualifier}UserGroup WHERE UserID=i_UserID AND GroupID=i_GroupID) THEN
 		INSERT INTO {databaseName}.{objectQualifier}UserGroup(UserID,GroupID)
-		VALUES (i_UserID,i_GroupID); END IF;
+		VALUES (i_UserID,i_GroupID);
+		 
+		 UPDATE {databaseName}.{objectQualifier}User SET UserStyle= IFNULL(( SELECT f.Style FROM {databaseName}.{objectQualifier}UserGroup e 
+        join {databaseName}.{objectQualifier}Group f on f.GroupID=e.GroupID WHERE e.UserID=i_UserID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder LIMIT 1), (SELECT r.Style FROM {databaseName}.{objectQualifier}Rank r where r.RankID = {databaseName}.{objectQualifier}User.RankID LIMIT 1)) 
+        WHERE UserID = i_UserID; 
+		
+		END IF;
     END IF;
 CALL {databaseName}.{objectQualifier}user_savestyle(i_GroupID,null);
 END;

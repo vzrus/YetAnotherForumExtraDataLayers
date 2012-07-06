@@ -8216,12 +8216,12 @@ b.NAME AS "RankName",
 DATEDIFF(DAY,:I_UTCTIMESTAMP,COALESCE(a.JOINED,:I_UTCTIMESTAMP)) + 1 AS "NumDays",
 --(SELECT :ici_NumDays FROM RDB$DATABASE) AS "NumDays",
 (SELECT COUNT(x.MESSAGEID) FROM objQual_MESSAGE x
-WHERE BIN_AND(x.FLAGS, 24)=16) AS "NumPostsForum",
-COALESCE((SELECT 1 FROM objQual_USER x
+WHERE x.ISDELETED = 0 AND x.ISAPPROVED = 1) AS "NumPostsForum",
+COALESCE((SELECT FIRST 1 1 FROM objQual_USER x
 						 WHERE x.USERID=a.USERID
 						   AND AVATARIMAGE IS NOT NULL),0) AS "HasAvatarImage",
 (SELECT :ici_IsAdmin FROM RDB$DATABASE),
-COALESCE(SIGN(BIN_AND(a.FLAGS, 4)),0) AS ISGUEST,
+a.ISGUEST AS ISGUEST,
 COALESCE(BIN_AND(a.FLAGS, 1),0) AS "IsHostAdmin",
 (SELECT :ici_IsForumModerator FROM RDB$DATABASE),
 (SELECT :ici_IsModerator FROM RDB$DATABASE)
@@ -8231,8 +8231,8 @@ JOIN objQual_RANK b ON b.RANKID=a.RANKID
 WHERE
 a.USERID = :I_USERID AND
 a.BOARDID = :I_BOARDID AND
-(:I_APPROVED IS NULL OR (:I_APPROVED=0 AND BIN_AND(a.FLAGS, 2)=0)
-						   OR (:I_APPROVED=1 and BIN_AND(a.FLAGS, 2)=2))
+(:I_APPROVED IS NULL OR (:I_APPROVED=0 AND a.ISAPPROVED=0)
+						   OR (:I_APPROVED=1 and a.ISAPPROVED = 1))
 ORDER BY
 a.NAME
 INTO
@@ -8325,8 +8325,7 @@ b.NAME AS "RankName",
 			when 1 then  a.USERSTYLE
 			else ''	 end)  AS "Style",
 (SELECT :ici_NumDays FROM RDB$DATABASE) AS "NumDays",
-(SELECT COUNT(1) FROM objQual_MESSAGE x
-WHERE BIN_AND(x.FLAGS, 24)=16) AS "NumPostsForum",
+a.NUMPOSTS AS "NumPostsForum",
 (SELECT COUNT(1) FROM objQual_USER x
 						 WHERE x.USERID=a.USERID
 						   AND AVATARIMAGE IS NOT NULL) AS "HasAvatarImage",
@@ -8441,8 +8440,7 @@ b.NAME AS "RankName",
 			when 1 then  a.USERSTYLE
 			else ''	 end)  AS "Style",
 (SELECT :ici_NumDays FROM RDB$DATABASE) AS "NumDays",
-(SELECT COUNT(1) FROM objQual_MESSAGE x
-WHERE BIN_AND(x.FLAGS, 24)=16) AS "NumPostsForum",
+a.NUMPOSTS AS "NumPostsForum",
 (SELECT COUNT(1) FROM objQual_USER x
 						 WHERE x.USERID=a.USERID
 						   AND AVATARIMAGE IS NOT NULL) AS "HasAvatarImage",
@@ -8565,7 +8563,8 @@ begin
 			when 1 then a.USERSTYLE
 			else ''	 end) as Style, 
 			(DATEDIFF(DAY, :I_UTCTIMESTAMP, a.Joined) + 1) AS NumDays,		
-			(select count(1) from objQual_MESSAGE x where (BIN_AND(x.FLAGS,24)=16)) as NumPostsForum,
+			(SELECT COUNT(x.MESSAGEID) FROM objQual_MESSAGE x
+WHERE x.ISDELETED = 0 AND x.ISAPPROVED = 1) AS "NumPostsForum",
 			(select count(1) from objQual_USER x where x.USERID=a.USERID and a.AVATARIMAGE is not null) AS HasAvatarImage,
 			COALESCE(c.ISADMIN,0) as IsAdmin,			
 			COALESCE(BIN_AND(a.FLAGS, 1),0) AS IsHostAdmin
@@ -9886,9 +9885,14 @@ BEGIN
 	IF (NOT EXISTS(SELECT 1 FROM objQual_USERGROUP 
 	WHERE USERID=:I_USERID AND GROUPID=:I_GROUPID)) THEN
 		INSERT INTO objQual_USERGROUP(USERID,GROUPID)
-		VALUES (:I_USERID,:I_GROUPID);       
+		VALUES (:I_USERID,:I_GROUPID); 
+		-- save new user style
+		UPDATE objQual_USER SET UserStyle= COALESCE(( SELECT FIRST 1 f.Style FROM objQual_USERGROUP e 
+        join objQual_GROUP f on f.GroupID=e.GroupID WHERE e.UserID=:I_USERID AND CHAR_LENGTH(f.Style) > 2 ORDER BY f.SortOrder), (SELECT FIRST 1 r.Style FROM objQual_RANK r where r.RANKID = objQual_USER.RANKID)) 
+        WHERE UserID = :I_USERID;  
+		      
 	 END 
-	 EXECUTE PROCEDURE objQual_USER_SAVESTYLE :I_GROUPID, NULL;
+	
 END;
 --GO
 

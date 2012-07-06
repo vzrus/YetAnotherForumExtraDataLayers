@@ -120,7 +120,8 @@ namespace YAF.Providers.Profile
 
                 if (!UserProfileCache.ContainsKey(username.ToLower()))
                 {
-                    UserProfileCache.MergeSafe(username.ToLower(), settingPropertyCollection);
+                    // save this collection to the cache
+                    this.UserProfileCache.AddOrUpdate(username.ToLower(), (k) => settingPropertyCollection, (k, v) => settingPropertyCollection);
                 }
 
                 return settingPropertyCollection;
