@@ -752,7 +752,7 @@ i_rolename varchar,
 IN i_newguid uuid)
   RETURNS void AS
 $BODY$DECLARE 
-ici_iserid varchar(64);
+ici_iserid uuid;
 ici_roleid uuid;
 ici_applicationid uuid;
 

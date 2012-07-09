@@ -93,7 +93,6 @@
     <Compile Include="BaseDataTableResultFilter.cs" />
     <Compile Include="DataModule.cs" />
     <Compile Include="DataRowConvert.cs" />
-    <Compile Include="Import\DataImport.cs" />
     <Compile Include="pgsql\LegacyDb.cs">
       <SubType>
       </SubType>
