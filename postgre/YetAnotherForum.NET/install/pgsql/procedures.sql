@@ -4933,7 +4933,7 @@ BEGIN
 FOR _rec IN
 (SELECT 1 AS LegendID,name,style FROM databaseSchema.objectQualifier_group
 WHERE boardID = i_boardid ORDER BY sortorder)
-UNION ALL 
+UNION  ALL
 (SELECT 2  AS LegendID,name,style FROM databaseSchema.objectQualifier_rank
 WHERE boardID = i_boardid  ORDER BY sortorder)
 LOOP
@@ -10437,6 +10437,15 @@ END;$BODY$
   COST 100;
 --GO
 
+DROP FUNCTION databaseSchema.objectQualifier_user_aspnet(
+                            integer,
+						    varchar, 
+						   varchar,
+						   varchar, 
+						    varchar,
+						    boolean,
+						    timestampTZ);
+
 CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_aspnet(
                            i_boardid integer,
 						   i_username varchar, 
@@ -10445,20 +10454,19 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_user_aspnet(
 						   i_provideruserkey varchar,
 						   i_isapproved boolean,
 						   i_utctimestamp timestampTZ)
-                  RETURNS databaseSchema.objectQualifier_user_aspnet_return_type AS
+                  RETURNS integer AS
 $BODY$DECLARE 
              ici_userid integer;
 			 ici_rankid integer;
 			 ici_displayname varchar :=i_displayname;
-			 ici_approvedFlag integer:=0;
-			 _rec databaseSchema.objectQualifier_user_aspnet_return_type;
+			 ici_approvedFlag integer:=0;			
 BEGIN
  	ici_approvedFlag := 0;
  	IF (i_isapproved IS TRUE) THEN ici_approvedFlag := 2;END IF;	
  	
  	IF EXISTS(SELECT 1 FROM databaseSchema.objectQualifier_user 
                   WHERE boardid=i_boardid 
-                  AND ((provideruserkey = i_provideruserkey) OR (name = i_username))) THEN
+                  AND ((provideruserkey = i_provideruserkey) OR (name = i_username)) limit 1) THEN
  	
  		SELECT DISTINCT userid INTO ici_userid 
  		from databaseSchema.objectQualifier_user 
@@ -10477,8 +10485,7 @@ BEGIN
  			flags = flags | ici_approvedFlag,
  			displayname = COALESCE(ici_displayname,i_username)
  		WHERE
- 			userid = ici_userid;
- 			SELECT ici_userid INTO _rec;
+ 			userid = ici_userid; 			
  	ELSE
  	
  		SELECT rankid INTO ici_rankid FROM databaseSchema.objectQualifier_rank 
@@ -10489,12 +10496,12 @@ BEGIN
 		END	IF;	
 		
         INSERT INTO databaseSchema.objectQualifier_user(boardid,rankid,name,displayname,password,email,joined,lastvisit,numposts,timezone,flags,provideruserkey)
-        VALUES(i_boardid,ici_rankid,i_username,COALESCE(ici_displayname,i_username),'-',i_email,i_utctimestamp,i_utctimestamp,0,(SELECT value FROM  databaseSchema.objectQualifier_registry where name LIKE 'timezone' and boardid=i_boardid)::varchar::int,ici_approvedFlag,i_provideruserkey);
-        SELECT CURRVAL(pg_get_serial_sequence('databaseSchema.objectQualifier_user','userid')) INTO _rec;                 
+        VALUES(i_boardid,ici_rankid,i_username,COALESCE((SELECT value FROM databaseSchema.objectQualifier_registry where name LIKE 'timezone' and boardid=i_boardid),(SELECT value FROM  databaseSchema.objectQualifier_registry where name LIKE 'timezone'))::varchar::int,ici_approvedFlag,i_provideruserkey) returning userid into ici_userid;
+        -- SELECT CURRVAL(pg_get_serial_sequence('databaseSchema.objectQualifier_user','userid')) INTO ici_userid;                 
                  
     END IF;                          
 
-RETURN  _rec;
+RETURN  ici_userid;
   END;$BODY$
   LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
   COST 100;

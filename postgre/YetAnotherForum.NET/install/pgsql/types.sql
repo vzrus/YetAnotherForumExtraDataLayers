@@ -4,6 +4,9 @@
 -- Copyright vzrus(c) 2009-2012
 
 -- Table Types
+SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_user_aspnet_return_type');
+--GO
+
 SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_user_table_type');
 --GO
 CREATE TYPE databaseSchema.objectQualifier_user_table_type AS
@@ -1606,14 +1609,6 @@ CREATE TYPE databaseSchema.objectQualifier_user_activity_rank_return_type AS
 SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_user_adminsave_return_type');
 --GO
 CREATE TYPE databaseSchema.objectQualifier_user_adminsave_return_type AS
-(
-"UserID" integer
-);
---GO
-
-SELECT databaseSchema.objectQualifier_drop_type('databaseSchema','objectQualifier_user_aspnet_return_type');
---GO
-CREATE TYPE databaseSchema.objectQualifier_user_aspnet_return_type AS
 (
 "UserID" integer
 );
