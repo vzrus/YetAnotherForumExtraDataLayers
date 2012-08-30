@@ -10437,7 +10437,7 @@ END;$BODY$
   COST 100;
 --GO
 
-DROP FUNCTION databaseSchema.objectQualifier_user_aspnet(
+DROP FUNCTION IF EXISTS databaseSchema.objectQualifier_user_aspnet(
                             integer,
 						    varchar, 
 						   varchar,
@@ -11251,7 +11251,7 @@ BEGIN
 			when true THEN  (SELECT us.userstyle FROM databaseSchema.objectQualifier_user us where us.userid = a.userid)  
 			else ''	 end as Style, 
 			(date_part('days', i_utctimestamp - a.joined) + 1) as NumDays,		
-			(select count(1) from databaseSchema.objectQualifier_message x where x.isapproved=1 and x.isdeleted = 0) AS NumPostsForum,
+			(select count(1) from databaseSchema.objectQualifier_message x where x.isapproved and not x.isdeleted) AS NumPostsForum,
 			(select count(1) from databaseSchema.objectQualifier_user x where x.userid=a.userid and AvatarImage is not null) AS HasAvatarImage ,
 			COALESCE(c.IsAdmin,0) AS IsAdmin,			
 			COALESCE(a.Flags & 1,0) AS IsHostAdmin
