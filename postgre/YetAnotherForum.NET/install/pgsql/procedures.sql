@@ -560,12 +560,10 @@ CREATE OR REPLACE FUNCTION databaseSchema.objectQualifier_active_list_user
 						   )
 				  RETURNS SETOF databaseSchema.objectQualifier_active_list_user_return_type AS
 $BODY$DECLARE
-_rec databaseSchema.objectQualifier_active_list_user_return_type%ROWTYPE;
+             _rec databaseSchema.objectQualifier_active_list_user_return_type%ROWTYPE;
 BEGIN
 -- Default i_guests  boolean 0
-
--- delete non-active
- 
+-- delete non-active 
 DELETE FROM databaseSchema.objectQualifier_active
 WHERE    lastactive < i_utctimestamp - (i_interval::varchar(11) || ' minute')::interval;
         -- SELECT active
@@ -581,10 +579,7 @@ WHERE    lastactive < i_utctimestamp - (i_interval::varchar(11) || ' minute')::i
              c.topicid,
 			 -- ForumName
              (SELECT x.name 
-                FROM   databaseSchema.objectQualifier_forum x
-                  INNER JOIN 
-                    databaseSchema.objectQualifier_active c
-                  ON c.forumid=x.forumid
+                FROM   databaseSchema.objectQualifier_forum x                
                   WHERE  x.forumid = c.forumid  LIMIT 1),
 				  -- TopicName
              (select topic from databaseSchema.objectQualifier_topic x 
@@ -624,9 +619,6 @@ ELSEIF (i_guests IS FALSE AND i_showcrawlers IS TRUE) THEN
              c.topicid,
              (SELECT x.name 
                 FROM   databaseSchema.objectQualifier_forum x
-                  INNER JOIN 
-                    databaseSchema.objectQualifier_active c
-                  ON c.forumid=x.forumid
                   WHERE  x.forumid = c.forumid  LIMIT 1),
             (select topic from databaseSchema.objectQualifier_topic x 
 			 where x.topicid=c.topicid limit 1),
@@ -705,9 +697,7 @@ ELSE
           end loop; 
 END IF;
 END;$BODY$
-  LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER
-  COST 100
-  ROWS 1000; 
+    LANGUAGE 'plpgsql' VOLATILE SECURITY DEFINER COST 100 ROWS 1000; 
 --GO
 
 -- Function: objectQualifier_active_listforum(integer)
